@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ShimmerCard from "@/components/ShimmerCard";
 import PremiumModal from "@/components/PremiumModal";
+import JobConfirmationModal from "@/components/JobConfirmationModal";
 import BottomNav from "@/components/BottomNav";
 import ReviewModal from "@/components/ReviewModal";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +42,7 @@ export default function Jobs() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
+  const [confirmJob, setConfirmJob] = useState<Job | null>(null);
 
   useEffect(() => { fetchJobs(); }, []);
 
@@ -63,10 +65,15 @@ export default function Jobs() {
     return usedToday < 2;
   };
 
-  const acceptJob = async (job: Job) => {
+  const handleAcceptClick = (job: Job) => {
     if (!user || !profile) return;
     if (!canAcceptJob()) { setShowPaywall(true); return; }
+    setConfirmJob(job);
+  };
 
+  const confirmAcceptJob = async () => {
+    if (!confirmJob || !user || !profile) return;
+    const job = confirmJob;
     setAccepting(job.id);
     try {
       await supabase.from("job_applications").insert({ job_id: job.id, cleaner_id: user.id, status: "applied" });
@@ -74,7 +81,6 @@ export default function Jobs() {
       const currentUsed = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
       await supabase.from("profiles").update({ jobs_used_today: currentUsed + 1, jobs_used_date: today }).eq("id", user.id);
 
-      // Create conversation
       const { data: existingConv } = await supabase.from("conversations").select("id").eq("job_id", job.id).eq("cleaner_id", user.id).maybeSingle();
       let convId = existingConv?.id;
       if (!convId) {
@@ -83,9 +89,9 @@ export default function Jobs() {
       }
 
       await refreshProfile();
-      toast.success("Application sent! Chat opened.");
-      if (convId) navigate(`/chat/${convId}`);
-      else fetchJobs();
+      setConfirmJob(null);
+      toast.success("Application sent!");
+      navigate(`/job/${job.id}`);
     } catch { toast.error("Failed to apply"); } finally { setAccepting(null); }
   };
 
@@ -153,14 +159,8 @@ export default function Jobs() {
               <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
             </div>
 
-            {/* Commission preview */}
-            <div className="bg-accent rounded-lg p-2 text-[10px] flex justify-between mb-3">
-              <span className="text-muted-foreground">You earn: <span className="font-bold text-primary">${(job.price * 0.9).toFixed(2)}</span></span>
-              <span className="text-muted-foreground">Platform fee: ${(job.price * 0.1).toFixed(2)}</span>
-            </div>
-
             {profile?.role === "cleaner" && (
-              <Button onClick={() => acceptJob(job)} disabled={accepting === job.id}
+              <Button onClick={() => handleAcceptClick(job)} disabled={accepting === job.id}
                 className="w-full h-10 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90">
                 {accepting === job.id ? "Applying..." : "Apply for Job"}
               </Button>
@@ -171,6 +171,16 @@ export default function Jobs() {
 
       <PremiumModal open={showPaywall} onClose={() => setShowPaywall(false)} message="You've reached your daily limit of 2 jobs. Start your 7-day free trial to unlock unlimited jobs." />
       {reviewJob && <ReviewModal open={!!reviewJob} onClose={() => setReviewJob(null)} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />}
+      {confirmJob && (
+        <JobConfirmationModal
+          open={!!confirmJob}
+          onClose={() => setConfirmJob(null)}
+          onConfirm={confirmAcceptJob}
+          loading={accepting === confirmJob.id}
+          jobTitle={confirmJob.title}
+          jobPrice={confirmJob.price}
+        />
+      )}
       <BottomNav />
     </div>
   );
