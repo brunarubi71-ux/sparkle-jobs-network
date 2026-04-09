@@ -14,7 +14,291 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          id: string
+          job_id: string | null
+          owner_id: string
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          owner_id: string
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_applications: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          id: string
+          job_id: string
+          status: string
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          status?: string
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          address: string | null
+          bathrooms: number
+          bedrooms: number
+          city: string | null
+          cleaning_type: string
+          created_at: string
+          description: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          owner_id: string
+          price: number
+          status: string
+          title: string
+          urgency: string
+        }
+        Insert: {
+          address?: string | null
+          bathrooms?: number
+          bedrooms?: number
+          city?: string | null
+          cleaning_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_id: string
+          price?: number
+          status?: string
+          title: string
+          urgency?: string
+        }
+        Update: {
+          address?: string | null
+          bathrooms?: number
+          bedrooms?: number
+          city?: string | null
+          cleaning_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_id?: string
+          price?: number
+          status?: string
+          title?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_text: string
+          sender_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_text: string
+          sender_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_text?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          email: string | null
+          free_contacts_used: number
+          free_trial_ends_at: string | null
+          free_trial_started_at: string | null
+          full_name: string | null
+          id: string
+          is_premium: boolean
+          jobs_used_date: string | null
+          jobs_used_today: number
+          phone: string | null
+          premium_status: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          free_contacts_used?: number
+          free_trial_ends_at?: string | null
+          free_trial_started_at?: string | null
+          full_name?: string | null
+          id: string
+          is_premium?: boolean
+          jobs_used_date?: string | null
+          jobs_used_today?: number
+          phone?: string | null
+          premium_status?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          free_contacts_used?: number
+          free_trial_ends_at?: string | null
+          free_trial_started_at?: string | null
+          full_name?: string | null
+          id?: string
+          is_premium?: boolean
+          jobs_used_date?: string | null
+          jobs_used_today?: number
+          phone?: string | null
+          premium_status?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      schedules: {
+        Row: {
+          asking_price: number | null
+          city: string
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          frequency: string
+          id: string
+          monthly_income_estimate: number | null
+          number_of_houses: number
+          owner_id: string
+          phone: string | null
+        }
+        Insert: {
+          asking_price?: number | null
+          city: string
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          frequency?: string
+          id?: string
+          monthly_income_estimate?: number | null
+          number_of_houses?: number
+          owner_id: string
+          phone?: string | null
+        }
+        Update: {
+          asking_price?: number | null
+          city?: string
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          frequency?: string
+          id?: string
+          monthly_income_estimate?: number | null
+          number_of_houses?: number
+          owner_id?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          plan_name: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          trial_start: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          trial_start?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          trial_start?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +307,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "cleaner" | "owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +434,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["cleaner", "owner"],
+    },
   },
 } as const
