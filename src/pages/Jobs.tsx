@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 interface Job {
   id: string;
+  owner_id: string;
   title: string;
   cleaning_type: string;
   price: number;
