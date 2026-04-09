@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Calendar, MessageCircle, Crown, User } from "lucide-react";
+import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const tabs = [
+const cleanerTabs = [
   { path: "/", label: "Jobs", icon: Briefcase },
   { path: "/schedules", label: "Schedules", icon: Calendar },
   { path: "/chat", label: "Chat", icon: MessageCircle },
@@ -9,9 +10,20 @@ const tabs = [
   { path: "/profile", label: "Profile", icon: User },
 ];
 
+const ownerTabs = [
+  { path: "/post-job", label: "Post Job", icon: PlusCircle },
+  { path: "/my-jobs", label: "My Jobs", icon: List },
+  { path: "/sell-schedule", label: "Sell", icon: ShoppingBag },
+  { path: "/chat", label: "Chat", icon: MessageCircle },
+  { path: "/profile", label: "Profile", icon: User },
+];
+
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+
+  const tabs = profile?.role === "owner" ? ownerTabs : cleanerTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
