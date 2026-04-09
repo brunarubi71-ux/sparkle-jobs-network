@@ -10,6 +10,10 @@ import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
+import PostJob from "./pages/PostJob";
+import MyJobs from "./pages/MyJobs";
+import SellSchedule from "./pages/SellSchedule";
+import PublicProfile from "./pages/PublicProfile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +33,12 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleHome() {
+  const { profile } = useAuth();
+  if (profile?.role === "owner") return <PostJob />;
+  return <Jobs />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -38,12 +48,17 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
+            <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
             <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/chat/:id" element={<ProtectedRoute><ChatConversation /></ProtectedRoute>} />
             <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
+            <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+            <Route path="/my-jobs" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
+            <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

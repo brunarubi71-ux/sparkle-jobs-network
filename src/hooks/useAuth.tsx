@@ -16,6 +16,20 @@ interface Profile {
   jobs_used_today: number;
   jobs_used_date: string | null;
   free_contacts_used: number;
+  bio: string | null;
+  experience_years: number;
+  specialties: string[];
+  languages: string[];
+  regions: string[];
+  availability: string | null;
+  transportation: string | null;
+  supplies: boolean;
+  company_name: string | null;
+  business_type: string | null;
+  years_in_business: number;
+  avatar_url: string | null;
+  jobs_completed: number;
+  total_earnings: number;
   created_at: string;
   updated_at: string;
 }
