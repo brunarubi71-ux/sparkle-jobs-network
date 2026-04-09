@@ -74,7 +74,6 @@ export default function Profile() {
       const updates: any = {
         full_name: form.full_name,
         city: form.city,
-        phone: form.phone,
         bio: form.bio,
         experience_years: form.experience_years,
         specialties: form.specialties.split(",").map(s => s.trim()).filter(Boolean),
