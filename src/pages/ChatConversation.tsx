@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Send, AlertTriangle, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { containsContactInfo, maskContactInfo } from "@/lib/contactFilter";
 import { toast } from "sonner";
 
 interface Message {
@@ -13,30 +14,6 @@ interface Message {
   created_at: string;
 }
 
-// Anti-bypass: detect phone numbers, emails, WhatsApp mentions
-const CONTACT_PATTERNS = [
-  /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/,          // phone numbers
-  /\(\d{3}\)\s?\d{3}[-.\s]?\d{4}/,                // (xxx) xxx-xxxx
-  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/, // emails
-  /whatsapp/i, /telegram/i, /signal/i,
-  /\+\d{1,3}\s?\d{4,}/,                           // international phone
-  /venmo/i, /cashapp/i, /zelle/i, /paypal/i,
-];
-
-function containsContactInfo(text: string): boolean {
-  return CONTACT_PATTERNS.some(pattern => pattern.test(text));
-}
-
-function maskContactInfo(text: string): string {
-  let masked = text;
-  // Mask phone numbers
-  masked = masked.replace(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g, "***-***-****");
-  masked = masked.replace(/\(\d{3}\)\s?\d{3}[-.\s]?\d{4}/g, "(***) ***-****");
-  masked = masked.replace(/\+\d{1,3}\s?\d{4,}/g, "+** ****");
-  // Mask emails
-  masked = masked.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "****@****.***");
-  return masked;
-}
 
 export default function ChatConversation() {
   const { id } = useParams<{ id: string }>();
@@ -114,8 +91,8 @@ export default function ChatConversation() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {!isPaid && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-amber-700">Contact details unlock after booking through Shinely. Sharing contact info before payment is not allowed.</p>
+            <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">For your safety, keep communication inside Shinely. Contact details unlock after booking.</p>
           </div>
         )}
         {messages.map((msg) => {

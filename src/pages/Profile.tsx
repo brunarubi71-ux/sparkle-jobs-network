@@ -174,8 +174,8 @@ export default function Profile() {
           {editing ? (
             <div className="space-y-3">
               <Input placeholder="City" value={form.city} onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))} className="rounded-xl h-10" />
-              <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} className="rounded-xl h-10" />
               <Textarea placeholder="Bio" value={form.bio} onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))} className="rounded-xl" />
+              {isCleaner ? (
               {isCleaner ? (
                 <>
                   <Input placeholder="Experience (years)" type="number" value={form.experience_years} onChange={(e) => setForm(f => ({ ...f, experience_years: parseInt(e.target.value) || 0 }))} className="rounded-xl h-10" />

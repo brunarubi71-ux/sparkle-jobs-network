@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin, Bed, Bath, Users, CheckCircle, XCircle, Play, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ interface JobWithApplicants {
 
 export default function MyJobs() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobWithApplicants[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
@@ -77,26 +79,10 @@ export default function MyJobs() {
     fetchJobs();
   };
 
-  const updateJobStatus = async (jobId: string, newStatus: string, cleanerId?: string | null) => {
+  const updateJobStatus = async (jobId: string, newStatus: string) => {
     await supabase.from("jobs").update({ status: newStatus }).eq("id", jobId);
-    if (newStatus === "completed" && cleanerId) {
-      // Update cleaner stats
-      const { data: profile } = await supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", cleanerId).single();
-      const job = jobs.find(j => j.id === jobId);
-      if (profile && job) {
-        await supabase.from("profiles").update({
-          jobs_completed: (profile.jobs_completed || 0) + 1,
-          total_earnings: (profile.total_earnings || 0) + (job.cleaner_earnings || 0),
-        }).eq("id", cleanerId);
-      }
-      // Check for rewards
-      await checkAndAwardBadges(cleanerId);
-    }
     toast.success(`Job marked as ${newStatus}`);
     fetchJobs();
-    if (newStatus === "completed" && cleanerId) {
-      setReviewJob({ jobId, reviewedId: cleanerId });
-    }
   };
 
   const checkAndAwardBadges = async (cleanerId: string) => {
@@ -198,10 +184,10 @@ export default function MyJobs() {
                   <Play className="w-3 h-3 mr-1" /> Start Job
                 </Button>
               )}
-              {job.status === "in_progress" && (
-                <Button size="sm" onClick={() => updateJobStatus(job.id, "completed", job.hired_cleaner_id)}
-                  className="flex-1 h-9 text-xs bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl">
-                  <CheckCircle className="w-3 h-3 mr-1" /> Complete
+              {["in_progress", "completed"].includes(job.status) && (
+                <Button size="sm" variant="outline" onClick={() => navigate(`/job/${job.id}`)}
+                  className="flex-1 h-9 text-xs rounded-xl">
+                  View Details
                 </Button>
               )}
               {job.status === "completed" && (
