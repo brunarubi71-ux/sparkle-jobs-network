@@ -85,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
     if (data.user) {
       await supabase.from("profiles").update({ role, full_name: fullName }).eq("id", data.user.id);
+      // Seed sample data on first user
+      await supabase.rpc("seed_sample_data", { p_user_id: data.user.id });
     }
   };
 
