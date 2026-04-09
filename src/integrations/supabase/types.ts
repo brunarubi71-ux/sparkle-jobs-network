@@ -78,6 +78,36 @@ export type Database = {
           },
         ]
       }
+      job_cancellations: {
+        Row: {
+          cancelled_by: string
+          created_at: string
+          id: string
+          is_late_cancellation: boolean | null
+          job_id: string
+          penalty_applied: boolean | null
+          reason: string | null
+        }
+        Insert: {
+          cancelled_by: string
+          created_at?: string
+          id?: string
+          is_late_cancellation?: boolean | null
+          job_id: string
+          penalty_applied?: boolean | null
+          reason?: string | null
+        }
+        Update: {
+          cancelled_by?: string
+          created_at?: string
+          id?: string
+          is_late_cancellation?: boolean | null
+          job_id?: string
+          penalty_applied?: boolean | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           address: string | null
@@ -86,16 +116,21 @@ export type Database = {
           city: string | null
           cleaner_earnings: number | null
           cleaning_type: string
+          completion_photos: string[] | null
           created_at: string
           date_time: string | null
           description: string | null
+          door_access_info: string | null
           hired_cleaner_id: string | null
           id: string
           latitude: number | null
           longitude: number | null
+          owner_confirmed_completion: boolean | null
           owner_id: string
+          owner_instructions: string | null
           platform_fee: number | null
           price: number
+          property_photos: string[] | null
           status: string
           title: string
           total_amount: number | null
@@ -108,16 +143,21 @@ export type Database = {
           city?: string | null
           cleaner_earnings?: number | null
           cleaning_type?: string
+          completion_photos?: string[] | null
           created_at?: string
           date_time?: string | null
           description?: string | null
+          door_access_info?: string | null
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          owner_confirmed_completion?: boolean | null
           owner_id: string
+          owner_instructions?: string | null
           platform_fee?: number | null
           price?: number
+          property_photos?: string[] | null
           status?: string
           title: string
           total_amount?: number | null
@@ -130,16 +170,21 @@ export type Database = {
           city?: string | null
           cleaner_earnings?: number | null
           cleaning_type?: string
+          completion_photos?: string[] | null
           created_at?: string
           date_time?: string | null
           description?: string | null
+          door_access_info?: string | null
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          owner_confirmed_completion?: boolean | null
           owner_id?: string
+          owner_instructions?: string | null
           platform_fee?: number | null
           price?: number
+          property_photos?: string[] | null
           status?: string
           title?: string
           total_amount?: number | null
@@ -209,6 +254,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           business_type: string | null
+          cancellation_violations: number | null
           city: string | null
           company_name: string | null
           created_at: string
@@ -230,6 +276,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           specialties: string[] | null
           supplies: boolean | null
+          suspension_until: string | null
           total_earnings: number | null
           transportation: string | null
           updated_at: string
@@ -240,6 +287,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           business_type?: string | null
+          cancellation_violations?: number | null
           city?: string | null
           company_name?: string | null
           created_at?: string
@@ -261,6 +309,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           specialties?: string[] | null
           supplies?: boolean | null
+          suspension_until?: string | null
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string
@@ -271,6 +320,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           business_type?: string | null
+          cancellation_violations?: number | null
           city?: string | null
           company_name?: string | null
           created_at?: string
@@ -292,6 +342,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           specialties?: string[] | null
           supplies?: boolean | null
+          suspension_until?: string | null
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string

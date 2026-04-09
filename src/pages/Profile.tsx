@@ -74,7 +74,6 @@ export default function Profile() {
       const updates: any = {
         full_name: form.full_name,
         city: form.city,
-        phone: form.phone,
         bio: form.bio,
         experience_years: form.experience_years,
         specialties: form.specialties.split(",").map(s => s.trim()).filter(Boolean),
@@ -174,7 +173,6 @@ export default function Profile() {
           {editing ? (
             <div className="space-y-3">
               <Input placeholder="City" value={form.city} onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))} className="rounded-xl h-10" />
-              <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} className="rounded-xl h-10" />
               <Textarea placeholder="Bio" value={form.bio} onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))} className="rounded-xl" />
               {isCleaner ? (
                 <>

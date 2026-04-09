@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import MyJobs from "./pages/MyJobs";
 import SellSchedule from "./pages/SellSchedule";
+import JobDetails from "./pages/JobDetails";
 import PublicProfile from "./pages/PublicProfile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
             <Route path="/my-jobs" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
             <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
+            <Route path="/job/:id" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
