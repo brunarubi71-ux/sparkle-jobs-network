@@ -84,16 +84,21 @@ export type Database = {
           bathrooms: number
           bedrooms: number
           city: string | null
+          cleaner_earnings: number | null
           cleaning_type: string
           created_at: string
+          date_time: string | null
           description: string | null
+          hired_cleaner_id: string | null
           id: string
           latitude: number | null
           longitude: number | null
           owner_id: string
+          platform_fee: number | null
           price: number
           status: string
           title: string
+          total_amount: number | null
           urgency: string
         }
         Insert: {
@@ -101,16 +106,21 @@ export type Database = {
           bathrooms?: number
           bedrooms?: number
           city?: string | null
+          cleaner_earnings?: number | null
           cleaning_type?: string
           created_at?: string
+          date_time?: string | null
           description?: string | null
+          hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           owner_id: string
+          platform_fee?: number | null
           price?: number
           status?: string
           title: string
+          total_amount?: number | null
           urgency?: string
         }
         Update: {
@@ -118,16 +128,21 @@ export type Database = {
           bathrooms?: number
           bedrooms?: number
           city?: string | null
+          cleaner_earnings?: number | null
           cleaning_type?: string
           created_at?: string
+          date_time?: string | null
           description?: string | null
+          hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           owner_id?: string
+          platform_fee?: number | null
           price?: number
           status?: string
           title?: string
+          total_amount?: number | null
           urgency?: string
         }
         Relationships: []
@@ -164,57 +179,174 @@ export type Database = {
           },
         ]
       }
+      portfolio_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          availability: string | null
+          avatar_url: string | null
+          bio: string | null
+          business_type: string | null
           city: string | null
+          company_name: string | null
           created_at: string
           email: string | null
+          experience_years: number | null
           free_contacts_used: number
           free_trial_ends_at: string | null
           free_trial_started_at: string | null
           full_name: string | null
           id: string
           is_premium: boolean
+          jobs_completed: number | null
           jobs_used_date: string | null
           jobs_used_today: number
+          languages: string[] | null
           phone: string | null
           premium_status: string | null
+          regions: string[] | null
           role: Database["public"]["Enums"]["app_role"]
+          specialties: string[] | null
+          supplies: boolean | null
+          total_earnings: number | null
+          transportation: string | null
           updated_at: string
+          years_in_business: number | null
         }
         Insert: {
+          availability?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string
           email?: string | null
+          experience_years?: number | null
           free_contacts_used?: number
           free_trial_ends_at?: string | null
           free_trial_started_at?: string | null
           full_name?: string | null
           id: string
           is_premium?: boolean
+          jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
+          regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
+          specialties?: string[] | null
+          supplies?: boolean | null
+          total_earnings?: number | null
+          transportation?: string | null
           updated_at?: string
+          years_in_business?: number | null
         }
         Update: {
+          availability?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string
           email?: string | null
+          experience_years?: number | null
           free_contacts_used?: number
           free_trial_ends_at?: string | null
           free_trial_started_at?: string | null
           full_name?: string | null
           id?: string
           is_premium?: boolean
+          jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
+          regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
+          specialties?: string[] | null
+          supplies?: boolean | null
+          total_earnings?: number | null
+          transportation?: string | null
           updated_at?: string
+          years_in_business?: number | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          rating: number
+          review_text: string | null
+          reviewed_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          rating: number
+          review_text?: string | null
+          reviewed_id: string
+          reviewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          rating?: number
+          review_text?: string | null
+          reviewed_id?: string
+          reviewer_id?: string
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          badge_name: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_name: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_name?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
