@@ -496,7 +496,7 @@ export type Database = {
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "cleaner" | "owner"
+      app_role: "cleaner" | "owner" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -624,7 +624,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["cleaner", "owner"],
+      app_role: ["cleaner", "owner", "admin"],
     },
   },
 } as const
