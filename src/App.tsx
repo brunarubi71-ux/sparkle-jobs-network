@@ -13,6 +13,7 @@ import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import MyJobs from "./pages/MyJobs";
+import CleanerMyJobs from "./pages/CleanerMyJobs";
 import SellSchedule from "./pages/SellSchedule";
 import JobDetails from "./pages/JobDetails";
 import PublicProfile from "./pages/PublicProfile";
