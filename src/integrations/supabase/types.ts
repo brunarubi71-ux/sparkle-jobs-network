@@ -272,6 +272,7 @@ export type Database = {
           jobs_completed: number | null
           jobs_used_date: string | null
           jobs_used_today: number
+          language: string | null
           languages: string[] | null
           phone: string | null
           premium_status: string | null
@@ -305,6 +306,7 @@ export type Database = {
           jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          language?: string | null
           languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          language?: string | null
           languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
@@ -493,7 +496,7 @@ export type Database = {
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "cleaner" | "owner"
+      app_role: "cleaner" | "owner" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -621,7 +624,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["cleaner", "owner"],
+      app_role: ["cleaner", "owner", "admin"],
     },
   },
 } as const

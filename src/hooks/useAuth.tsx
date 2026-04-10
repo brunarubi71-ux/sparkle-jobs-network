@@ -8,7 +8,7 @@ interface Profile {
   email: string | null;
   phone: string | null;
   city: string | null;
-  role: "cleaner" | "owner";
+  role: "cleaner" | "owner" | "admin";
   is_premium: boolean;
   premium_status: string | null;
   free_trial_started_at: string | null;
