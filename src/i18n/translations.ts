@@ -18,6 +18,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.tagline": "Premium Cleaning Marketplace",
     "auth.cleaner": "Cleaner",
     "auth.owner": "Job Owner",
+    "auth.transportation_question": "Do you have your own transportation?",
+    "auth.yes_transport": "Yes",
+    "auth.no_transport": "No (Helper)",
 
     // Nav
     "nav.jobs": "Jobs",
@@ -113,6 +116,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.tagline": "Marketplace Premium de Limpeza",
     "auth.cleaner": "Faxineiro(a)",
     "auth.owner": "Proprietário",
+    "auth.transportation_question": "Você tem transporte próprio?",
+    "auth.yes_transport": "Sim",
+    "auth.no_transport": "Não (Ajudante)",
 
     "nav.jobs": "Vagas",
     "nav.schedules": "Agendas",
@@ -201,6 +207,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.tagline": "Marketplace Premium de Limpieza",
     "auth.cleaner": "Limpiador(a)",
     "auth.owner": "Propietario",
+    "auth.transportation_question": "¿Tienes transporte propio?",
+    "auth.yes_transport": "Sí",
+    "auth.no_transport": "No (Ayudante)",
 
     "nav.jobs": "Trabajos",
     "nav.schedules": "Agendas",
