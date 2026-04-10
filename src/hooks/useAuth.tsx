@@ -30,6 +30,10 @@ interface Profile {
   avatar_url: string | null;
   jobs_completed: number;
   total_earnings: number;
+  plan_tier: "free" | "premium" | "pro";
+  has_transportation: boolean;
+  worker_type: "cleaner" | "helper";
+  is_available_now: boolean;
   created_at: string;
   updated_at: string;
 }
