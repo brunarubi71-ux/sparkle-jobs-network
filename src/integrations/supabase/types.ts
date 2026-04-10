@@ -272,6 +272,7 @@ export type Database = {
           jobs_completed: number | null
           jobs_used_date: string | null
           jobs_used_today: number
+          language: string | null
           languages: string[] | null
           phone: string | null
           premium_status: string | null
@@ -305,6 +306,7 @@ export type Database = {
           jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          language?: string | null
           languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           jobs_completed?: number | null
           jobs_used_date?: string | null
           jobs_used_today?: number
+          language?: string | null
           languages?: string[] | null
           phone?: string | null
           premium_status?: string | null
