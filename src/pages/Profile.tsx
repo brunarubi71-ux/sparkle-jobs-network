@@ -2,14 +2,28 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, DollarSign, Edit2, Save, X, Image as ImageIcon } from "lucide-react";
+import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+const LEVELS = [
+  { threshold: 10, name: "Rising Cleaner", emoji: "⭐" },
+  { threshold: 25, name: "Top Cleaner", emoji: "🌟" },
+  { threshold: 50, name: "Elite Cleaner", emoji: "💎" },
+];
+
+function getLevel(jobsCompleted: number) {
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (jobsCompleted >= LEVELS[i].threshold) return { current: LEVELS[i], next: LEVELS[i + 1] || null };
+  }
+  return { current: null, next: LEVELS[0] };
+}
 
 export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -20,8 +34,9 @@ export default function Profile() {
   const [photos, setPhotos] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [animatedEarnings, setAnimatedEarnings] = useState(0);
   const [form, setForm] = useState({
-    full_name: "", city: "", phone: "", bio: "",
+    full_name: "", city: "", bio: "",
     experience_years: 0, specialties: "" as string,
     languages: "" as string, regions: "" as string,
     availability: "full-time", transportation: "car", supplies: true,
@@ -33,7 +48,6 @@ export default function Profile() {
       setForm({
         full_name: profile.full_name || "",
         city: profile.city || "",
-        phone: profile.phone || "",
         bio: (profile as any).bio || "",
         experience_years: (profile as any).experience_years || 0,
         specialties: ((profile as any).specialties || []).join(", "),
@@ -46,6 +60,16 @@ export default function Profile() {
         business_type: (profile as any).business_type || "",
         years_in_business: (profile as any).years_in_business || 0,
       });
+      // Animate earnings count-up
+      const target = (profile as any)?.total_earnings || 0;
+      let current = 0;
+      const step = Math.max(target / 40, 0.5);
+      const interval = setInterval(() => {
+        current += step;
+        if (current >= target) { setAnimatedEarnings(target); clearInterval(interval); }
+        else setAnimatedEarnings(Math.round(current * 100) / 100);
+      }, 30);
+      return () => clearInterval(interval);
     }
   }, [profile]);
 
@@ -72,29 +96,19 @@ export default function Profile() {
     setSaving(true);
     try {
       const updates: any = {
-        full_name: form.full_name,
-        city: form.city,
-        bio: form.bio,
+        full_name: form.full_name, city: form.city, bio: form.bio,
         experience_years: form.experience_years,
         specialties: form.specialties.split(",").map(s => s.trim()).filter(Boolean),
         languages: form.languages.split(",").map(s => s.trim()).filter(Boolean),
         regions: form.regions.split(",").map(s => s.trim()).filter(Boolean),
-        availability: form.availability,
-        transportation: form.transportation,
-        supplies: form.supplies,
-        company_name: form.company_name,
-        business_type: form.business_type,
-        years_in_business: form.years_in_business,
+        availability: form.availability, transportation: form.transportation, supplies: form.supplies,
+        company_name: form.company_name, business_type: form.business_type, years_in_business: form.years_in_business,
       };
       await supabase.from("profiles").update(updates).eq("id", user.id);
       await refreshProfile();
       setEditing(false);
       toast.success("Profile updated!");
-    } catch {
-      toast.error("Failed to save");
-    } finally {
-      setSaving(false);
-    }
+    } catch { toast.error("Failed to save"); } finally { setSaving(false); }
   };
 
   const uploadAvatar = async (file: File) => {
@@ -123,14 +137,14 @@ export default function Profile() {
   const handleLogout = async () => { await signOut(); navigate("/auth"); };
 
   const isCleaner = profile?.role === "cleaner";
+  const jobsCompleted = (profile as any)?.jobs_completed || 0;
+  const levelInfo = getLevel(jobsCompleted);
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="gradient-primary px-4 pt-8 pb-16 text-center relative">
         {!editing ? (
-          <button onClick={() => setEditing(true)} className="absolute top-4 right-4 text-primary-foreground/70 hover:text-primary-foreground">
-            <Edit2 className="w-5 h-5" />
-          </button>
+          <button onClick={() => setEditing(true)} className="absolute top-4 right-4 text-primary-foreground/70 hover:text-primary-foreground"><Edit2 className="w-5 h-5" /></button>
         ) : (
           <div className="absolute top-4 right-4 flex gap-2">
             <button onClick={saveProfile} disabled={saving} className="text-primary-foreground"><Save className="w-5 h-5" /></button>
@@ -138,7 +152,7 @@ export default function Profile() {
           </div>
         )}
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="w-20 h-20 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative"
+          className={`w-20 h-20 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative ${profile?.is_premium ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-primary" : ""}`}
         >
           {(profile as any)?.avatar_url ? <img src={(profile as any).avatar_url} className="w-full h-full object-cover" /> :
             <span className="text-2xl font-bold text-primary-foreground">{profile?.full_name?.charAt(0)?.toUpperCase() || "?"}</span>}
@@ -153,8 +167,9 @@ export default function Profile() {
         ) : (
           <h1 className="text-xl font-bold text-primary-foreground">{profile?.full_name || "User"}</h1>
         )}
-        <div className="flex items-center justify-center gap-2 mt-1">
-          {profile?.is_premium && <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 text-[10px]"><Crown className="w-3 h-3 mr-1" /> Premium</Badge>}
+        <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
+          {profile?.is_premium && <Badge className="bg-amber-400/20 text-amber-100 border-amber-400/30 text-[10px]"><Crown className="w-3 h-3 mr-1" /> Premium</Badge>}
+          {levelInfo.current && <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 text-[10px]">{levelInfo.current.emoji} {levelInfo.current.name}</Badge>}
           <span className="text-primary-foreground/70 text-sm capitalize">{profile?.role}</span>
         </div>
         {avgRating > 0 && (
@@ -167,8 +182,33 @@ export default function Profile() {
       </div>
 
       <div className="px-4 -mt-8 relative z-10 space-y-3">
-        {/* Editable Details */}
+        {/* Earnings & Stats */}
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card rounded-2xl shadow-card p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Earnings & Stats</h3>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <p className="text-2xl font-bold text-foreground">${animatedEarnings.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Total earnings</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{jobsCompleted}</p>
+              <p className="text-xs text-muted-foreground">Jobs completed</p>
+            </div>
+          </div>
+          {/* Progress to next level */}
+          {isCleaner && levelInfo.next && (
+            <div className="bg-accent rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-foreground flex items-center gap-1"><Target className="w-3 h-3 text-primary" /> Next: {levelInfo.next.emoji} {levelInfo.next.name}</span>
+                <span className="text-xs text-muted-foreground">{jobsCompleted}/{levelInfo.next.threshold}</span>
+              </div>
+              <Progress value={(jobsCompleted / levelInfo.next.threshold) * 100} className="h-2" />
+            </div>
+          )}
+        </motion.div>
+
+        {/* Profile Details */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="bg-card rounded-2xl shadow-card p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Details</h3>
           {editing ? (
             <div className="space-y-3">
@@ -195,7 +235,7 @@ export default function Profile() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4 text-primary" /> {profile?.city || "Not set"}</div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="w-4 h-4 text-primary" /> {isCleaner ? "Cleaner" : (profile as any)?.company_name || "Job Owner"}</div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Award className="w-4 h-4 text-primary" /> {(profile as any)?.jobs_completed || 0} jobs completed</div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Award className="w-4 h-4 text-primary" /> {jobsCompleted} jobs completed</div>
               {(profile as any)?.bio && <p className="text-sm text-muted-foreground mt-2">{(profile as any).bio}</p>}
               {(profile as any)?.specialties?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -206,34 +246,23 @@ export default function Profile() {
           )}
         </motion.div>
 
-        {/* Stats */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Earnings & Stats</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-2xl font-bold text-foreground">${((profile as any)?.total_earnings || 0).toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Total earnings</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{(profile as any)?.jobs_completed || 0}</p>
-              <p className="text-xs text-muted-foreground">Jobs completed</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Rewards */}
+        {/* Rewards/Badges */}
         {rewards.length > 0 && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-card rounded-2xl shadow-card p-4">
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Badges</h3>
             <div className="flex flex-wrap gap-2">
-              {rewards.map(r => <Badge key={r.id} className="bg-accent text-primary border-0">{r.badge_name}</Badge>)}
+              {rewards.map(r => (
+                <Badge key={r.id} className="bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-primary/20">
+                  {r.badge_name === "Rising Cleaner" ? "⭐" : r.badge_name === "Top Cleaner" ? "🌟" : "💎"} {r.badge_name}
+                </Badge>
+              ))}
             </div>
           </motion.div>
         )}
 
-        {/* Portfolio (cleaners) */}
+        {/* Portfolio */}
         {isCleaner && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-card rounded-2xl shadow-card p-4">
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-card rounded-2xl shadow-card p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1"><ImageIcon className="w-4 h-4" /> Portfolio</h3>
               <label className="text-xs text-primary cursor-pointer font-medium">
@@ -253,7 +282,7 @@ export default function Profile() {
 
         {/* Reviews */}
         {reviews.length > 0 && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="bg-card rounded-2xl shadow-card p-4">
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-card rounded-2xl shadow-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Reviews</h3>
             {reviews.slice(0, 5).map(r => (
               <div key={r.id} className="border-b border-border pb-2 mb-2 last:border-0 last:mb-0">
