@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MapPin, Bed, Bath, Camera, CheckCircle, AlertTriangle,
-  Image as ImageIcon, Play, FileText, Lock, Shield, Sparkles, Clock
+  Image as ImageIcon, Play, FileText, Lock, Sparkles, Clock, Home, ImagePlus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -138,6 +138,7 @@ export default function JobDetails() {
   if (!job) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Job not found</p></div>;
 
   const status = statusConfig[job.status] || { color: "bg-muted text-muted-foreground", label: job.status.toUpperCase(), icon: "📌" };
+  const propertyPhotos: string[] = job.property_photos || [];
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -164,7 +165,7 @@ export default function JobDetails() {
       </AnimatePresence>
 
       <div className="px-4 py-4 space-y-4">
-        {/* Job Summary Card */}
+        {/* ===== JOB SUMMARY CARD (both roles) ===== */}
         <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
           className="bg-card rounded-2xl shadow-card p-5">
           <div className="flex items-start justify-between mb-2">
@@ -211,47 +212,64 @@ export default function JobDetails() {
           </motion.div>
         )}
 
-        {/* ===== CLEANER VIEW: Read-Only Instructions ===== */}
-        {isCleaner && (ownerInstructions || doorAccess) && (
+        {/* ===== CLEANER VIEW: Read-Only Job Instructions ===== */}
+        {isCleaner && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }}
-            className="space-y-3">
+            className="space-y-4">
 
             {/* Job Instructions Card */}
-            {ownerInstructions && (
-              <div className="bg-card rounded-2xl shadow-card p-5">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                  <FileText className="w-4 h-4 text-primary" /> Job Instructions
-                </h3>
+            <div className="bg-card rounded-2xl shadow-card p-5">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-primary" /> Job Instructions
+              </h3>
+              {ownerInstructions ? (
                 <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{ownerInstructions}</p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="bg-accent/50 rounded-xl p-4 flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">No instructions provided yet.</p>
+                </div>
+              )}
+            </div>
 
             {/* Access Details Card */}
-            {doorAccess && (
-              <div className="bg-card rounded-2xl shadow-card p-5 border-l-4 border-l-amber-400">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                  <Lock className="w-4 h-4 text-amber-500" /> 🔐 Access Details
-                </h3>
-                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+            <div className="bg-card rounded-2xl shadow-card p-5 border-l-4 border-l-amber-400">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                <Lock className="w-4 h-4 text-amber-500" /> Access Details 🔐
+              </h3>
+              {doorAccess ? (
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{doorAccess}</p>
+                </div>
+              ) : (
+                <div className="bg-accent/50 rounded-xl p-4 flex items-center gap-3">
+                  <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">No access details provided yet.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Reference Photos Section */}
+            {propertyPhotos.length > 0 && (
+              <div className="bg-card rounded-2xl shadow-card p-5">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                  <Home className="w-4 h-4 text-primary" /> Reference Photos
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {propertyPhotos.map((url, i) => (
+                    <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Reference ${i + 1}`} />
+                  ))}
                 </div>
               </div>
             )}
           </motion.div>
         )}
 
-        {isCleaner && !ownerInstructions && !doorAccess && ["hired", "in_progress"].includes(job.status) && (
-          <div className="bg-accent/60 rounded-xl p-4 flex items-center gap-3 border border-border">
-            <Clock className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            <p className="text-sm text-muted-foreground">The owner hasn't added instructions yet. Check back before starting.</p>
-          </div>
-        )}
-
         {/* ===== CLEANER: Start Job Button (hired → in_progress) ===== */}
         {isCleaner && job.status === "hired" && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
             <Button onClick={startJob} disabled={startingJob}
               className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98]">
               <Play className="w-6 h-6 mr-2" />
@@ -260,7 +278,7 @@ export default function JobDetails() {
           </motion.div>
         )}
 
-        {/* ===== CLEANER: Job Execution (in_progress) ===== */}
+        {/* ===== CLEANER: Work Execution (in_progress) ===== */}
         {isCleaner && job.status === "in_progress" && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
             className="space-y-4">
@@ -271,14 +289,14 @@ export default function JobDetails() {
               <p className="text-sm font-semibold text-primary">Job in progress...</p>
             </div>
 
-            {/* Upload Photos Card */}
+            {/* Work Proof Card */}
             <div className="bg-card rounded-2xl shadow-card p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Camera className="w-4 h-4 text-primary" /> Upload Work Photos
+                  <Camera className="w-4 h-4 text-primary" /> Work Proof
                 </h3>
                 <label className="text-xs text-primary cursor-pointer font-semibold flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
-                  + Add Photo
+                  <ImagePlus className="w-3.5 h-3.5" /> Add Photo
                   <input type="file" accept="image/*" className="hidden" disabled={uploading}
                     onChange={(e) => e.target.files?.[0] && uploadCompletionPhoto(e.target.files[0])} />
                 </label>
@@ -288,7 +306,7 @@ export default function JobDetails() {
                 <div className="grid grid-cols-3 gap-2">
                   {completionPhotos.map((url, i) => (
                     <motion.img key={i} src={url} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                      className="w-full aspect-square object-cover rounded-xl border border-border" />
+                      className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Work photo ${i + 1}`} />
                   ))}
                 </div>
               ) : (
@@ -308,7 +326,7 @@ export default function JobDetails() {
 
               <div>
                 <label className="text-xs font-medium text-foreground mb-1 block">Completion Notes (optional)</label>
-                <Textarea placeholder="Anything unusual? Missing supplies? Damage noticed?" value={completionNotes}
+                <Textarea placeholder="What was cleaned? Missing supplies? Anything unusual?" value={completionNotes}
                   onChange={(e) => setCompletionNotes(e.target.value)} className="rounded-xl min-h-[60px]" />
               </div>
             </div>
@@ -316,7 +334,7 @@ export default function JobDetails() {
             <Button onClick={submitCompletion} disabled={completing || completionPhotos.length === 0}
               className="w-full h-16 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 font-bold text-lg shadow-[0_4px_14px_0_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]">
               <CheckCircle className="w-6 h-6 mr-2" />
-              {completing ? "Submitting..." : "Finish Job"}
+              {completing ? "Submitting..." : "Mark as Finished"}
             </Button>
           </motion.div>
         )}
@@ -332,7 +350,7 @@ export default function JobDetails() {
             <p className="text-sm text-indigo-600">The owner will review your work and release payment once approved.</p>
             {completionPhotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-4">
-                {completionPhotos.map((url, i) => <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl" />)}
+                {completionPhotos.map((url, i) => <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl" alt={`Completion ${i + 1}`} />)}
               </div>
             )}
           </motion.div>
@@ -346,7 +364,7 @@ export default function JobDetails() {
 
             {completionPhotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-3">
-                {completionPhotos.map((url, i) => <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl" />)}
+                {completionPhotos.map((url, i) => <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl" alt={`Review ${i + 1}`} />)}
               </div>
             )}
 

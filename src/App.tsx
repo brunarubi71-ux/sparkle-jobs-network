@@ -13,6 +13,7 @@ import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import MyJobs from "./pages/MyJobs";
+import CleanerMyJobs from "./pages/CleanerMyJobs";
 import SellSchedule from "./pages/SellSchedule";
 import JobDetails from "./pages/JobDetails";
 import PublicProfile from "./pages/PublicProfile";
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
               <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
               <Route path="/my-jobs" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
+              <Route path="/cleaner-my-jobs" element={<ProtectedRoute><CleanerMyJobs /></ProtectedRoute>} />
               <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
               <Route path="/job/:id" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
