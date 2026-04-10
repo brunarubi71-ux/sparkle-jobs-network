@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 import Jobs from "./pages/Jobs";
 import Schedules from "./pages/Schedules";
 import Chat from "./pages/Chat";
@@ -16,6 +17,8 @@ import SellSchedule from "./pages/SellSchedule";
 import JobDetails from "./pages/JobDetails";
 import PublicProfile from "./pages/PublicProfile";
 import Auth from "./pages/Auth";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +27,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background" />;
   if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background" />;
+  if (!user) return <Navigate to="/admin-login" replace />;
+  if (profile && profile.role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -43,28 +54,32 @@ function RoleHome() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
-            <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
-            <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/chat/:id" element={<ProtectedRoute><ChatConversation /></ProtectedRoute>} />
-            <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
-            <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
-            <Route path="/my-jobs" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
-            <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
-            <Route path="/job/:id" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
+              <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+              <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/chat/:id" element={<ProtectedRoute><ChatConversation /></ProtectedRoute>} />
+              <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
+              <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+              <Route path="/my-jobs" element={<ProtectedRoute><MyJobs /></ProtectedRoute>} />
+              <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
+              <Route path="/job/:id" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
