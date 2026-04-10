@@ -25,6 +25,7 @@ export default function PostJob() {
     city: "",
     urgency: "scheduled",
     description: "",
+    team_size: "1",
   });
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
@@ -52,6 +53,7 @@ export default function PostJob() {
         total_amount: price,
         platform_fee: platformFee,
         cleaner_earnings: cleanerEarnings,
+        team_size_required: parseInt(form.team_size) || 1,
       });
       if (error) throw error;
       toast.success("Job posted successfully!");
@@ -117,6 +119,19 @@ export default function PostJob() {
           <Input placeholder="City" value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
 
           <Textarea placeholder="Description" value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
+
+          {/* Team size */}
+          <div>
+            <p className="text-sm font-medium text-foreground mb-2">Cleaners needed</p>
+            <Select value={form.team_size} onValueChange={(v) => update("team_size", v)}>
+              <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 cleaner (solo)</SelectItem>
+                <SelectItem value="2">2 cleaners (team)</SelectItem>
+                <SelectItem value="3">3 cleaners (team)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
