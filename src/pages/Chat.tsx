@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Conversation {
   id: string;
@@ -17,6 +18,7 @@ interface Conversation {
 export default function Chat() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +28,7 @@ export default function Chat() {
   }, [user]);
 
   const fetchConversations = async () => {
-    const { data } = await supabase
-      .from("conversations")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("conversations").select("*").order("created_at", { ascending: false });
     setConversations((data as Conversation[]) || []);
     setLoading(false);
   };
@@ -37,8 +36,8 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Chat</h1>
-        <p className="text-sm text-muted-foreground">Your conversations</p>
+        <h1 className="text-2xl font-bold text-foreground">{t("chat.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("chat.subtitle")}</p>
       </div>
 
       <div className="px-4 space-y-2">
@@ -51,8 +50,8 @@ export default function Chat() {
         ) : conversations.length === 0 ? (
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No conversations yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Accept a job to start chatting</p>
+            <p className="text-muted-foreground">{t("chat.no_conversations")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("chat.no_conversations_hint")}</p>
           </div>
         ) : (
           conversations.map((conv, i) => (
@@ -68,12 +67,8 @@ export default function Chat() {
                 <MessageCircle className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground truncate">
-                  Conversation
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(conv.created_at).toLocaleDateString()}
-                </p>
+                <p className="text-sm font-medium text-foreground truncate">{t("chat.conversation")}</p>
+                <p className="text-xs text-muted-foreground">{new Date(conv.created_at).toLocaleDateString()}</p>
               </div>
             </motion.button>
           ))

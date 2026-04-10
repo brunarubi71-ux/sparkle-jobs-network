@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import ReviewModal from "@/components/ReviewModal";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Job {
   id: string;
@@ -42,16 +43,6 @@ const getTimeSince = (dateStr: string) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
-const getFomoBadge = (job: Job) => {
-  const diff = Date.now() - new Date(job.created_at).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 10) return { label: "JUST POSTED", icon: Zap, color: "bg-emerald-100 text-emerald-700" };
-  if (job.urgency === "urgent") return { label: "URGENT", icon: Flame, color: "bg-red-100 text-red-700" };
-  if (job.urgency === "asap") return { label: "ASAP", icon: TrendingUp, color: "bg-amber-100 text-amber-700" };
-  if (job.price >= 200) return { label: "HIGH VALUE", icon: Sparkles, color: "bg-purple-100 text-purple-700" };
-  return null;
-};
-
 function getJobLimits(tier: string) {
   switch (tier) {
     case "pro": return { maxJobs: Infinity, feeRate: 0.05 };
@@ -62,6 +53,7 @@ function getJobLimits(tier: string) {
 
 export default function Jobs() {
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +63,16 @@ export default function Jobs() {
   const [accepting, setAccepting] = useState<string | null>(null);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
   const [confirmJob, setConfirmJob] = useState<Job | null>(null);
+
+  const getFomoBadge = (job: Job) => {
+    const diff = Date.now() - new Date(job.created_at).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 10) return { label: t("jobs.just_posted"), icon: Zap, color: "bg-emerald-100 text-emerald-700" };
+    if (job.urgency === "urgent") return { label: t("jobs.urgent"), icon: Flame, color: "bg-red-100 text-red-700" };
+    if (job.urgency === "asap") return { label: t("jobs.asap"), icon: TrendingUp, color: "bg-amber-100 text-amber-700" };
+    if (job.price >= 200) return { label: t("jobs.high_value"), icon: Sparkles, color: "bg-purple-100 text-purple-700" };
+    return null;
+  };
 
   useEffect(() => { fetchJobs(); }, []);
 
@@ -106,7 +108,6 @@ export default function Jobs() {
     const job = confirmJob;
     setAccepting(job.id);
     try {
-      // If user wants PRO upgrade, do it first
       if (wantsProUpgrade) {
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -134,9 +135,9 @@ export default function Jobs() {
 
       await refreshProfile();
       setConfirmJob(null);
-      toast.success("Application sent! 🎉");
+      toast.success(t("common.application_sent"));
       navigate(`/job/${job.id}`);
-    } catch { toast.error("Failed to apply"); } finally { setAccepting(null); }
+    } catch { toast.error(t("common.failed_apply")); } finally { setAccepting(null); }
   };
 
   const filtered = jobs.filter(
@@ -149,18 +150,18 @@ export default function Jobs() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="h-48 gradient-primary relative flex items-end justify-center pb-4 overflow-hidden">
+      <div className="h-56 gradient-primary relative flex items-end justify-center pb-4 overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center opacity-20">
-          <MapPin className="w-20 h-20 text-primary-foreground animate-pulse" />
+          <MapPin className="w-24 h-24 text-primary-foreground animate-pulse" />
         </div>
         <div className="relative z-10 text-center">
-          <h1 className="text-primary-foreground font-bold text-lg">Nearby Jobs</h1>
-          <p className="text-primary-foreground/70 text-xs">Find cleaning jobs around you</p>
+          <h1 className="text-primary-foreground font-bold text-lg">{t("jobs.nearby")}</h1>
+          <p className="text-primary-foreground/70 text-xs">{t("jobs.subtitle")}</p>
         </div>
-        {filtered.slice(0, 3).map((job, i) => (
+        {filtered.slice(0, 4).map((job, i) => (
           <motion.div key={job.id} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 + i * 0.15, type: "spring" }}
-            className="absolute bg-card text-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow-elevated"
-            style={{ top: 30 + i * 30, left: 40 + i * 80 }}>
+            className="absolute bg-card text-foreground text-sm font-bold px-3 py-1.5 rounded-full shadow-elevated border border-primary/20"
+            style={{ top: 20 + i * 35, left: 30 + i * 70 }}>
             ${job.price}
           </motion.div>
         ))}
@@ -169,14 +170,14 @@ export default function Jobs() {
       <div className="px-4 -mt-5 relative z-10">
         <div className="bg-card rounded-2xl shadow-card flex items-center px-4 gap-2">
           <Search className="w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search jobs..." value={search} onChange={(e) => setSearch(e.target.value)} className="border-0 bg-transparent h-12 focus-visible:ring-0 pl-0" />
+          <Input placeholder={t("jobs.search")} value={search} onChange={(e) => setSearch(e.target.value)} className="border-0 bg-transparent h-12 focus-visible:ring-0 pl-0" />
           <button onClick={() => setShowFilters(!showFilters)} className="text-muted-foreground hover:text-primary transition-colors"><Filter className="w-4 h-4" /></button>
         </div>
       </div>
 
       {!loading && filtered.length > 0 && (
         <div className="px-4 mt-3">
-          <p className="text-xs text-muted-foreground">{filtered.length} jobs available near you</p>
+          <p className="text-xs text-muted-foreground">{filtered.length} {t("jobs.available")}</p>
         </div>
       )}
 
@@ -185,8 +186,8 @@ export default function Jobs() {
          filtered.length === 0 ? (
           <div className="text-center py-12">
             <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No jobs available</p>
-            <p className="text-xs text-muted-foreground mt-1">Check back soon for new opportunities</p>
+            <p className="text-muted-foreground">{t("jobs.no_jobs")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("jobs.check_back")}</p>
           </div>
         ) : filtered.map((job, i) => {
           const fomo = getFomoBadge(job);
@@ -220,13 +221,13 @@ export default function Jobs() {
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-3">
                 <Clock className="w-3 h-3" />
                 <span>{getTimeSince(job.created_at)}</span>
-                {isRecent && <span className="text-primary font-medium">• New</span>}
+                {isRecent && <span className="text-primary font-medium">• {t("jobs.new")}</span>}
               </div>
 
               {profile?.role === "cleaner" && (
                 <Button onClick={() => handleAcceptClick(job)} disabled={accepting === job.id}
                   className="w-full h-10 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90 active:scale-[0.97] transition-transform">
-                  {accepting === job.id ? "Applying..." : "Apply for Job"}
+                  {accepting === job.id ? t("jobs.applying") : t("jobs.apply")}
                 </Button>
               )}
             </motion.div>

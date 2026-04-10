@@ -1,28 +1,30 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-const cleanerTabs = [
-  { path: "/", label: "Jobs", icon: Briefcase },
-  { path: "/cleaner-my-jobs", label: "My Jobs", icon: ClipboardList },
-  { path: "/schedules", label: "Schedules", icon: Calendar },
-  { path: "/chat", label: "Chat", icon: MessageCircle },
-  { path: "/premium", label: "Premium", icon: Crown },
-  { path: "/profile", label: "Profile", icon: User },
-];
-
-const ownerTabs = [
-  { path: "/post-job", label: "Post Job", icon: PlusCircle },
-  { path: "/my-jobs", label: "My Jobs", icon: List },
-  { path: "/sell-schedule", label: "Sell", icon: ShoppingBag },
-  { path: "/chat", label: "Chat", icon: MessageCircle },
-  { path: "/profile", label: "Profile", icon: User },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { t } = useLanguage();
+
+  const cleanerTabs = [
+    { path: "/", label: t("nav.jobs"), icon: Briefcase },
+    { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList },
+    { path: "/schedules", label: t("nav.schedules"), icon: Calendar },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle },
+    { path: "/premium", label: t("nav.premium"), icon: Crown },
+    { path: "/profile", label: t("nav.profile"), icon: User },
+  ];
+
+  const ownerTabs = [
+    { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle },
+    { path: "/my-jobs", label: t("nav.my_jobs"), icon: List },
+    { path: "/sell-schedule", label: t("nav.sell"), icon: ShoppingBag },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle },
+    { path: "/profile", label: t("nav.profile"), icon: User },
+  ];
 
   const tabs = profile?.role === "owner" ? ownerTabs : cleanerTabs;
 
