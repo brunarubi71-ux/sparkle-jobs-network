@@ -21,7 +21,7 @@ export default function AdminLogin() {
       if (error) throw error;
       // Check if user has admin role
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-      if (profile?.role !== "admin") {
+      if ((profile?.role as string) !== "admin") {
         await supabase.auth.signOut();
         toast.error("Access denied.");
         setLoading(false);

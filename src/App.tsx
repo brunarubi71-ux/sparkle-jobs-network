@@ -34,7 +34,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background" />;
   if (!user) return <Navigate to="/admin-login" replace />;
-  if (profile && profile.role !== "admin") return <Navigate to="/" replace />;
+  if (profile && (profile.role as string) !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
