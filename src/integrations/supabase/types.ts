@@ -133,6 +133,7 @@ export type Database = {
           price: number
           property_photos: string[] | null
           status: string
+          team_size_required: number
           title: string
           total_amount: number | null
           urgency: string
@@ -161,6 +162,7 @@ export type Database = {
           price?: number
           property_photos?: string[] | null
           status?: string
+          team_size_required?: number
           title: string
           total_amount?: number | null
           urgency?: string
@@ -189,6 +191,7 @@ export type Database = {
           price?: number
           property_photos?: string[] | null
           status?: string
+          team_size_required?: number
           title?: string
           total_amount?: number | null
           urgency?: string
@@ -267,7 +270,9 @@ export type Database = {
           free_trial_ends_at: string | null
           free_trial_started_at: string | null
           full_name: string | null
+          has_transportation: boolean | null
           id: string
+          is_available_now: boolean | null
           is_premium: boolean
           jobs_completed: number | null
           jobs_used_date: string | null
@@ -275,6 +280,7 @@ export type Database = {
           language: string | null
           languages: string[] | null
           phone: string | null
+          plan_tier: string
           premium_status: string | null
           regions: string[] | null
           role: Database["public"]["Enums"]["app_role"]
@@ -284,6 +290,7 @@ export type Database = {
           total_earnings: number | null
           transportation: string | null
           updated_at: string
+          worker_type: string
           years_in_business: number | null
         }
         Insert: {
@@ -301,7 +308,9 @@ export type Database = {
           free_trial_ends_at?: string | null
           free_trial_started_at?: string | null
           full_name?: string | null
+          has_transportation?: boolean | null
           id: string
+          is_available_now?: boolean | null
           is_premium?: boolean
           jobs_completed?: number | null
           jobs_used_date?: string | null
@@ -309,6 +318,7 @@ export type Database = {
           language?: string | null
           languages?: string[] | null
           phone?: string | null
+          plan_tier?: string
           premium_status?: string | null
           regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -318,6 +328,7 @@ export type Database = {
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string
+          worker_type?: string
           years_in_business?: number | null
         }
         Update: {
@@ -335,7 +346,9 @@ export type Database = {
           free_trial_ends_at?: string | null
           free_trial_started_at?: string | null
           full_name?: string | null
+          has_transportation?: boolean | null
           id?: string
+          is_available_now?: boolean | null
           is_premium?: boolean
           jobs_completed?: number | null
           jobs_used_date?: string | null
@@ -343,6 +356,7 @@ export type Database = {
           language?: string | null
           languages?: string[] | null
           phone?: string | null
+          plan_tier?: string
           premium_status?: string | null
           regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -352,6 +366,7 @@ export type Database = {
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string
+          worker_type?: string
           years_in_business?: number | null
         }
         Relationships: []
@@ -485,6 +500,54 @@ export type Database = {
           trial_end?: string | null
           trial_start?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      team_invites: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          helper_id: string
+          id: string
+          job_id: string
+          status: string
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          helper_id: string
+          id?: string
+          job_id: string
+          status?: string
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          helper_id?: string
+          id?: string
+          job_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          helper_id: string
+          id: string
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          helper_id: string
+          id?: string
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          helper_id?: string
+          id?: string
         }
         Relationships: []
       }
