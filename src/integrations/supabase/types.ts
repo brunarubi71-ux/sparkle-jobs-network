@@ -116,6 +116,7 @@ export type Database = {
           city: string | null
           cleaner_earnings: number | null
           cleaning_type: string
+          completion_notes: string | null
           completion_photos: string[] | null
           created_at: string
           date_time: string | null
@@ -143,6 +144,7 @@ export type Database = {
           city?: string | null
           cleaner_earnings?: number | null
           cleaning_type?: string
+          completion_notes?: string | null
           completion_photos?: string[] | null
           created_at?: string
           date_time?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           city?: string | null
           cleaner_earnings?: number | null
           cleaning_type?: string
+          completion_notes?: string | null
           completion_photos?: string[] | null
           created_at?: string
           date_time?: string | null
