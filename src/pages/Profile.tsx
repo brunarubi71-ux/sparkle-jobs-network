@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const LEVELS = [
   { threshold: 10, name: "Rising Cleaner", emoji: "⭐" },
@@ -28,6 +29,7 @@ function getLevel(jobsCompleted: number) {
 export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [editing, setEditing] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
@@ -60,7 +62,6 @@ export default function Profile() {
         business_type: (profile as any).business_type || "",
         years_in_business: (profile as any).years_in_business || 0,
       });
-      // Animate earnings count-up
       const target = (profile as any)?.total_earnings || 0;
       let current = 0;
       const step = Math.max(target / 40, 0.5);
@@ -73,9 +74,7 @@ export default function Profile() {
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (user) fetchExtras();
-  }, [user]);
+  useEffect(() => { if (user) fetchExtras(); }, [user]);
 
   const fetchExtras = async () => {
     const [reviewsRes, rewardsRes, photosRes] = await Promise.all([
@@ -107,8 +106,8 @@ export default function Profile() {
       await supabase.from("profiles").update(updates).eq("id", user.id);
       await refreshProfile();
       setEditing(false);
-      toast.success("Profile updated!");
-    } catch { toast.error("Failed to save"); } finally { setSaving(false); }
+      toast.success(t("profile.updated"));
+    } catch { toast.error(t("common.failed")); } finally { setSaving(false); }
   };
 
   const uploadAvatar = async (file: File) => {
@@ -116,22 +115,22 @@ export default function Profile() {
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar.${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (error) { toast.error("Upload failed"); return; }
+    if (error) { toast.error(t("job.upload_failed")); return; }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
     await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
     await refreshProfile();
-    toast.success("Photo updated!");
+    toast.success(t("profile.photo_updated"));
   };
 
   const uploadPortfolioPhoto = async (file: File) => {
     if (!user) return;
     const path = `${user.id}/${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from("portfolio").upload(path, file);
-    if (error) { toast.error("Upload failed"); return; }
+    if (error) { toast.error(t("job.upload_failed")); return; }
     const { data: { publicUrl } } = supabase.storage.from("portfolio").getPublicUrl(path);
     await supabase.from("portfolio_photos").insert({ user_id: user.id, photo_url: publicUrl });
     fetchExtras();
-    toast.success("Photo added!");
+    toast.success(t("profile.photo_added"));
   };
 
   const handleLogout = async () => { await signOut(); navigate("/auth"); };
@@ -182,24 +181,22 @@ export default function Profile() {
       </div>
 
       <div className="px-4 -mt-8 relative z-10 space-y-3">
-        {/* Earnings & Stats */}
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card rounded-2xl shadow-card p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Earnings & Stats</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> {t("profile.earnings")}</h3>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
               <p className="text-2xl font-bold text-foreground">${animatedEarnings.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Total earnings</p>
+              <p className="text-xs text-muted-foreground">{t("profile.total_earnings")}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{jobsCompleted}</p>
-              <p className="text-xs text-muted-foreground">Jobs completed</p>
+              <p className="text-xs text-muted-foreground">{t("profile.jobs_completed")}</p>
             </div>
           </div>
-          {/* Progress to next level */}
           {isCleaner && levelInfo.next && (
             <div className="bg-accent rounded-xl p-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-foreground flex items-center gap-1"><Target className="w-3 h-3 text-primary" /> Next: {levelInfo.next.emoji} {levelInfo.next.name}</span>
+                <span className="text-xs font-medium text-foreground flex items-center gap-1"><Target className="w-3 h-3 text-primary" /> {t("profile.next_level")}: {levelInfo.next.emoji} {levelInfo.next.name}</span>
                 <span className="text-xs text-muted-foreground">{jobsCompleted}/{levelInfo.next.threshold}</span>
               </div>
               <Progress value={(jobsCompleted / levelInfo.next.threshold) * 100} className="h-2" />
@@ -207,35 +204,34 @@ export default function Profile() {
           )}
         </motion.div>
 
-        {/* Profile Details */}
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="bg-card rounded-2xl shadow-card p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Details</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t("profile.details")}</h3>
           {editing ? (
             <div className="space-y-3">
-              <Input placeholder="City" value={form.city} onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))} className="rounded-xl h-10" />
-              <Textarea placeholder="Bio" value={form.bio} onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))} className="rounded-xl" />
+              <Input placeholder={t("profile.city")} value={form.city} onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))} className="rounded-xl h-10" />
+              <Textarea placeholder={t("profile.bio")} value={form.bio} onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))} className="rounded-xl" />
               {isCleaner ? (
                 <>
-                  <Input placeholder="Experience (years)" type="number" value={form.experience_years} onChange={(e) => setForm(f => ({ ...f, experience_years: parseInt(e.target.value) || 0 }))} className="rounded-xl h-10" />
-                  <Input placeholder="Specialties (comma separated)" value={form.specialties} onChange={(e) => setForm(f => ({ ...f, specialties: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Languages (comma separated)" value={form.languages} onChange={(e) => setForm(f => ({ ...f, languages: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Regions (comma separated)" value={form.regions} onChange={(e) => setForm(f => ({ ...f, regions: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Availability" value={form.availability} onChange={(e) => setForm(f => ({ ...f, availability: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Transportation" value={form.transportation} onChange={(e) => setForm(f => ({ ...f, transportation: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.experience")} type="number" value={form.experience_years} onChange={(e) => setForm(f => ({ ...f, experience_years: parseInt(e.target.value) || 0 }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.specialties")} value={form.specialties} onChange={(e) => setForm(f => ({ ...f, specialties: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.languages")} value={form.languages} onChange={(e) => setForm(f => ({ ...f, languages: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.regions")} value={form.regions} onChange={(e) => setForm(f => ({ ...f, regions: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.availability")} value={form.availability} onChange={(e) => setForm(f => ({ ...f, availability: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.transportation")} value={form.transportation} onChange={(e) => setForm(f => ({ ...f, transportation: e.target.value }))} className="rounded-xl h-10" />
                 </>
               ) : (
                 <>
-                  <Input placeholder="Company Name" value={form.company_name} onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Business Type" value={form.business_type} onChange={(e) => setForm(f => ({ ...f, business_type: e.target.value }))} className="rounded-xl h-10" />
-                  <Input placeholder="Years in Business" type="number" value={form.years_in_business} onChange={(e) => setForm(f => ({ ...f, years_in_business: parseInt(e.target.value) || 0 }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.company_name")} value={form.company_name} onChange={(e) => setForm(f => ({ ...f, company_name: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.business_type")} value={form.business_type} onChange={(e) => setForm(f => ({ ...f, business_type: e.target.value }))} className="rounded-xl h-10" />
+                  <Input placeholder={t("profile.years_in_business")} type="number" value={form.years_in_business} onChange={(e) => setForm(f => ({ ...f, years_in_business: parseInt(e.target.value) || 0 }))} className="rounded-xl h-10" />
                 </>
               )}
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4 text-primary" /> {profile?.city || "Not set"}</div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="w-4 h-4 text-primary" /> {isCleaner ? "Cleaner" : (profile as any)?.company_name || "Job Owner"}</div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Award className="w-4 h-4 text-primary" /> {jobsCompleted} jobs completed</div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4 text-primary" /> {profile?.city || t("profile.not_set")}</div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="w-4 h-4 text-primary" /> {isCleaner ? t("profile.cleaner") : (profile as any)?.company_name || t("profile.job_owner")}</div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Award className="w-4 h-4 text-primary" /> {jobsCompleted} {t("profile.jobs_completed")}</div>
               {(profile as any)?.bio && <p className="text-sm text-muted-foreground mt-2">{(profile as any).bio}</p>}
               {(profile as any)?.specialties?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -246,10 +242,9 @@ export default function Profile() {
           )}
         </motion.div>
 
-        {/* Rewards/Badges */}
         {rewards.length > 0 && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Badges</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">{t("profile.badges")}</h3>
             <div className="flex flex-wrap gap-2">
               {rewards.map(r => (
                 <Badge key={r.id} className="bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-primary/20">
@@ -260,13 +255,12 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* Portfolio */}
         {isCleaner && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-card rounded-2xl shadow-card p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1"><ImageIcon className="w-4 h-4" /> Portfolio</h3>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1"><ImageIcon className="w-4 h-4" /> {t("profile.portfolio")}</h3>
               <label className="text-xs text-primary cursor-pointer font-medium">
-                + Add Photo
+                {t("profile.add_photo")}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadPortfolioPhoto(e.target.files[0])} />
               </label>
             </div>
@@ -275,15 +269,14 @@ export default function Profile() {
                 {photos.map(p => <img key={p.id} src={p.photo_url} className="w-full aspect-square object-cover rounded-xl" />)}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Upload photos of your work to attract more clients</p>
+              <p className="text-xs text-muted-foreground">{t("profile.portfolio_hint")}</p>
             )}
           </motion.div>
         )}
 
-        {/* Reviews */}
         {reviews.length > 0 && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-card rounded-2xl shadow-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Reviews</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">{t("profile.reviews")}</h3>
             {reviews.slice(0, 5).map(r => (
               <div key={r.id} className="border-b border-border pb-2 mb-2 last:border-0 last:mb-0">
                 <div className="flex gap-0.5 mb-1">{Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />)}</div>
@@ -294,7 +287,7 @@ export default function Profile() {
         )}
 
         <Button variant="outline" className="w-full h-12 rounded-xl border-border text-muted-foreground" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" /> Log Out
+          <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
       </div>
 
