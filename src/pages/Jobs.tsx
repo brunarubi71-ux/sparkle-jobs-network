@@ -52,6 +52,14 @@ const getFomoBadge = (job: Job) => {
   return null;
 };
 
+function getJobLimits(tier: string) {
+  switch (tier) {
+    case "pro": return { maxJobs: Infinity, feeRate: 0.05 };
+    case "premium": return { maxJobs: 3, feeRate: 0.10 };
+    default: return { maxJobs: 2, feeRate: 0.10 };
+  }
+}
+
 export default function Jobs() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -79,10 +87,12 @@ export default function Jobs() {
 
   const canAcceptJob = () => {
     if (!profile) return false;
-    if (profile.is_premium) return true;
+    const tier = profile.plan_tier || "free";
+    const { maxJobs } = getJobLimits(tier);
+    if (maxJobs === Infinity) return true;
     const today = new Date().toISOString().split("T")[0];
     const usedToday = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
-    return usedToday < 2;
+    return usedToday < maxJobs;
   };
 
   const handleAcceptClick = (job: Job) => {
@@ -91,11 +101,25 @@ export default function Jobs() {
     setConfirmJob(job);
   };
 
-  const confirmAcceptJob = async () => {
+  const confirmAcceptJob = async (wantsProUpgrade: boolean) => {
     if (!confirmJob || !user || !profile) return;
     const job = confirmJob;
     setAccepting(job.id);
     try {
+      // If user wants PRO upgrade, do it first
+      if (wantsProUpgrade) {
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        await supabase.from("profiles").update({
+          plan_tier: "pro",
+          is_premium: true,
+          premium_status: "trial",
+          free_trial_started_at: now.toISOString(),
+          free_trial_ends_at: trialEnd.toISOString(),
+        }).eq("id", user.id);
+        toast.success("Upgraded to PRO! 🎉");
+      }
+
       await supabase.from("job_applications").insert({ job_id: job.id, cleaner_id: user.id, status: "applied" });
       const today = new Date().toISOString().split("T")[0];
       const currentUsed = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
@@ -150,7 +174,6 @@ export default function Jobs() {
         </div>
       </div>
 
-      {/* Job count */}
       {!loading && filtered.length > 0 && (
         <div className="px-4 mt-3">
           <p className="text-xs text-muted-foreground">{filtered.length} jobs available near you</p>
@@ -167,7 +190,7 @@ export default function Jobs() {
           </div>
         ) : filtered.map((job, i) => {
           const fomo = getFomoBadge(job);
-          const isRecent = Date.now() - new Date(job.created_at).getTime() < 600000; // 10 min
+          const isRecent = Date.now() - new Date(job.created_at).getTime() < 600000;
 
           return (
             <motion.div key={job.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 30 }}
@@ -211,7 +234,7 @@ export default function Jobs() {
         })}
       </div>
 
-      <PremiumModal open={showPaywall} onClose={() => setShowPaywall(false)} message="You've reached your daily limit of 2 jobs. Start your 7-day free trial to unlock unlimited jobs." />
+      <PremiumModal open={showPaywall} onClose={() => setShowPaywall(false)} trigger="job_limit" />
       {reviewJob && <ReviewModal open={!!reviewJob} onClose={() => setReviewJob(null)} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />}
       {confirmJob && (
         <JobConfirmationModal
@@ -221,6 +244,7 @@ export default function Jobs() {
           loading={accepting === confirmJob.id}
           jobTitle={confirmJob.title}
           jobPrice={confirmJob.price}
+          currentTier={profile?.plan_tier || "free"}
         />
       )}
       <BottomNav />

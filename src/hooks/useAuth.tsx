@@ -43,7 +43,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, role: "cleaner" | "owner") => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, role: "cleaner" | "owner") => {
+  const signUp = async (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -102,8 +102,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (error) throw error;
     if (data.user) {
-      await supabase.from("profiles").update({ role, full_name: fullName }).eq("id", data.user.id);
-      // Seed sample data on first user
+      const workerType = role === "cleaner" && hasTransportation === false ? "helper" : "cleaner";
+      await supabase.from("profiles").update({
+        role,
+        full_name: fullName,
+        has_transportation: hasTransportation ?? true,
+        worker_type: workerType,
+      }).eq("id", data.user.id);
       await supabase.rpc("seed_sample_data", { p_user_id: data.user.id });
     }
   };
