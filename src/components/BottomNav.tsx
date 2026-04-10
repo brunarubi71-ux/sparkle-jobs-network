@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag } from "lucide-react";
+import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const cleanerTabs = [
   { path: "/", label: "Jobs", icon: Briefcase },
+  { path: "/cleaner-my-jobs", label: "My Jobs", icon: ClipboardList },
   { path: "/schedules", label: "Schedules", icon: Calendar },
   { path: "/chat", label: "Chat", icon: MessageCircle },
   { path: "/premium", label: "Premium", icon: Crown },
