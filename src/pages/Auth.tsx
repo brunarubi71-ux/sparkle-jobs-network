@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import logoImg from "@/assets/logo-shinely.png";
+import logoImg from "@/assets/logo-white.png";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -52,34 +52,24 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4 py-8">
-      {/* Solid gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[hsl(271,91%,55%)] via-[hsl(270,80%,60%)] to-[hsl(270,92%,70%)]" />
 
-      {/* Language switcher */}
       <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcher />
       </div>
 
-      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="relative z-10 flex flex-col items-center mb-8"
       >
-        <img
-          src={logoImg}
-          alt="Shinely"
-          className="h-14 object-contain drop-shadow-lg brightness-0 invert"
-          width={280}
-          height={56}
-        />
+        <img src={logoImg} alt="Shinely" className="h-20 w-auto object-contain drop-shadow-xl" width={220} height={220} />
         <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
           {t("auth.tagline")}
         </p>
       </motion.div>
 
-      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -224,9 +214,12 @@ export default function Auth() {
         </Button>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          {isSignUp ? t("auth.has_account") : t("auth.no_account")}{" "}
+          {isSignUp ? t("auth.has_account") : t("auth.no_account")} {" "}
           <button
-            onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError("");
+            }}
             className="text-primary font-semibold hover:underline"
           >
             {isSignUp ? t("auth.log_in") : t("auth.sign_up")}
