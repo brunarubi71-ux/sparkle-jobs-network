@@ -107,10 +107,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "confirm.accept": "Confirm Job",
     "confirm.confirming": "Confirming...",
     "confirm.cancel": "Cancel",
-    "confirm.upgrade_pro": "Upgrade to PRO — pay only 5%",
+    "confirm.upgrade_pro": "Upgrade to PREMIUM — pay only 5%",
     "confirm.earn_more": "Earn more on every job",
-    "confirm.without_pro": "Without PRO",
-    "confirm.with_pro": "With PRO",
+    "confirm.without_pro": "Without PREMIUM",
+    "confirm.with_pro": "With PREMIUM",
     "confirm.extra_on_job": "extra on this job alone!",
 
     // Profile
@@ -183,6 +183,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "plan.boosted_visibility": "Boosted visibility",
     "plan.early_access": "Early access to high-paying jobs",
     "plan.pro_badge": "Pro badge",
+    "plan.instant_jobs": "Receive new jobs instantly",
 
     // My Jobs (Owner)
     "myjobs.title": "My Jobs",
@@ -410,10 +411,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "confirm.accept": "Confirmar Vaga",
     "confirm.confirming": "Confirmando...",
     "confirm.cancel": "Cancelar",
-    "confirm.upgrade_pro": "Upgrade para PRO — pague apenas 5%",
+    "confirm.upgrade_pro": "Upgrade para PREMIUM — pague apenas 5%",
     "confirm.earn_more": "Ganhe mais em cada vaga",
-    "confirm.without_pro": "Sem PRO",
-    "confirm.with_pro": "Com PRO",
+    "confirm.without_pro": "Sem PREMIUM",
+    "confirm.with_pro": "Com PREMIUM",
     "confirm.extra_on_job": "extra só nesta vaga!",
 
     "profile.earnings": "Ganhos e Estatísticas",
@@ -483,6 +484,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "plan.boosted_visibility": "Visibilidade turbinada",
     "plan.early_access": "Acesso antecipado a vagas de alto valor",
     "plan.pro_badge": "Selo Pro",
+    "plan.instant_jobs": "Receba vagas novas instantaneamente",
 
     "myjobs.title": "Minhas Vagas",
     "myjobs.subtitle": "Gerencie suas vagas publicadas",
@@ -702,10 +704,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "confirm.accept": "Confirmar Trabajo",
     "confirm.confirming": "Confirmando...",
     "confirm.cancel": "Cancelar",
-    "confirm.upgrade_pro": "Upgrade a PRO — paga solo 5%",
+    "confirm.upgrade_pro": "Upgrade a PREMIUM — paga solo 5%",
     "confirm.earn_more": "Gana más en cada trabajo",
-    "confirm.without_pro": "Sin PRO",
-    "confirm.with_pro": "Con PRO",
+    "confirm.without_pro": "Sin PREMIUM",
+    "confirm.with_pro": "Con PREMIUM",
     "confirm.extra_on_job": "extra solo en este trabajo!",
 
     "profile.earnings": "Ganancias y Estadísticas",
@@ -775,6 +777,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "plan.boosted_visibility": "Visibilidad mejorada",
     "plan.early_access": "Acceso anticipado a trabajos de alto valor",
     "plan.pro_badge": "Insignia Pro",
+    "plan.instant_jobs": "Recibe trabajos nuevos al instante",
 
     "myjobs.title": "Mis Trabajos",
     "myjobs.subtitle": "Gestiona tus trabajos publicados",
