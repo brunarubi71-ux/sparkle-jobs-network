@@ -33,14 +33,14 @@ interface Job {
   cleaner_earnings: number;
 }
 
-const getTimeSince = (dateStr: string) => {
+const getTimeSince = (dateStr: string, t: (key: string) => string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("time.just_now");
+  if (mins < 60) return `${mins}${t("time.minutes_ago")}`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return `${hrs}${t("time.hours_ago")}`;
+  return `${Math.floor(hrs / 24)}${t("time.days_ago")}`;
 };
 
 function getJobLimits(tier: string) {
@@ -118,7 +118,7 @@ export default function Jobs() {
           free_trial_started_at: now.toISOString(),
           free_trial_ends_at: trialEnd.toISOString(),
         }).eq("id", user.id);
-        toast.success("Upgraded to PRO! 🎉");
+        toast.success(t("common.upgraded_pro"));
       }
 
       await supabase.from("job_applications").insert({ job_id: job.id, cleaner_id: user.id, status: "applied" });
@@ -135,8 +135,8 @@ export default function Jobs() {
 
       await refreshProfile();
       setConfirmJob(null);
-      toast.success(t("common.application_sent"));
-      navigate(`/job/${job.id}`);
+      toast.success(t("common.job_accepted"));
+      navigate("/cleaner-my-jobs");
     } catch { toast.error(t("common.failed_apply")); } finally { setAccepting(null); }
   };
 
@@ -220,7 +220,7 @@ export default function Jobs() {
 
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-3">
                 <Clock className="w-3 h-3" />
-                <span>{getTimeSince(job.created_at)}</span>
+                <span>{getTimeSince(job.created_at, t)}</span>
                 {isRecent && <span className="text-primary font-medium">• {t("jobs.new")}</span>}
               </div>
 
