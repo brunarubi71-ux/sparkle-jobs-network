@@ -1,8 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, MapPin, Bed, Bath, Clock, Sparkles, Flame, Zap, TrendingUp, Navigation } from "lucide-react";
+import {
+  Search, MapPin, Bed, Bath, Clock, Sparkles, Flame, Zap, TrendingUp,
+  Navigation, ChevronUp, ChevronDown, Car, AlertTriangle,
+} from "lucide-react";
 import { MapContainer, TileLayer, Marker, CircleMarker, ZoomControl, useMap } from "react-leaflet";
 import { divIcon } from "leaflet";
 import { Input } from "@/components/ui/input";
@@ -12,6 +15,8 @@ import ShimmerCard from "@/components/ShimmerCard";
 import PremiumModal from "@/components/PremiumModal";
 import JobConfirmationModal from "@/components/JobConfirmationModal";
 import BottomNav from "@/components/BottomNav";
+import JobFilterChips, { type JobFilter } from "@/components/jobs/JobFilterChips";
+import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from "@/lib/distance";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -38,19 +43,33 @@ interface Job {
   longitude: number | null;
 }
 
+interface JobWithDistance extends Job {
+  distanceMiles: number | null;
+  etaMinutes: number | null;
+}
+
+/* ── tiny map helper ── */
 function MapViewportSync({ center }: { center: Coordinates }) {
   const map = useMap();
-
   useEffect(() => {
     map.setView(center, map.getZoom(), { animate: true });
-    const timeout = window.setTimeout(() => map.invalidateSize(), 120);
-    return () => window.clearTimeout(timeout);
+    const t = window.setTimeout(() => map.invalidateSize(), 120);
+    return () => window.clearTimeout(t);
   }, [center, map]);
-
   return null;
 }
 
-const getTimeSince = (dateStr: string, t: (key: string) => string) => {
+function MapResizeSync({ expanded }: { expanded: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const t = window.setTimeout(() => map.invalidateSize(), 350);
+    return () => window.clearTimeout(t);
+  }, [expanded, map]);
+  return null;
+}
+
+/* ── helpers ── */
+const getTimeSince = (dateStr: string, t: (k: string) => string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return t("time.just_now");
@@ -62,26 +81,18 @@ const getTimeSince = (dateStr: string, t: (key: string) => string) => {
 
 function getJobLimits(tier: string) {
   switch (tier) {
-    case "pro":
-      return { maxJobs: Infinity };
-    case "premium":
-      return { maxJobs: 3 };
-    default:
-      return { maxJobs: 2 };
+    case "pro": return { maxJobs: Infinity };
+    case "premium": return { maxJobs: 3 };
+    default: return { maxJobs: 2 };
   }
 }
 
 const getJobPosition = (job: Job, index: number, center: Coordinates): Coordinates => {
-  if (typeof job.latitude === "number" && typeof job.longitude === "number") {
+  if (typeof job.latitude === "number" && typeof job.longitude === "number")
     return [job.latitude, job.longitude];
-  }
-
   const angle = (index / Math.max(index + 1, 6)) * Math.PI * 2;
   const distance = 0.018 + (index % 4) * 0.006;
-  return [
-    center[0] + Math.cos(angle) * distance,
-    center[1] + Math.sin(angle) * distance,
-  ];
+  return [center[0] + Math.cos(angle) * distance, center[1] + Math.sin(angle) * distance];
 };
 
 const createPriceIcon = (price: number, active: boolean) =>
@@ -92,21 +103,28 @@ const createPriceIcon = (price: number, active: boolean) =>
     iconAnchor: [38, 20],
   });
 
+/* ── component ── */
 export default function Jobs() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [confirmJob, setConfirmJob] = useState<Job | null>(null);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobWithDistance | null>(null);
   const [mapCenter, setMapCenter] = useState<Coordinates>(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
+
   const mapCenterSet = React.useRef(false);
 
+  /* ── FOMO badge ── */
   const getFomoBadge = (job: Job) => {
     const diff = Date.now() - new Date(job.created_at).getTime();
     const mins = Math.floor(diff / 60000);
@@ -117,28 +135,8 @@ export default function Jobs() {
     return null;
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-
-    const watchId = navigator.geolocation.watchPosition(
-      ({ coords }) => {
-        const nextCenter: Coordinates = [coords.latitude, coords.longitude];
-        setUserLocation(nextCenter);
-        if (!mapCenterSet.current) {
-          setMapCenter(nextCenter);
-          mapCenterSet.current = true;
-        }
-      },
-      () => undefined,
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  /* ── fetch jobs ── */
+  useEffect(() => { fetchJobs(); }, []);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -148,15 +146,88 @@ export default function Jobs() {
       .eq("status", "open")
       .is("hired_cleaner_id", null)
       .order("created_at", { ascending: false });
-
     setJobs((data as Job[]) || []);
     setLoading(false);
   };
 
+  /* ── geolocation ── */
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    const watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        const next: Coordinates = [coords.latitude, coords.longitude];
+        setUserLocation(next);
+        setLocationDenied(false);
+        if (!mapCenterSet.current) { setMapCenter(next); mapCenterSet.current = true; }
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) setLocationDenied(true);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  /* ── enrich jobs with distance/ETA ── */
+  const enrichedJobs: JobWithDistance[] = useMemo(() => {
+    return jobs.map((job, i) => {
+      const pos = getJobPosition(job, i, mapCenter);
+      if (userLocation) {
+        const d = getDistanceMiles(userLocation, pos);
+        return { ...job, distanceMiles: d, etaMinutes: estimateEtaMinutes(d) };
+      }
+      return { ...job, distanceMiles: null, etaMinutes: null };
+    });
+  }, [jobs, userLocation, mapCenter]);
+
+  /* ── search + filter + sort ── */
+  const filtered = useMemo(() => {
+    let result = enrichedJobs.filter((job) =>
+      [job.title, job.city || "", job.address || "", job.cleaning_type, job.description || ""]
+        .join(" ").toLowerCase().includes(search.toLowerCase())
+    );
+
+    // Apply filter
+    switch (activeFilter) {
+      case "urgent":
+        result = result.filter(j => j.urgency === "urgent" || j.urgency === "asap");
+        break;
+      case "residential":
+        result = result.filter(j => j.cleaning_type === "residential");
+        break;
+      case "airbnb":
+        result = result.filter(j => j.cleaning_type === "airbnb");
+        break;
+      case "commercial":
+        result = result.filter(j => j.cleaning_type === "commercial");
+        break;
+      case "highest":
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case "nearest":
+        if (userLocation) {
+          result = [...result].sort((a, b) => (a.distanceMiles ?? 999) - (b.distanceMiles ?? 999));
+        }
+        break;
+      default:
+        // Default: sort by nearest if location available
+        if (userLocation) {
+          result = [...result].sort((a, b) => (a.distanceMiles ?? 999) - (b.distanceMiles ?? 999));
+        }
+    }
+
+    return result;
+  }, [enrichedJobs, search, activeFilter, userLocation]);
+
+  /* ── clear selected if filtered out ── */
+  useEffect(() => {
+    if (selectedJob && !filtered.some(j => j.id === selectedJob.id)) setSelectedJob(null);
+  }, [filtered, selectedJob]);
+
+  /* ── accept logic ── */
   const canAcceptJob = () => {
     if (!profile) return false;
-    const tier = profile.plan_tier || "free";
-    const { maxJobs } = getJobLimits(tier);
+    const { maxJobs } = getJobLimits(profile.plan_tier || "free");
     if (maxJobs === Infinity) return true;
     const today = new Date().toISOString().split("T")[0];
     const usedToday = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
@@ -165,10 +236,7 @@ export default function Jobs() {
 
   const handleAcceptClick = (job: Job) => {
     if (!user || !profile) return;
-    if (!canAcceptJob()) {
-      setShowPaywall(true);
-      return;
-    }
+    if (!canAcceptJob()) { setShowPaywall(true); return; }
     setConfirmJob(job);
   };
 
@@ -176,98 +244,66 @@ export default function Jobs() {
     if (!confirmJob || !user || !profile) return;
     const job = confirmJob;
     setAccepting(job.id);
-
     try {
       if (wantsProUpgrade) {
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        await supabase
-          .from("profiles")
-          .update({
-            plan_tier: "pro",
-            is_premium: true,
-            premium_status: "trial",
-            free_trial_started_at: now.toISOString(),
-            free_trial_ends_at: trialEnd.toISOString(),
-          })
-          .eq("id", user.id);
+        await supabase.from("profiles").update({
+          plan_tier: "pro", is_premium: true, premium_status: "trial",
+          free_trial_started_at: now.toISOString(), free_trial_ends_at: trialEnd.toISOString(),
+        }).eq("id", user.id);
         toast.success(t("common.upgraded_pro"));
       }
-
-      const { data, error } = await supabase.functions.invoke("accept-job", {
-        body: { jobId: job.id },
-      });
-
+      const { data, error } = await supabase.functions.invoke("accept-job", { body: { jobId: job.id } });
       if (error) {
-        const message = await error.context
-          ?.json()
-          .then((payload: { error?: string }) => payload.error)
-          .catch(() => null);
+        const message = await error.context?.json().then((p: { error?: string }) => p.error).catch(() => null);
         throw new Error(message || error.message || t("common.failed_apply"));
       }
-
-      if (!data?.success) {
-        throw new Error(data?.error || t("common.failed_apply"));
-      }
-
+      if (!data?.success) throw new Error(data?.error || t("common.failed_apply"));
       await refreshProfile();
-      setJobs((current) => current.filter((item) => item.id !== job.id));
+      setJobs(cur => cur.filter(item => item.id !== job.id));
       setSelectedJob(null);
       setConfirmJob(null);
       toast.success(t("common.job_accepted"));
       navigate(`/cleaner-my-jobs?tab=active&highlight=${job.id}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("common.failed_apply"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.failed_apply"));
     } finally {
       setAccepting(null);
     }
   };
 
-  const filtered = useMemo(
-    () =>
-      jobs.filter((job) =>
-        [job.title, job.city || "", job.address || "", job.cleaning_type, job.description || ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      ),
-    [jobs, search]
-  );
-
-  useEffect(() => {
-    if (selectedJob && !filtered.some((job) => job.id === selectedJob.id)) {
-      setSelectedJob(null);
-    }
-  }, [filtered, selectedJob]);
-
   const scrollToJobCard = (jobId: string) => {
-    const card = document.getElementById(`job-card-${jobId}`);
-    card?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (mapExpanded) setMapExpanded(false);
+    setTimeout(() => {
+      document.getElementById(`job-card-${jobId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
+
+  const mapHeight = mapExpanded ? "h-[85vh]" : "h-[52vh]";
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <section className="relative h-[58vh] min-h-[400px] overflow-hidden border-b border-border bg-card">
+      {/* ── MAP ── */}
+      <section className={`relative ${mapHeight} min-h-[340px] overflow-hidden border-b border-border bg-card transition-all duration-300`}>
         <MapContainer center={mapCenter} zoom={11} zoomControl={false} className="h-full w-full">
           <MapViewportSync center={mapCenter} />
+          <MapResizeSync expanded={mapExpanded} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
+          {/* User location blue dot */}
           {userLocation && (
             <CircleMarker
               center={userLocation}
               radius={10}
-              pathOptions={{
-                color: "hsl(var(--background))",
-                fillColor: "hsl(var(--primary))",
-                fillOpacity: 1,
-                weight: 4,
-              }}
+              pathOptions={{ color: "hsl(var(--background))", fillColor: "hsl(var(--primary))", fillOpacity: 1, weight: 4 }}
             />
           )}
 
+          {/* Job price pins */}
           {filtered.map((job, index) => (
             <Marker
               key={job.id}
@@ -280,6 +316,7 @@ export default function Jobs() {
           <ZoomControl position="bottomright" />
         </MapContainer>
 
+        {/* Search bar */}
         <div className="absolute inset-x-4 top-4 z-[500]">
           <div className="bg-card/95 rounded-2xl border border-border px-4 py-3 shadow-elevated backdrop-blur">
             <div className="flex items-center gap-3">
@@ -287,7 +324,7 @@ export default function Jobs() {
               <Input
                 placeholder={t("jobs.search")}
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 className="h-8 border-0 bg-transparent px-0 focus-visible:ring-0"
               />
               {userLocation && <Navigation className="h-4 w-4 text-primary" />}
@@ -295,12 +332,44 @@ export default function Jobs() {
           </div>
         </div>
 
+        {/* Job count badge */}
         <div className="absolute left-4 top-20 z-[500]">
           <Badge className="border-0 bg-card text-foreground shadow-card">
             {filtered.length} {t("jobs.available")}
           </Badge>
         </div>
 
+        {/* Location denied banner */}
+        {locationDenied && (
+          <div className="absolute left-4 right-4 top-20 z-[500] mt-8">
+            <div className="flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive border border-destructive/20">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>Location access denied. Enable it in browser settings for distance & ETA.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Recenter button */}
+        {userLocation && (
+          <button
+            onClick={() => setMapCenter(userLocation)}
+            className="absolute left-4 bottom-4 z-[500] flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border shadow-card"
+            aria-label="Center on my location"
+          >
+            <Navigation className="h-4 w-4 text-primary" />
+          </button>
+        )}
+
+        {/* Expand / collapse handle */}
+        <button
+          onClick={() => setMapExpanded(prev => !prev)}
+          className="absolute bottom-0 left-1/2 z-[500] -translate-x-1/2 translate-y-1/2 flex h-6 w-12 items-center justify-center rounded-full bg-card border border-border shadow-card"
+          aria-label={mapExpanded ? "Collapse map" : "Expand map"}
+        >
+          {mapExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
+
+        {/* Bottom sheet for selected job */}
         <AnimatePresence>
           {selectedJob && (
             <motion.div
@@ -315,9 +384,7 @@ export default function Jobs() {
                   onClick={() => setSelectedJob(null)}
                   className="absolute right-6 top-5 text-muted-foreground hover:text-foreground"
                   aria-label="Close"
-                >
-                  ✕
-                </button>
+                >✕</button>
 
                 <div className="mb-3 flex items-start justify-between gap-3 pr-6">
                   <div className="min-w-0">
@@ -332,15 +399,19 @@ export default function Jobs() {
                 </div>
 
                 <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Bed className="h-3 w-3" /> {selectedJob.bedrooms}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bath className="h-3 w-3" /> {selectedJob.bathrooms}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> {getTimeSince(selectedJob.created_at, t)}
-                  </span>
+                  <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {selectedJob.bedrooms}</span>
+                  <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {selectedJob.bathrooms}</span>
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {getTimeSince(selectedJob.created_at, t)}</span>
+                  {selectedJob.distanceMiles !== null && (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <Navigation className="h-3 w-3" /> {formatDistance(selectedJob.distanceMiles)}
+                      </span>
+                      <span className="flex items-center gap-1 text-primary font-medium">
+                        <Car className="h-3 w-3" /> {formatEta(selectedJob.etaMinutes!)}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <Button
@@ -355,14 +426,21 @@ export default function Jobs() {
         </AnimatePresence>
       </section>
 
-      <div className="px-4 py-4">
+      {/* ── FILTERS ── */}
+      <div className="px-4 pt-4 pb-2">
+        <JobFilterChips active={activeFilter} onChange={setActiveFilter} />
+      </div>
+
+      {/* ── HEADER ── */}
+      <div className="px-4 pb-2">
         <h1 className="text-2xl font-bold text-foreground">{t("jobs.nearby")}</h1>
         <p className="text-sm text-muted-foreground">{t("jobs.subtitle")}</p>
       </div>
 
+      {/* ── JOB CARDS ── */}
       <div className="space-y-3 px-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, index) => <ShimmerCard key={index} />)
+          Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center">
             <Sparkles className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
@@ -381,11 +459,14 @@ export default function Jobs() {
                 id={`job-card-${job.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, type: "spring", stiffness: 260, damping: 28 }}
+                transition={{ delay: index * 0.04, type: "spring", stiffness: 260, damping: 28 }}
                 className={`rounded-3xl border bg-card p-4 shadow-card transition-all ${
                   isSelected ? "border-primary ring-2 ring-primary/15" : "border-border"
                 }`}
-                onClick={() => { setSelectedJob(job); setMapCenter(getJobPosition(job, index, mapCenter)); }}
+                onClick={() => {
+                  setSelectedJob(job);
+                  setMapCenter(getJobPosition(job, index, mapCenter));
+                }}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
@@ -401,31 +482,33 @@ export default function Jobs() {
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {job.city || job.address || "N/A"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bed className="h-3 w-3" /> {job.bedrooms}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bath className="h-3 w-3" /> {job.bathrooms}
-                  </span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {job.cleaning_type}
-                  </Badge>
+                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.city || job.address || "N/A"}</span>
+                  <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {job.bedrooms}</span>
+                  <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {job.bathrooms}</span>
+                  <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
                 </div>
 
-                <div className="mb-3 flex items-center gap-2 text-[10px] text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{getTimeSince(job.created_at, t)}</span>
+                {/* Distance + ETA row */}
+                <div className="mb-2 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {getTimeSince(job.created_at, t)}</span>
                   {isRecent && <span className="font-medium text-primary">• {t("jobs.new")}</span>}
+                  {job.distanceMiles !== null && (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <Navigation className="h-3 w-3" /> {formatDistance(job.distanceMiles)}
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-primary">
+                        <Car className="h-3 w-3" /> ~{formatEta(job.etaMinutes!)}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {job.description && <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>}
 
                 {profile?.role === "cleaner" && (
                   <Button
-                    onClick={() => handleAcceptClick(job)}
+                    onClick={(e) => { e.stopPropagation(); handleAcceptClick(job); }}
                     disabled={accepting === job.id}
                     className="h-11 w-full rounded-2xl gradient-primary font-semibold text-primary-foreground"
                   >
