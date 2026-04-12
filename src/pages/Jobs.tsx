@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -105,6 +105,7 @@ export default function Jobs() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [mapCenter, setMapCenter] = useState<Coordinates>(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const mapCenterSet = React.useRef(false);
 
   const getFomoBadge = (job: Job) => {
     const diff = Date.now() - new Date(job.created_at).getTime();
@@ -123,15 +124,20 @@ export default function Jobs() {
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
 
-    navigator.geolocation.getCurrentPosition(
+    const watchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
         const nextCenter: Coordinates = [coords.latitude, coords.longitude];
         setUserLocation(nextCenter);
-        setMapCenter(nextCenter);
+        if (!mapCenterSet.current) {
+          setMapCenter(nextCenter);
+          mapCenterSet.current = true;
+        }
       },
       () => undefined,
       { enableHighAccuracy: true, timeout: 8000 }
     );
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const fetchJobs = async () => {
@@ -229,13 +235,8 @@ export default function Jobs() {
   );
 
   useEffect(() => {
-    if (!filtered.length) {
+    if (selectedJob && !filtered.some((job) => job.id === selectedJob.id)) {
       setSelectedJob(null);
-      return;
-    }
-
-    if (!selectedJob || !filtered.some((job) => job.id === selectedJob.id)) {
-      setSelectedJob(filtered[0]);
     }
   }, [filtered, selectedJob]);
 
@@ -303,13 +304,22 @@ export default function Jobs() {
         <AnimatePresence>
           {selectedJob && (
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
-              className="absolute inset-x-4 bottom-4 z-[500]"
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute inset-x-0 bottom-0 z-[500] px-3 pb-3"
             >
               <div className="rounded-3xl border border-border bg-card p-4 shadow-elevated">
-                <div className="mb-3 flex items-start justify-between gap-3">
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  className="absolute right-6 top-5 text-muted-foreground hover:text-foreground"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+
+                <div className="mb-3 flex items-start justify-between gap-3 pr-6">
                   <div className="min-w-0">
                     <p className="text-2xl font-bold text-foreground">${selectedJob.price}</p>
                     <h2 className="truncate text-base font-semibold text-foreground">{selectedJob.title}</h2>
@@ -333,14 +343,9 @@ export default function Jobs() {
                   </span>
                 </div>
 
-                {selectedJob.description && (
-                  <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{selectedJob.description}</p>
-                )}
-
                 <Button
-                  variant="outline"
                   onClick={() => scrollToJobCard(selectedJob.id)}
-                  className="h-11 w-full rounded-2xl"
+                  className="h-11 w-full rounded-2xl gradient-primary font-semibold text-primary-foreground"
                 >
                   {t("cleaner_jobs.view_job")}
                 </Button>
