@@ -16,9 +16,9 @@ Deno.serve(async (req) => {
       throw new Error("SUPABASE_URL is not configured");
     }
 
-    const SUPABASE_PUBLISHABLE_KEY = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-    if (!SUPABASE_PUBLISHABLE_KEY) {
-      throw new Error("SUPABASE_PUBLISHABLE_KEY is not configured");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!SUPABASE_ANON_KEY) {
+      throw new Error("SUPABASE_ANON_KEY is not configured");
     }
 
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
