@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin, Bed, Bath, Eye, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -25,22 +25,35 @@ interface CleanerJob {
   date_time: string | null;
 }
 
+const ACTIVE_STATUSES = ["accepted", "hired", "in_progress", "pending_review"];
+
 export default function CleanerMyJobs() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
+
+  const highlightJobId = searchParams.get("highlight");
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    hired: { color: "bg-amber-100 text-amber-700", label: t("status.accepted"), icon: "🤝" },
-    in_progress: { color: "bg-purple-100 text-purple-700", label: t("status.in_progress"), icon: "🔧" },
-    pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review"), icon: "⏳" },
-    completed: { color: "bg-green-100 text-green-700", label: t("status.completed"), icon: "✅" },
-    cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled"), icon: "❌" },
+    accepted: { color: "bg-accent text-accent-foreground", label: t("status.accepted"), icon: "🤝" },
+    hired: { color: "bg-accent text-accent-foreground", label: t("status.hired"), icon: "🤝" },
+    in_progress: { color: "bg-accent text-accent-foreground", label: t("status.in_progress"), icon: "🔧" },
+    pending_review: { color: "bg-accent text-accent-foreground", label: t("status.pending_review"), icon: "⏳" },
+    completed: { color: "bg-accent text-accent-foreground", label: t("status.completed"), icon: "✅" },
+    cancelled: { color: "bg-accent text-accent-foreground", label: t("status.cancelled"), icon: "❌" },
   };
 
-  useEffect(() => { if (user) fetchJobs(); }, [user]);
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") || "active");
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user) fetchJobs();
+  }, [user]);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -48,36 +61,95 @@ export default function CleanerMyJobs() {
       .from("jobs")
       .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
       .eq("hired_cleaner_id", user!.id)
+      .in("status", [...ACTIVE_STATUSES, "completed", "cancelled"])
       .order("created_at", { ascending: false });
+
     setJobs((data as CleanerJob[]) || []);
     setLoading(false);
   };
 
-  const activeJobs = jobs.filter(j => ["hired", "in_progress", "pending_review"].includes(j.status));
-  const completedJobs = jobs.filter(j => j.status === "completed");
-  const cancelledJobs = jobs.filter(j => j.status === "cancelled");
+  const sortJobs = (items: CleanerJob[]) =>
+    [...items].sort((a, b) => {
+      if (highlightJobId) {
+        if (a.id === highlightJobId) return -1;
+        if (b.id === highlightJobId) return 1;
+      }
+
+      const statusOrder: Record<string, number> = {
+        accepted: 0,
+        hired: 1,
+        in_progress: 2,
+        pending_review: 3,
+        completed: 4,
+        cancelled: 5,
+      };
+
+      const statusDelta = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+      if (statusDelta !== 0) return statusDelta;
+
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+  const activeJobs = useMemo(() => sortJobs(jobs.filter((job) => ACTIVE_STATUSES.includes(job.status))), [jobs, highlightJobId]);
+  const completedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "completed")), [jobs, highlightJobId]);
+  const cancelledJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "cancelled")), [jobs, highlightJobId]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", value);
+    if (value !== "active") nextParams.delete("highlight");
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const JobCard = ({ job, index }: { job: CleanerJob; index: number }) => {
-    const s = statusConfig[job.status] || { color: "bg-muted text-muted-foreground", label: job.status.toUpperCase(), icon: "📌" };
+    const status = statusConfig[job.status] || {
+      color: "bg-muted text-muted-foreground",
+      label: job.status.toUpperCase(),
+      icon: "📌",
+    };
+
+    const isHighlighted = highlightJobId === job.id;
+
     return (
-      <motion.div key={job.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
-        className="bg-card rounded-2xl p-4 shadow-card">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-foreground truncate">{job.title}</p>
+      <motion.div
+        key={job.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.04 }}
+        className={`rounded-2xl border bg-card p-4 shadow-card ${isHighlighted ? "border-primary ring-2 ring-primary/15" : "border-border"}`}
+      >
+        <div className="mb-2 flex items-start justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-foreground">{job.title}</p>
             <p className="text-xl font-bold text-primary">${job.price}</p>
           </div>
-          <Badge className={`${s.color} border-0 text-[10px] font-bold flex-shrink-0`}>{s.icon} {s.label}</Badge>
+          <Badge className={`${status.color} border-0 text-[10px] font-bold`}>
+            {status.icon} {status.label}
+          </Badge>
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.city || "N/A"}</span>
-          <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {job.bedrooms}</span>
-          <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {job.bathrooms}</span>
-          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {format(new Date(job.created_at), "MMM d")}</span>
+
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3 w-3" /> {job.city || "N/A"}
+          </span>
+          <span className="flex items-center gap-1">
+            <Bed className="h-3 w-3" /> {job.bedrooms}
+          </span>
+          <span className="flex items-center gap-1">
+            <Bath className="h-3 w-3" /> {job.bathrooms}
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" /> {format(new Date(job.date_time || job.created_at), "MMM d")}
+          </span>
         </div>
-        <Button size="sm" onClick={() => navigate(`/job/${job.id}`)}
-          className="w-full h-9 text-xs rounded-xl gradient-primary text-white font-semibold">
-          <Eye className="w-3 h-3 mr-1" /> {t("cleaner_jobs.view_job")}
+
+        <Button
+          size="sm"
+          onClick={() => navigate(`/job/${job.id}`)}
+          className="h-10 w-full rounded-xl gradient-primary text-xs font-semibold text-primary-foreground"
+        >
+          <Eye className="mr-1 h-3 w-3" /> {t("cleaner_jobs.view_job")}
         </Button>
       </motion.div>
     );
@@ -85,54 +157,60 @@ export default function CleanerMyJobs() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pb-4 pt-6">
         <h1 className="text-2xl font-bold text-foreground">{t("cleaner_jobs.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("cleaner_jobs.subtitle")}</p>
       </div>
 
       <div className="px-4">
-        <Tabs defaultValue="active" className="w-full">
-          <TabsList className="w-full mb-4 bg-accent rounded-xl">
-            <TabsTrigger value="active" className="flex-1 rounded-lg text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="mb-4 grid w-full grid-cols-3 rounded-2xl bg-accent p-1">
+            <TabsTrigger value="active" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.active")} ({activeJobs.length})
             </TabsTrigger>
-            <TabsTrigger value="completed" className="flex-1 rounded-lg text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
+            <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.completed")} ({completedJobs.length})
             </TabsTrigger>
-            <TabsTrigger value="cancelled" className="flex-1 rounded-lg text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-white">
+            <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.cancelled")} ({cancelledJobs.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="space-y-3">
-            {loading ? Array.from({ length: 3 }).map((_, i) => <ShimmerCard key={i} />) :
-              activeJobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{t("cleaner_jobs.no_active")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("cleaner_jobs.no_active_hint")}</p>
-                </div>
-              ) : activeJobs.map((job, i) => <JobCard key={job.id} job={job} index={i} />)
-            }
+            {loading ? (
+              Array.from({ length: 3 }).map((_, index) => <ShimmerCard key={index} />)
+            ) : activeJobs.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">{t("cleaner_jobs.no_active")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("cleaner_jobs.no_active_hint")}</p>
+              </div>
+            ) : (
+              activeJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
+            )}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-3">
-            {loading ? Array.from({ length: 2 }).map((_, i) => <ShimmerCard key={i} />) :
-              completedJobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{t("cleaner_jobs.no_completed")}</p>
-                </div>
-              ) : completedJobs.map((job, i) => <JobCard key={job.id} job={job} index={i} />)
-            }
+            {loading ? (
+              Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
+            ) : completedJobs.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">{t("cleaner_jobs.no_completed")}</p>
+              </div>
+            ) : (
+              completedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
+            )}
           </TabsContent>
 
           <TabsContent value="cancelled" className="space-y-3">
-            {loading ? Array.from({ length: 2 }).map((_, i) => <ShimmerCard key={i} />) :
-              cancelledJobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{t("cleaner_jobs.no_cancelled")}</p>
-                </div>
-              ) : cancelledJobs.map((job, i) => <JobCard key={job.id} job={job} index={i} />)
-            }
+            {loading ? (
+              Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
+            ) : cancelledJobs.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">{t("cleaner_jobs.no_cancelled")}</p>
+              </div>
+            ) : (
+              cancelledJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
+            )}
           </TabsContent>
         </Tabs>
       </div>

@@ -121,6 +121,7 @@ export default function JobDetails() {
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
     open: { color: "bg-emerald-100 text-emerald-700", label: t("status.open"), icon: "🟢" },
     applied: { color: "bg-blue-100 text-blue-700", label: t("status.applied"), icon: "📋" },
+    accepted: { color: "bg-amber-100 text-amber-700", label: t("status.accepted"), icon: "🤝" },
     hired: { color: "bg-amber-100 text-amber-700", label: t("status.hired"), icon: "🤝" },
     in_progress: { color: "bg-purple-100 text-purple-700", label: t("status.in_progress"), icon: "🔧" },
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review"), icon: "⏳" },
@@ -250,7 +251,7 @@ export default function JobDetails() {
         )}
 
         {/* Cleaner: Start Job */}
-        {isCleaner && job.status === "hired" && (
+        {isCleaner && ["accepted", "hired"].includes(job.status) && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
             <Button onClick={startJob} disabled={startingJob}
               className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98]">
