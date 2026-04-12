@@ -385,7 +385,7 @@ export default function Jobs() {
                 className={`rounded-3xl border bg-card p-4 shadow-card transition-all ${
                   isSelected ? "border-primary ring-2 ring-primary/15" : "border-border"
                 }`}
-                onMouseEnter={() => setSelectedJob(job)}
+                onClick={() => { setSelectedJob(job); setMapCenter(getJobPosition(job, index, mapCenter)); }}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
