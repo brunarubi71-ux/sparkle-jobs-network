@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import logoImg from "@/assets/logo-white.png";
+import logoImg from "@/assets/shinely-logo.png";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
