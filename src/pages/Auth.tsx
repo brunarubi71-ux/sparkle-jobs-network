@@ -46,7 +46,7 @@ export default function Auth() {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
-      setError("Google sign-in failed. Please try again.");
+      setError(t("common.google_failed"));
     }
   };
 
@@ -90,7 +90,7 @@ export default function Auth() {
           {isSignUp ? t("auth.create_account") : t("auth.welcome")}
         </h2>
         <p className="text-sm text-gray-500 mb-6">
-          {isSignUp ? t("auth.tagline") : "Sign in to continue"}
+          {isSignUp ? t("auth.tagline") : t("auth.sign_in_continue")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
