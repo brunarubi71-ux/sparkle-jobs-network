@@ -24,18 +24,18 @@ export default function Premium() {
       cta: t("premium.current_plan"), highlighted: false, badge: null,
     },
     {
-      id: "premium" as const, name: "Premium", price: 9.99, period: "/month",
+      id: "premium" as const, name: "Pro", price: 9.99, period: "/month",
       features: [
         { icon: Zap, text: `3 ${t("plan.jobs_per_day")}` },
         { icon: Users, text: `2 ${t("plan.schedule_contacts")}` },
         { icon: Eye, text: t("plan.increased_visibility") },
-        { icon: Crown, text: t("plan.premium_badge") },
+        { icon: Crown, text: t("plan.pro_badge") },
         { icon: Percent, text: `10% ${t("plan.platform_fee")}` },
       ],
-      cta: t("premium.upgrade_premium"), highlighted: false, badge: null,
+      cta: t("premium.upgrade_pro"), highlighted: false, badge: null,
     },
     {
-      id: "pro" as const, name: "Pro", price: 19.99, period: "/month",
+      id: "pro" as const, name: "Premium", price: 19.99, period: "/month",
       features: [
         { icon: Zap, text: t("plan.unlimited_jobs") },
         { icon: Users, text: t("plan.unlimited_contacts") },
@@ -43,9 +43,10 @@ export default function Premium() {
         { icon: TrendingUp, text: t("plan.priority_access") },
         { icon: Eye, text: t("plan.boosted_visibility") },
         { icon: Star, text: t("plan.early_access") },
-        { icon: Crown, text: t("plan.pro_badge") },
+        { icon: Sparkles, text: t("plan.instant_jobs") },
+        { icon: Crown, text: t("plan.premium_badge") },
       ],
-      cta: t("premium.upgrade_pro"), highlighted: true, badge: t("premium.recommended"),
+      cta: t("premium.upgrade_premium"), highlighted: true, badge: t("premium.recommended"),
     },
   ];
 
@@ -64,7 +65,7 @@ export default function Premium() {
         trial_end: trialEnd.toISOString(), plan_name: planId,
       });
       await refreshProfile();
-      toast.success(`${planId === "pro" ? "Pro" : "Premium"} ${t("premium.trial_started")}`);
+      toast.success(`${planId === "pro" ? "Premium" : "Pro"} ${t("premium.trial_started")}`);
     } catch { toast.error(t("common.failed")); } finally { setLoading(null); }
   };
 
