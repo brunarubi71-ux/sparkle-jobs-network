@@ -59,6 +59,16 @@ function MapViewportSync({ center }: { center: Coordinates }) {
   return null;
 }
 
+function FlyToMyLocation({ trigger, location }: { trigger: number; location: Coordinates | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0 && location) {
+      map.flyTo(location, 14, { duration: 1.2 });
+    }
+  }, [trigger, location, map]);
+  return null;
+}
+
 function MapResizeSync({ expanded }: { expanded: boolean }) {
   const map = useMap();
   useEffect(() => {
@@ -123,6 +133,7 @@ export default function Jobs() {
   const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
 
   const mapCenterSet = React.useRef(false);
+  const [flyTrigger, setFlyTrigger] = useState(0);
 
   /* ── FOMO badge ── */
   const getFomoBadge = (job: Job) => {
@@ -289,6 +300,7 @@ export default function Jobs() {
         <MapContainer center={mapCenter} zoom={11} zoomControl={false} className="h-full w-full">
           <MapViewportSync center={mapCenter} />
           <MapResizeSync expanded={mapExpanded} />
+          <FlyToMyLocation trigger={flyTrigger} location={userLocation} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -352,11 +364,11 @@ export default function Jobs() {
         {/* Recenter button */}
         {userLocation && (
           <button
-            onClick={() => setMapCenter(userLocation)}
-            className="absolute left-4 bottom-4 z-[500] flex h-10 w-10 items-center justify-center rounded-full bg-card border border-border shadow-card"
+            onClick={() => setFlyTrigger(c => c + 1)}
+            className="absolute left-4 bottom-4 z-[500] flex h-11 w-11 items-center justify-center rounded-full bg-card border border-border shadow-elevated active:scale-95 transition-transform"
             aria-label="Center on my location"
           >
-            <Navigation className="h-4 w-4 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
           </button>
         )}
 
