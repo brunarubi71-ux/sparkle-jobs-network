@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authorization } },
     });
 
