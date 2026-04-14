@@ -39,15 +39,24 @@ export default function Schedules() {
     setLoading(false);
   };
 
+  const getContactLimit = () => {
+    const tier = profile?.plan_tier || "free";
+    if (tier === "pro") return Infinity;
+    if (tier === "premium") return 2;
+    return 1;
+  };
+
   const canUnlockContact = () => {
     if (!profile) return false;
-    if (profile.is_premium) return true;
-    return profile.free_contacts_used < 1;
+    const limit = getContactLimit();
+    if (limit === Infinity) return true;
+    return profile.free_contacts_used < limit;
   };
 
   const unlockContact = async (scheduleId: string) => {
     if (!user || !profile) return;
-    if (profile.is_premium || unlockedIds.has(scheduleId)) {
+    const limit = getContactLimit();
+    if (limit === Infinity || unlockedIds.has(scheduleId)) {
       setUnlockedIds((s) => new Set(s).add(scheduleId));
       return;
     }
@@ -57,7 +66,7 @@ export default function Schedules() {
     await refreshProfile();
   };
 
-  const isUnlocked = (id: string) => profile?.is_premium || unlockedIds.has(id);
+  const isUnlocked = (id: string) => (profile?.plan_tier === "pro") || unlockedIds.has(id);
 
   return (
     <div className="min-h-screen bg-background pb-20">
