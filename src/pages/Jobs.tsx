@@ -499,7 +499,7 @@ export default function Jobs() {
                 transition={{ delay: index * 0.04, type: "spring", stiffness: 260, damping: 28 }}
                 className={`rounded-3xl border bg-card p-4 shadow-card transition-all ${
                   isSelected ? "border-primary ring-2 ring-primary/15" : "border-border"
-                }`}
+                } ${isRecent ? "job-card-new" : ""}`}
                 onClick={() => {
                   setSelectedJob(job);
                   setMapCenter(getJobPosition(job, index, mapCenter));
