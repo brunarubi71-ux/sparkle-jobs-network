@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList } from "lucide-react";
+import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -12,7 +12,7 @@ export default function BottomNav() {
   const cleanerTabs = [
     { path: "/", label: t("nav.jobs"), icon: Briefcase },
     { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList },
-    { path: "/schedules", label: t("nav.schedules"), icon: Calendar },
+    { path: "/earnings", label: t("nav.earnings"), icon: DollarSign },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle },
     { path: "/premium", label: t("nav.premium"), icon: Crown },
     { path: "/profile", label: t("nav.profile"), icon: User },

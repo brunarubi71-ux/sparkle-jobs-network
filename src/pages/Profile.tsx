@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target } from "lucide-react";
+import { syncBadges, BADGE_DEFINITIONS } from "@/lib/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,8 +86,24 @@ export default function Profile() {
     setReviews(reviewsRes.data || []);
     setRewards(rewardsRes.data || []);
     setPhotos(photosRes.data || []);
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      setAvgRating(Math.round(reviewsRes.data.reduce((s: number, r: any) => s + r.rating, 0) / reviewsRes.data.length * 10) / 10);
+    const reviewData = reviewsRes.data || [];
+    const computedAvg = reviewData.length > 0
+      ? Math.round(reviewData.reduce((s: number, r: any) => s + r.rating, 0) / reviewData.length * 10) / 10
+      : 0;
+    setAvgRating(computedAvg);
+
+    // Auto-sync badges
+    if (profile) {
+      const newBadges = await syncBadges(user!.id, {
+        jobsCompleted: profile.jobs_completed || 0,
+        avgRating: computedAvg,
+        totalEarnings: profile.total_earnings || 0,
+      });
+      if (newBadges.length > 0) {
+        const updated = await supabase.from("rewards").select("*").eq("user_id", user!.id);
+        setRewards(updated.data || []);
+        newBadges.forEach(b => toast.success(`🏅 New badge: ${b.emoji} ${b.name}!`));
+      }
     }
   };
 
@@ -249,13 +266,16 @@ export default function Profile() {
 
         {rewards.length > 0 && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">{t("profile.badges")}</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> {t("profile.badges")} ({rewards.length})</h3>
             <div className="flex flex-wrap gap-2">
-              {rewards.map(r => (
-                <Badge key={r.id} className="bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-primary/20">
-                  {r.badge_name === "Rising Cleaner" ? "⭐" : r.badge_name === "Top Cleaner" ? "🌟" : "💎"} {r.badge_name}
-                </Badge>
-              ))}
+              {rewards.map(r => {
+                const def = BADGE_DEFINITIONS.find(b => b.name === r.badge_name);
+                return (
+                  <Badge key={r.id} className="bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-primary/20">
+                    {def?.emoji || "🏅"} {r.badge_name}
+                  </Badge>
+                );
+              })}
             </div>
           </motion.div>
         )}
