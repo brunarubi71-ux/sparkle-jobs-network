@@ -304,6 +304,29 @@ export const translations: Record<Language, Record<string, string>> = {
     "status.completed": "COMPLETED",
     "status.cancelled": "CANCELLED",
 
+    // Earnings
+    "nav.earnings": "Earnings",
+    "earnings.title": "My Earnings",
+    "earnings.subtitle": "Track your income and growth",
+    "earnings.total_earned": "Total Earned",
+    "earnings.vs_last_week": "vs last week",
+    "earnings.this_week": "This Week",
+    "earnings.this_month": "This Month",
+    "earnings.total_jobs": "Jobs Done",
+    "earnings.avg_per_job": "Avg/Job",
+    "earnings.jobs_label": "jobs",
+    "earnings.recent_earnings": "Recent Earnings",
+    "earnings.completed_job": "Completed Job",
+
+    // Badges
+    "badge.first_job": "Complete your first job",
+    "badge.rising": "Complete 10 jobs",
+    "badge.top": "Complete 25 jobs",
+    "badge.elite": "Complete 50 jobs",
+    "badge.five_star": "Maintain 4.8+ rating with 5+ jobs",
+    "badge.high_earner": "Earn $1,000+",
+    "badge.top_earner": "Earn $5,000+",
+
     // Common
     "common.loading": "Loading...",
     "common.save": "Save",
