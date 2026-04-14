@@ -469,9 +469,15 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean | null
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
           id: string
           plan_name: string | null
+          price_id: string | null
+          product_id: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -480,9 +486,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           plan_name?: string | null
+          price_id?: string | null
+          product_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -491,9 +503,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           plan_name?: string | null
+          price_id?: string | null
+          product_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -556,6 +574,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_subscription: {
+        Args: { check_env?: string; user_uuid: string }
+        Returns: boolean
+      }
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {

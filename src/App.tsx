@@ -21,6 +21,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import Earnings from "./pages/Earnings";
+import CheckoutReturn from "./pages/CheckoutReturn";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/sell-schedule" element={<ProtectedRoute><SellSchedule /></ProtectedRoute>} />
               <Route path="/job/:id" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
               <Route path="/earnings" element={<ProtectedRoute><Earnings /></ProtectedRoute>} />
+              <Route path="/checkout/return" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
