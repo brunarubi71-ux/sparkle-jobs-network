@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { containsContactInfo } from "@/lib/contactFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,10 @@ export default function SellSchedule() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (containsContactInfo(form.description)) {
+      toast.error(t("security.contact_blocked"));
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.from("schedules").insert({

@@ -92,6 +92,11 @@ export default function Profile() {
 
   const saveProfile = async () => {
     if (!user) return;
+    const { containsContactInfo } = await import("@/lib/contactFilter");
+    if (containsContactInfo(form.bio) || containsContactInfo(form.company_name)) {
+      toast.error(t("security.contact_blocked"));
+      return;
+    }
     setSaving(true);
     try {
       const updates: any = {
