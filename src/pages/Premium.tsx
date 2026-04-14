@@ -86,6 +86,7 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <PaymentTestModeBanner />
       <div className="gradient-premium px-6 pt-12 pb-20 text-center relative overflow-hidden">
         <div className="absolute top-4 right-6 opacity-20">
           <Sparkles className="w-20 h-20 text-primary-foreground" />
@@ -116,7 +117,6 @@ export default function Premium() {
                   : "bg-card shadow-card p-5"
             }`}
           >
-            {/* Badges */}
             {plan.badge && (
               <div className={`absolute top-0 right-0 text-primary-foreground text-[10px] font-bold px-3 py-1.5 rounded-bl-xl ${
                 plan.size === "hero" ? "gradient-premium" : "gradient-primary"
@@ -125,21 +125,18 @@ export default function Premium() {
               </div>
             )}
 
-            {/* Current Plan Indicator */}
             {currentTier === plan.id && (
               <div className="absolute top-0 left-0 bg-primary/20 text-primary text-[10px] font-semibold px-3 py-1.5 rounded-br-xl">
                 {t("premium.current")}
               </div>
             )}
 
-            {/* Plan Header */}
             <div className={`flex items-baseline gap-2 mb-1 ${plan.size === "hero" ? "mt-2" : ""}`}>
               <h3 className={`font-bold text-foreground ${plan.size === "hero" ? "text-xl" : "text-lg"}`}>
                 {plan.name}
               </h3>
             </div>
 
-            {/* Price */}
             <div className="flex items-baseline gap-1 mb-2">
               {plan.price === 0 ? (
                 <span className={`font-bold text-foreground ${plan.size === "hero" ? "text-3xl" : "text-2xl"}`}>
@@ -155,12 +152,10 @@ export default function Premium() {
               )}
             </div>
 
-            {/* Urgency/Loss Text */}
             <p className={`text-xs mb-4 ${plan.id === "free" ? "text-destructive/80" : "text-muted-foreground"}`}>
               {plan.urgency}
             </p>
 
-            {/* Features */}
             <div className={`space-y-2.5 mb-5 ${plan.size === "hero" ? "space-y-3" : ""}`}>
               {plan.features.map((f, j) => (
                 <div key={j} className="flex items-center gap-2.5">
@@ -176,18 +171,13 @@ export default function Premium() {
               ))}
             </div>
 
-            {/* CTA Button */}
             {currentTier === plan.id ? (
               <div className={`w-full rounded-xl bg-accent flex items-center justify-center gap-2 ${plan.size === "hero" ? "h-14" : "h-11"}`}>
                 <Check className="w-4 h-4 text-primary" />
                 <span className="font-semibold text-primary text-sm">{t("premium.current_plan")}</span>
               </div>
             ) : plan.id === "free" ? (
-              <Button
-                onClick={() => {}}
-                disabled
-                className="w-full h-11 rounded-xl bg-muted text-muted-foreground font-semibold text-sm"
-              >
+              <Button disabled className="w-full h-11 rounded-xl bg-muted text-muted-foreground font-semibold text-sm">
                 {plan.cta}
               </Button>
             ) : (
@@ -228,7 +218,6 @@ export default function Premium() {
           </p>
         </motion.div>
 
-        {/* Trial Info */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -239,6 +228,21 @@ export default function Premium() {
           <p className="text-xs text-muted-foreground">{t("premium.cancel_anytime")}</p>
         </motion.div>
       </div>
+
+      {/* Stripe Checkout Dialog */}
+      <Dialog open={!!checkoutPriceId} onOpenChange={(open) => !open && setCheckoutPriceId(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl max-h-[90vh] overflow-y-auto">
+          {checkoutPriceId && (
+            <StripeEmbeddedCheckout
+              priceId={checkoutPriceId}
+              customerEmail={profile?.email || undefined}
+              userId={user?.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
