@@ -887,7 +887,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.failed": "Algo salió mal",
     "common.application_sent": "¡Solicitud enviada! 🎉",
     "common.failed_apply": "Error al aplicar",
-    "common.upgraded_pro": "¡Upgrade a Premium! 🎉",
+    "common.upgraded_pro": "¡Upgrade a Pro! 🎉",
     "common.job_accepted": "¡Trabajo aceptado con éxito! 🎉",
     "common.google_failed": "Error al iniciar sesión con Google. Intenta de nuevo.",
     "auth.sign_in_continue": "Inicia sesión para continuar",
