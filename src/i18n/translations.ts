@@ -327,6 +327,13 @@ export const translations: Record<Language, Record<string, string>> = {
     "badge.high_earner": "Earn $1,000+",
     "badge.top_earner": "Earn $5,000+",
 
+    // Checkout
+    "checkout.success_title": "Payment Successful! 🎉",
+    "checkout.success_message": "Your plan has been upgraded. Enjoy your new benefits!",
+    "checkout.no_session": "No Payment Found",
+    "checkout.no_session_desc": "We couldn't find your payment session.",
+    "checkout.back_to_plans": "Back to Plans",
+
     // Common
     "common.loading": "Loading...",
     "common.save": "Save",
