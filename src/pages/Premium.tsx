@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Percent, Rocket, Shield, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,14 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function Premium() {
   const { user, profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
   const { t } = useLanguage();
 
   // Reordered: Free → Pro → Premium (Premium is the HERO)
@@ -73,23 +76,10 @@ export default function Premium() {
     },
   ];
 
-  const handleUpgrade = async (planId: "free" | "premium" | "pro") => {
+  const handleUpgrade = (planId: "free" | "premium" | "pro") => {
     if (!user || planId === "free") return;
-    setLoading(planId);
-    try {
-      const now = new Date();
-      const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      await supabase.from("profiles").update({
-        plan_tier: planId, is_premium: true, premium_status: "trial",
-        free_trial_started_at: now.toISOString(), free_trial_ends_at: trialEnd.toISOString(),
-      }).eq("id", user.id);
-      await supabase.from("subscriptions").upsert({
-        user_id: user.id, status: "trialing", trial_start: now.toISOString(),
-        trial_end: trialEnd.toISOString(), plan_name: planId,
-      });
-      await refreshProfile();
-      toast.success(`${planId === "pro" ? "Pro" : "Premium"} ${t("premium.trial_started")}`);
-    } catch { toast.error(t("common.failed")); } finally { setLoading(null); }
+    const priceId = planId === "premium" ? "premium_monthly" : "pro_monthly";
+    setCheckoutPriceId(priceId);
   };
 
   const currentTier = profile?.plan_tier || "free";
