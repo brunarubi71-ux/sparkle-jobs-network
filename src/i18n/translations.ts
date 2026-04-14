@@ -663,6 +663,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "badge.high_earner": "Ganhe $1.000+",
     "badge.top_earner": "Ganhe $5.000+",
 
+    "checkout.success_title": "Pagamento Realizado! 🎉",
+    "checkout.success_message": "Seu plano foi atualizado. Aproveite seus novos benefícios!",
+    "checkout.no_session": "Pagamento Não Encontrado",
+    "checkout.no_session_desc": "Não encontramos sua sessão de pagamento.",
+    "checkout.back_to_plans": "Voltar aos Planos",
+
     "common.loading": "Carregando...",
     "common.save": "Salvar",
     "common.cancel": "Cancelar",
@@ -978,6 +984,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "badge.five_star": "Mantén nota 4.8+ con 5+ trabajos",
     "badge.high_earner": "Gana $1,000+",
     "badge.top_earner": "Gana $5,000+",
+
+    "checkout.success_title": "¡Pago Exitoso! 🎉",
+    "checkout.success_message": "Tu plan ha sido actualizado. ¡Disfruta tus nuevos beneficios!",
+    "checkout.no_session": "Pago No Encontrado",
+    "checkout.no_session_desc": "No encontramos tu sesión de pago.",
+    "checkout.back_to_plans": "Volver a Planes",
 
     "common.loading": "Cargando...",
     "common.save": "Guardar",
