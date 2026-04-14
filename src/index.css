@@ -175,3 +175,13 @@
   border-color: transparent;
   transform: translateY(-2px) scale(1.03);
 }
+
+@keyframes new-job-glow {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.3); }
+  50% { box-shadow: 0 0 12px 4px hsl(var(--primary) / 0.2); }
+}
+
+.job-card-new {
+  animation: new-job-glow 2s ease-in-out 3;
+  border-color: hsl(var(--primary) / 0.4) !important;
+}

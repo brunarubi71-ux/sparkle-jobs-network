@@ -146,8 +146,33 @@ export default function Jobs() {
     return null;
   };
 
-  /* ── fetch jobs ── */
+  /* ── fetch jobs + realtime ── */
   useEffect(() => { fetchJobs(); }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("new-jobs")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "jobs" }, (payload) => {
+        const newJob = payload.new as Job;
+        if (newJob.status === "open" && !newJob.hired_cleaner_id) {
+          const tier = profile?.plan_tier || "free";
+          const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
+          setTimeout(() => {
+            setJobs((prev) => {
+              if (prev.some(j => j.id === newJob.id)) return prev;
+              return [newJob, ...prev];
+            });
+            toast(t("jobs.new_job_nearby"), {
+              description: `${newJob.title} — $${newJob.price}`,
+              action: { label: t("jobs.claim_now"), onClick: () => setSelectedJob({ ...newJob, distanceMiles: null, etaMinutes: null }) },
+              duration: 8000,
+            });
+          }, delay);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.plan_tier]);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -474,7 +499,7 @@ export default function Jobs() {
                 transition={{ delay: index * 0.04, type: "spring", stiffness: 260, damping: 28 }}
                 className={`rounded-3xl border bg-card p-4 shadow-card transition-all ${
                   isSelected ? "border-primary ring-2 ring-primary/15" : "border-border"
-                }`}
+                } ${isRecent ? "job-card-new" : ""}`}
                 onClick={() => {
                   setSelectedJob(job);
                   setMapCenter(getJobPosition(job, index, mapCenter));

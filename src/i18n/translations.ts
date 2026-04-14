@@ -46,6 +46,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "jobs.high_value": "HIGH VALUE",
     "jobs.asap": "ASAP",
     "jobs.new": "New",
+    "jobs.new_job_nearby": "🔔 New job near you!",
+    "jobs.claim_now": "Claim now",
+    "security.contact_blocked": "Sharing contact info outside Shinely is not allowed.",
 
     // Job Details
     "job.details": "Job Details",
@@ -352,6 +355,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "jobs.high_value": "ALTO VALOR",
     "jobs.asap": "URGENTE",
     "jobs.new": "Novo",
+    "jobs.new_job_nearby": "🔔 Nova vaga perto de você!",
+    "jobs.claim_now": "Aceitar agora",
+    "security.contact_blocked": "Compartilhar informações de contato fora do Shinely não é permitido.",
 
     "job.details": "Detalhes da Vaga",
     "job.execution": "Execução da Vaga",
@@ -645,6 +651,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "jobs.high_value": "ALTO VALOR",
     "jobs.asap": "URGENTE",
     "jobs.new": "Nuevo",
+    "jobs.new_job_nearby": "🔔 ¡Nuevo trabajo cerca de ti!",
+    "jobs.claim_now": "Reclamar ahora",
+    "security.contact_blocked": "No se permite compartir información de contacto fuera de Shinely.",
 
     "job.details": "Detalles del Trabajo",
     "job.execution": "Ejecución del Trabajo",
