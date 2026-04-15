@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, CheckCircle, XCircle, Star, Eye } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ShimmerCard from "@/components/ShimmerCard";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
@@ -27,8 +28,14 @@ interface JobWithApplicants {
   cleaner_earnings: number;
   hired_cleaner_id: string | null;
   created_at: string;
+  completion_photos: string[] | null;
+  completion_notes: string | null;
   applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
 }
+
+const ACTIVE_STATUSES = ["open", "applied", "hired", "accepted"];
+const IN_PROGRESS_STATUSES = ["in_progress"];
+const APPROVAL_STATUSES = ["pending_review"];
 
 export default function MyJobs() {
   const { user } = useAuth();
@@ -37,19 +44,32 @@ export default function MyJobs() {
   const [jobs, setJobs] = useState<JobWithApplicants[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => { if (user) fetchJobs(); }, [user]);
 
   const fetchJobs = async () => {
     setLoading(true);
-    const { data: jobsData } = await supabase.from("jobs").select("*").eq("owner_id", user!.id).order("created_at", { ascending: false });
+    const { data: jobsData } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("owner_id", user!.id)
+      .order("created_at", { ascending: false });
     if (!jobsData) { setLoading(false); return; }
+
     const jobsWithApplicants: JobWithApplicants[] = [];
     for (const job of jobsData) {
-      const { data: apps } = await supabase.from("job_applications").select("id, cleaner_id, status").eq("job_id", job.id);
+      const { data: apps } = await supabase
+        .from("job_applications")
+        .select("id, cleaner_id, status")
+        .eq("job_id", job.id);
       const applicants = [];
       for (const app of apps || []) {
-        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", app.cleaner_id).single();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", app.cleaner_id)
+          .single();
         applicants.push({ ...app, cleaner_name: profile?.full_name || "Cleaner" });
       }
       jobsWithApplicants.push({ ...job, applicants } as JobWithApplicants);
@@ -73,15 +93,147 @@ export default function MyJobs() {
     fetchJobs();
   };
 
+  const approveJob = async (jobId: string) => {
+    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", jobId);
+    toast.success(t("myjobs.job_approved"));
+    fetchJobs();
+  };
+
+  const activeJobs = useMemo(() => jobs.filter(j => ACTIVE_STATUSES.includes(j.status)), [jobs]);
+  const inProgressJobs = useMemo(() => jobs.filter(j => IN_PROGRESS_STATUSES.includes(j.status)), [jobs]);
+  const approvalJobs = useMemo(() => jobs.filter(j => APPROVAL_STATUSES.includes(j.status)), [jobs]);
+  const completedJobs = useMemo(() => jobs.filter(j => j.status === "completed"), [jobs]);
+  const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
+
   const statusConfig: Record<string, { color: string; label: string }> = {
     open: { color: "bg-emerald-100 text-emerald-700", label: t("status.open") },
     applied: { color: "bg-blue-100 text-blue-700", label: t("status.applied") },
     hired: { color: "bg-amber-100 text-amber-700", label: t("status.hired") },
+    accepted: { color: "bg-amber-100 text-amber-700", label: t("status.accepted") },
     in_progress: { color: "bg-purple-100 text-purple-700", label: t("status.in_progress") },
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review") },
     completed: { color: "bg-green-100 text-green-700", label: t("status.completed") },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled") },
   };
+
+  const JobCard = ({ job, index }: { job: JobWithApplicants; index: number }) => {
+    const status = statusConfig[job.status] || { color: "bg-muted text-muted-foreground", label: job.status };
+    const showApproval = APPROVAL_STATUSES.includes(job.status);
+
+    return (
+      <motion.div
+        key={job.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.04 }}
+        className="bg-card rounded-2xl p-4 shadow-card border border-border"
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground truncate">{job.title}</p>
+            <p className="text-xl font-bold text-primary">${job.price}</p>
+          </div>
+          <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.city || "N/A"}</span>
+          <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {job.bedrooms}</span>
+          <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {job.bathrooms}</span>
+        </div>
+
+        <div className="bg-accent rounded-xl p-2.5 text-xs space-y-0.5 mb-3">
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span>${job.total_amount || job.price}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.platform_fee")}</span><span className="text-destructive">-${job.platform_fee || (Number(job.price) * 0.1).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.cleaner_gets")}</span><span className="text-primary font-medium">${job.cleaner_earnings || (Number(job.price) * 0.9).toFixed(2)}</span></div>
+        </div>
+
+        {/* Applicants for active jobs */}
+        {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (
+          <div className="mb-3">
+            <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+              <Users className="w-3 h-3" /> {t("myjobs.applicants")} ({job.applicants.length})
+            </p>
+            {job.applicants.map(app => (
+              <div key={app.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{app.cleaner_name}</span>
+                {["open", "applied"].includes(job.status) && app.status !== "hired" && (
+                  <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
+                    className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
+                    {t("myjobs.hire")}
+                  </Button>
+                )}
+                {app.status === "hired" && <Badge className="bg-primary/10 text-primary border-0 text-[10px]">{t("myjobs.hired")}</Badge>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Approval section with completion photos */}
+        {showApproval && (
+          <div className="mb-3 space-y-3">
+            {job.completion_photos && job.completion_photos.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" /> {t("myjobs.completion_photos")}
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {job.completion_photos.map((url, i) => (
+                    <img key={i} src={url} alt="" className="rounded-lg aspect-square object-cover w-full" />
+                  ))}
+                </div>
+              </div>
+            )}
+            {job.completion_notes && (
+              <div className="bg-accent/50 rounded-xl p-3">
+                <p className="text-xs font-medium text-foreground mb-1">{t("myjobs.completion_notes")}</p>
+                <p className="text-xs text-muted-foreground">{job.completion_notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          {showApproval && (
+            <Button size="sm" onClick={() => approveJob(job.id)}
+              className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
+              <CheckCircle className="w-3 h-3 mr-1" /> {t("myjobs.approve")}
+            </Button>
+          )}
+          {["hired", "in_progress", "pending_review", "completed"].includes(job.status) && (
+            <Button size="sm" variant="outline" onClick={() => navigate(`/job/${job.id}`)}
+              className="flex-1 h-9 text-xs rounded-xl">
+              <Eye className="w-3 h-3 mr-1" /> {t("myjobs.view_details")}
+            </Button>
+          )}
+          {job.status === "completed" && (
+            <Button size="sm" variant="outline" onClick={() => job.hired_cleaner_id && setReviewJob({ jobId: job.id, reviewedId: job.hired_cleaner_id })}
+              className="flex-1 h-9 text-xs rounded-xl">
+              <Star className="w-3 h-3 mr-1" /> {t("myjobs.review")}
+            </Button>
+          )}
+          {!["completed", "cancelled", "pending_review"].includes(job.status) && (
+            <Button size="sm" variant="outline" onClick={() => cancelJob(job.id)}
+              className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
+              <XCircle className="w-3 h-3 mr-1" /> {t("myjobs.cancel")}
+            </Button>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const EmptyState = ({ message }: { message: string }) => (
+    <div className="py-12 text-center"><p className="text-muted-foreground">{message}</p></div>
+  );
+
+  const renderList = (list: JobWithApplicants[], emptyMsg: string) =>
+    loading
+      ? Array.from({ length: 3 }).map((_, i) => <ShimmerCard key={i} />)
+      : list.length === 0
+        ? <EmptyState message={emptyMsg} />
+        : list.map((job, i) => <JobCard key={job.id} job={job} index={i} />);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -90,71 +242,42 @@ export default function MyJobs() {
         <p className="text-sm text-muted-foreground">{t("myjobs.subtitle")}</p>
       </div>
 
-      <div className="px-4 space-y-3">
-        {loading ? Array.from({ length: 3 }).map((_, i) => <ShimmerCard key={i} />) :
-         jobs.length === 0 ? (
-          <div className="text-center py-12"><p className="text-muted-foreground">{t("myjobs.no_jobs")}</p></div>
-        ) : jobs.map((job, i) => {
-          const status = statusConfig[job.status] || { color: "bg-muted text-muted-foreground", label: job.status.toUpperCase() };
-          return (
-            <motion.div key={job.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="bg-card rounded-2xl p-4 shadow-card">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="font-semibold text-foreground">{job.title}</p>
-                  <p className="text-2xl font-bold text-foreground">${job.price}</p>
-                </div>
-                <Badge className={`${status.color} border-0 text-[10px]`}>{status.label}</Badge>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.city || "N/A"}</span>
-                <span className="flex items-center gap-1"><Bed className="w-3 h-3" /> {job.bedrooms}</span>
-                <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {job.bathrooms}</span>
-              </div>
-              <div className="bg-accent rounded-xl p-2.5 text-xs space-y-0.5 mb-3">
-                <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span>${job.total_amount || job.price}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.platform_fee")}</span><span className="text-destructive">-${job.platform_fee || (job.price * 0.1).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.cleaner_gets")}</span><span className="text-primary font-medium">${job.cleaner_earnings || (job.price * 0.9).toFixed(2)}</span></div>
-              </div>
-              {job.applicants.length > 0 && !["completed", "cancelled"].includes(job.status) && (
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1"><Users className="w-3 h-3" /> {t("myjobs.applicants")} ({job.applicants.length})</p>
-                  {job.applicants.map(app => (
-                    <div key={app.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                      <span className="text-sm text-foreground">{app.cleaner_name}</span>
-                      {job.status === "open" && app.status !== "hired" && (
-                        <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
-                          className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
-                          {t("myjobs.hire")}
-                        </Button>
-                      )}
-                      {app.status === "hired" && <Badge className="bg-primary/10 text-primary border-0 text-[10px]">{t("myjobs.hired")}</Badge>}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                {["hired", "in_progress", "pending_review", "completed"].includes(job.status) && (
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/job/${job.id}`)} className="flex-1 h-9 text-xs rounded-xl">
-                    <Eye className="w-3 h-3 mr-1" /> {t("myjobs.view_details")}
-                  </Button>
-                )}
-                {job.status === "completed" && (
-                  <Button size="sm" variant="outline" onClick={() => job.hired_cleaner_id && setReviewJob({ jobId: job.id, reviewedId: job.hired_cleaner_id })}
-                    className="flex-1 h-9 text-xs rounded-xl">
-                    <Star className="w-3 h-3 mr-1" /> {t("myjobs.review")}
-                  </Button>
-                )}
-                {!["completed", "cancelled", "pending_review"].includes(job.status) && (
-                  <Button size="sm" variant="outline" onClick={() => cancelJob(job.id)}
-                    className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
-                    <XCircle className="w-3 h-3 mr-1" /> {t("myjobs.cancel")}
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
+      <div className="px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4 w-full rounded-2xl bg-accent p-1 flex overflow-x-auto">
+            <TabsTrigger value="active" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_active")} ({activeJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="in_progress" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_in_progress")} ({inProgressJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="approval" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_approval")} ({approvalJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_completed")} ({completedJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_cancelled")} ({cancelledJobs.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="space-y-3">
+            {renderList(activeJobs, t("myjobs.no_active"))}
+          </TabsContent>
+          <TabsContent value="in_progress" className="space-y-3">
+            {renderList(inProgressJobs, t("myjobs.no_in_progress"))}
+          </TabsContent>
+          <TabsContent value="approval" className="space-y-3">
+            {renderList(approvalJobs, t("myjobs.no_approval"))}
+          </TabsContent>
+          <TabsContent value="completed" className="space-y-3">
+            {renderList(completedJobs, t("myjobs.no_completed"))}
+          </TabsContent>
+          <TabsContent value="cancelled" className="space-y-3">
+            {renderList(cancelledJobs, t("myjobs.no_cancelled"))}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {reviewJob && (
