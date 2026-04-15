@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import ShimmerCard from "@/components/ShimmerCard";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import ReviewModal from "@/components/ReviewModal";
+import DisputeModal from "@/components/DisputeModal";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface JobWithApplicants {
@@ -30,6 +31,8 @@ interface JobWithApplicants {
   created_at: string;
   completion_photos: string[] | null;
   completion_notes: string | null;
+  escrow_status: string;
+  pending_review_at: string | null;
   applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
 }
 
@@ -44,6 +47,7 @@ export default function MyJobs() {
   const [jobs, setJobs] = useState<JobWithApplicants[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
+  const [disputeJob, setDisputeJob] = useState<{ jobId: string; reportedId: string } | null>(null);
   const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => { if (user) fetchJobs(); }, [user]);
@@ -94,7 +98,11 @@ export default function MyJobs() {
   };
 
   const approveJob = async (jobId: string) => {
-    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", jobId);
+    await supabase.from("jobs").update({
+      status: "completed",
+      owner_confirmed_completion: true,
+      escrow_status: "released",
+    } as any).eq("id", jobId);
     toast.success(t("myjobs.job_approved"));
     fetchJobs();
   };
@@ -169,9 +177,32 @@ export default function MyJobs() {
           </div>
         )}
 
+        {/* Escrow status badge */}
+        {job.escrow_status && job.escrow_status !== "pending" && (
+          <div className="mb-3">
+            <Badge className={`text-[10px] font-bold border-0 ${
+              job.escrow_status === "paid" ? "bg-blue-100 text-blue-700" :
+              job.escrow_status === "released" ? "bg-green-100 text-green-700" :
+              job.escrow_status === "disputed" ? "bg-red-100 text-red-700" :
+              "bg-muted text-muted-foreground"
+            }`}>
+              <Shield className="w-3 h-3 mr-1" />
+              {t(`escrow.${job.escrow_status}`)}
+            </Badge>
+          </div>
+        )}
+
         {/* Approval section with completion photos */}
         {showApproval && (
           <div className="mb-3 space-y-3">
+            {/* Auto-approve countdown */}
+            {job.pending_review_at && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-amber-700">{t("myjobs.auto_approve_warning")}</span>
+              </div>
+            )}
+
             {job.completion_photos && job.completion_photos.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
@@ -194,12 +225,23 @@ export default function MyJobs() {
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {showApproval && (
-            <Button size="sm" onClick={() => approveJob(job.id)}
-              className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
-              <CheckCircle className="w-3 h-3 mr-1" /> {t("myjobs.approve")}
-            </Button>
+            <>
+              <Button size="sm" onClick={() => approveJob(job.id)}
+                className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
+                <CheckCircle className="w-3 h-3 mr-1" /> {t("myjobs.approve")}
+              </Button>
+              {job.hired_cleaner_id && job.escrow_status !== "disputed" && (
+                <Button size="sm" variant="outline" onClick={() => setDisputeJob({ jobId: job.id, reportedId: job.hired_cleaner_id! })}
+                  className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
+                  <AlertTriangle className="w-3 h-3 mr-1" /> {t("myjobs.report_issue")}
+                </Button>
+              )}
+              {job.escrow_status === "disputed" && (
+                <Badge className="bg-red-100 text-red-700 border-0 text-[10px]">{t("dispute.under_review")}</Badge>
+              )}
+            </>
           )}
           {["hired", "in_progress", "pending_review", "completed"].includes(job.status) && (
             <Button size="sm" variant="outline" onClick={() => navigate(`/job/${job.id}`)}
@@ -282,6 +324,9 @@ export default function MyJobs() {
 
       {reviewJob && (
         <ReviewModal open={!!reviewJob} onClose={() => { setReviewJob(null); fetchJobs(); }} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />
+      )}
+      {disputeJob && (
+        <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
       )}
       <BottomNav />
     </div>

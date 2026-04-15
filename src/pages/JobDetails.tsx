@@ -87,7 +87,7 @@ export default function JobDetails() {
       return;
     }
     setCompleting(true);
-    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: completionNotes }).eq("id", id);
+    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: completionNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
     toast.success(t("job.submitted_review"));
     await fetchJob();
     setCompleting(false);

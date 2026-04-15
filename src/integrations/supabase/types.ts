@@ -46,6 +46,51 @@ export type Database = {
           },
         ]
       }
+      disputes: {
+        Row: {
+          admin_decision: string | null
+          admin_notes: string | null
+          created_at: string
+          id: string
+          job_id: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+          reporter_type: string
+          response: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_decision?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+          reporter_type?: string
+          response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_decision?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          reason?: string
+          reported_id?: string
+          reporter_id?: string
+          reporter_type?: string
+          response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_applications: {
         Row: {
           cleaner_id: string
@@ -122,6 +167,7 @@ export type Database = {
           date_time: string | null
           description: string | null
           door_access_info: string | null
+          escrow_status: string
           hired_cleaner_id: string | null
           id: string
           latitude: number | null
@@ -129,6 +175,8 @@ export type Database = {
           owner_confirmed_completion: boolean | null
           owner_id: string
           owner_instructions: string | null
+          payment_intent_id: string | null
+          pending_review_at: string | null
           platform_fee: number | null
           price: number
           property_photos: string[] | null
@@ -151,6 +199,7 @@ export type Database = {
           date_time?: string | null
           description?: string | null
           door_access_info?: string | null
+          escrow_status?: string
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
@@ -158,6 +207,8 @@ export type Database = {
           owner_confirmed_completion?: boolean | null
           owner_id: string
           owner_instructions?: string | null
+          payment_intent_id?: string | null
+          pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
@@ -180,6 +231,7 @@ export type Database = {
           date_time?: string | null
           description?: string | null
           door_access_info?: string | null
+          escrow_status?: string
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
@@ -187,6 +239,8 @@ export type Database = {
           owner_confirmed_completion?: boolean | null
           owner_id?: string
           owner_instructions?: string | null
+          payment_intent_id?: string | null
+          pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
