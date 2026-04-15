@@ -156,6 +156,7 @@ export type Database = {
       jobs: {
         Row: {
           address: string | null
+          alarm_instructions: string | null
           bathrooms: number
           bedrooms: number
           city: string | null
@@ -167,20 +168,28 @@ export type Database = {
           date_time: string | null
           description: string | null
           door_access_info: string | null
+          door_code: string | null
           escrow_status: string
+          gate_code: string | null
+          guest_stay_length: number | null
           hired_cleaner_id: string | null
           id: string
           latitude: number | null
+          lockbox_code: string | null
           longitude: number | null
+          main_property_photo: string | null
+          number_of_guests: number | null
           owner_confirmed_completion: boolean | null
           owner_id: string
           owner_instructions: string | null
+          parking_instructions: string | null
           payment_intent_id: string | null
           pending_review_at: string | null
           platform_fee: number | null
           price: number
           property_photos: string[] | null
           status: string
+          supply_code: string | null
           team_size_required: number
           title: string
           total_amount: number | null
@@ -188,6 +197,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          alarm_instructions?: string | null
           bathrooms?: number
           bedrooms?: number
           city?: string | null
@@ -199,20 +209,28 @@ export type Database = {
           date_time?: string | null
           description?: string | null
           door_access_info?: string | null
+          door_code?: string | null
           escrow_status?: string
+          gate_code?: string | null
+          guest_stay_length?: number | null
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
+          lockbox_code?: string | null
           longitude?: number | null
+          main_property_photo?: string | null
+          number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id: string
           owner_instructions?: string | null
+          parking_instructions?: string | null
           payment_intent_id?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
           status?: string
+          supply_code?: string | null
           team_size_required?: number
           title: string
           total_amount?: number | null
@@ -220,6 +238,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          alarm_instructions?: string | null
           bathrooms?: number
           bedrooms?: number
           city?: string | null
@@ -231,20 +250,28 @@ export type Database = {
           date_time?: string | null
           description?: string | null
           door_access_info?: string | null
+          door_code?: string | null
           escrow_status?: string
+          gate_code?: string | null
+          guest_stay_length?: number | null
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
+          lockbox_code?: string | null
           longitude?: number | null
+          main_property_photo?: string | null
+          number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id?: string
           owner_instructions?: string | null
+          parking_instructions?: string | null
           payment_intent_id?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
           status?: string
+          supply_code?: string | null
           team_size_required?: number
           title?: string
           total_amount?: number | null

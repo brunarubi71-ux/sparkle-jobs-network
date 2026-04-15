@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, MapPin, Bed, Bath, Camera, CheckCircle, AlertTriangle,
-  Image as ImageIcon, Play, FileText, Lock, Sparkles, Clock, Home, ImagePlus
+  ArrowLeft, MapPin, Bed, Bath, Camera, CheckCircle,
+  Image as ImageIcon, Play, Lock, Sparkles, Clock, Home, ImagePlus, Users, Calendar, Unlock, Key
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,6 @@ export default function JobDetails() {
   const [startingJob, setStartingJob] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
 
-  const [ownerInstructions, setOwnerInstructions] = useState("");
-  const [doorAccess, setDoorAccess] = useState("");
-  const [savingInstructions, setSavingInstructions] = useState(false);
-
   useEffect(() => { if (id) fetchJob(); }, [id]);
 
   const fetchJob = async () => {
@@ -41,22 +37,13 @@ export default function JobDetails() {
       setJob(data);
       setCompletionPhotos((data as any).completion_photos || []);
       setCompletionNotes((data as any).completion_notes || "");
-      setOwnerInstructions((data as any).owner_instructions || "");
-      setDoorAccess((data as any).door_access_info || "");
     }
     setLoading(false);
   };
 
   const isOwner = job?.owner_id === user?.id;
   const isCleaner = job?.hired_cleaner_id === user?.id;
-
-  const saveInstructions = async () => {
-    if (!id) return;
-    setSavingInstructions(true);
-    await supabase.from("jobs").update({ owner_instructions: ownerInstructions, door_access_info: doorAccess }).eq("id", id);
-    toast.success(t("job.instructions_saved"));
-    setSavingInstructions(false);
-  };
+  const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
 
   const startJob = async () => {
     if (!id) return;
@@ -134,6 +121,22 @@ export default function JobDetails() {
 
   const status = statusConfig[job.status] || { color: "bg-muted text-muted-foreground", label: job.status.toUpperCase(), icon: "📌" };
   const propertyPhotos: string[] = job.property_photos || [];
+  const mainPhoto: string | null = (job as any).main_property_photo;
+  const isAirbnb = job.cleaning_type === "airbnb";
+
+  // Structured access fields
+  const accessFields = [
+    { label: t("post.door_code"), value: (job as any).door_code },
+    { label: t("post.supply_code"), value: (job as any).supply_code },
+    { label: t("post.lockbox_code"), value: (job as any).lockbox_code },
+    { label: t("post.gate_code"), value: (job as any).gate_code },
+    { label: t("post.alarm_instructions"), value: (job as any).alarm_instructions },
+    { label: t("post.parking_instructions"), value: (job as any).parking_instructions },
+    { label: t("post.additional_notes"), value: job.door_access_info },
+  ].filter((f) => f.value);
+
+  const hasAccessInfo = accessFields.length > 0;
+  const hasAdditionalPhotos = propertyPhotos.length > 0;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -158,6 +161,15 @@ export default function JobDetails() {
       </AnimatePresence>
 
       <div className="px-4 py-4 space-y-4">
+        {/* Main Property Photo (cleaner view) */}
+        {isCleaner && mainPhoto && (
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+            <div className="rounded-2xl overflow-hidden border border-border shadow-card">
+              <img src={mainPhoto} alt={job.title} className="w-full aspect-video object-cover" />
+            </div>
+          </motion.div>
+        )}
+
         {/* Job Summary */}
         <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card rounded-2xl shadow-card p-5">
           <div className="flex items-start justify-between mb-2">
@@ -172,79 +184,121 @@ export default function JobDetails() {
           </div>
           {job.address && <p className="text-sm text-muted-foreground mb-2"><MapPin className="w-3.5 h-3.5 inline mr-1 text-primary" />{job.address}</p>}
           {job.description && <p className="text-sm text-foreground/80 leading-relaxed">{job.description}</p>}
+
+          {/* Airbnb info */}
+          {isAirbnb && ((job as any).number_of_guests || (job as any).guest_stay_length) && (
+            <div className="mt-3 bg-primary/5 rounded-xl p-3 border border-primary/10 flex gap-4 text-xs">
+              {(job as any).number_of_guests && (
+                <span className="flex items-center gap-1 text-foreground"><Users className="w-3.5 h-3.5 text-primary" /> {(job as any).number_of_guests} {t("job.guests")}</span>
+              )}
+              {(job as any).guest_stay_length && (
+                <span className="flex items-center gap-1 text-foreground"><Calendar className="w-3.5 h-3.5 text-primary" /> {(job as any).guest_stay_length} {t("job.days_stayed")}</span>
+              )}
+            </div>
+          )}
         </motion.div>
 
-        {/* Owner: Editable Instructions */}
+        {/* Owner: Instructions (read-only view of what they entered) */}
         {isOwner && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }}
-            className="bg-card rounded-2xl shadow-card p-5">
-            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" /> {t("job.instructions_access")}
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-foreground mb-1 block">{t("job.instructions_for_cleaner")}</label>
-                <Textarea placeholder={t("job.instructions_placeholder")} value={ownerInstructions}
-                  onChange={(e) => setOwnerInstructions(e.target.value)} className="rounded-xl min-h-[80px]" />
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="space-y-4">
+            {mainPhoto && (
+              <div className="bg-card rounded-2xl shadow-card p-5">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Home className="w-4 h-4 text-primary" /> {t("post.main_photo")}
+                </h3>
+                <div className="rounded-xl overflow-hidden border border-border">
+                  <img src={mainPhoto} alt="" className="w-full aspect-video object-cover" />
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-foreground mb-1 block">{t("job.door_access")}</label>
-                <Textarea placeholder={t("job.door_access_placeholder")} value={doorAccess}
-                  onChange={(e) => setDoorAccess(e.target.value)} className="rounded-xl min-h-[60px]" />
+            )}
+            {hasAccessInfo && (
+              <div className="bg-card rounded-2xl shadow-card p-5">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-primary" /> {t("post.access_details")}
+                </h3>
+                <div className="space-y-2">
+                  {accessFields.map((f, i) => (
+                    <div key={i} className="flex justify-between bg-accent/50 rounded-lg px-3 py-2">
+                      <span className="text-xs text-muted-foreground">{f.label}</span>
+                      <span className="text-xs font-medium text-foreground">{f.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <Button onClick={saveInstructions} disabled={savingInstructions} size="sm"
-                className="rounded-xl gradient-primary text-white text-xs font-semibold">
-                {savingInstructions ? t("job.saving") : t("job.save_instructions")}
-              </Button>
+            )}
+            {hasAdditionalPhotos && (
+              <div className="bg-card rounded-2xl shadow-card p-5">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-primary" /> {t("post.additional_photos")}
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {propertyPhotos.map((url, i) => (
+                    <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Photo ${i + 1}`} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Cleaner: General Info */}
+        {isCleaner && job.owner_instructions && (
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }}>
+            <div className="bg-card rounded-2xl shadow-card p-5">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                <Home className="w-4 h-4 text-primary" /> {t("job.general_info")}
+              </h3>
+              <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{job.owner_instructions}</p>
+              </div>
             </div>
           </motion.div>
         )}
 
-        {/* Cleaner: Read-Only */}
-        {isCleaner && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="space-y-4">
-            <div className="bg-card rounded-2xl shadow-card p-5">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-primary" /> {t("job.instructions")}
-              </h3>
-              {ownerInstructions ? (
-                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{ownerInstructions}</p>
-                </div>
-              ) : (
-                <div className="bg-accent/50 rounded-xl p-4 flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">{t("job.no_instructions")}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-card rounded-2xl shadow-card p-5 border-l-4 border-l-amber-400">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                <Lock className="w-4 h-4 text-amber-500" /> {t("job.access_details")}
-              </h3>
-              {doorAccess ? (
-                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{doorAccess}</p>
-                </div>
-              ) : (
-                <div className="bg-accent/50 rounded-xl p-4 flex items-center gap-3">
-                  <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">{t("job.no_access")}</p>
-                </div>
-              )}
-            </div>
-
-            {propertyPhotos.length > 0 && (
-              <div className="bg-card rounded-2xl shadow-card p-5">
+        {/* Cleaner: Access Section — Locked or Unlocked */}
+        {isCleaner && (hasAccessInfo || hasAdditionalPhotos) && (
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+            {!isStarted ? (
+              /* LOCKED STATE */
+              <div className="bg-card rounded-2xl shadow-card p-5 border-l-4 border-l-amber-400">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                  <Home className="w-4 h-4 text-primary" /> {t("job.reference_photos")}
+                  <Lock className="w-4 h-4 text-amber-500" /> {t("job.access_locked")}
                 </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {propertyPhotos.map((url, i) => (
-                    <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Reference ${i + 1}`} />
-                  ))}
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800 text-center">
+                  <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                  <p className="text-sm text-foreground font-medium">{t("job.unlock_message")}</p>
                 </div>
+              </div>
+            ) : (
+              /* UNLOCKED STATE */
+              <div className="space-y-4">
+                {hasAccessInfo && (
+                  <div className="bg-card rounded-2xl shadow-card p-5 border-l-4 border-l-emerald-400">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                      <Unlock className="w-4 h-4 text-emerald-500" /> {t("job.access_unlocked")}
+                    </h3>
+                    <div className="space-y-2">
+                      {accessFields.map((f, i) => (
+                        <div key={i} className="flex justify-between bg-emerald-50 dark:bg-emerald-950/30 rounded-lg px-3 py-2.5 border border-emerald-200 dark:border-emerald-800">
+                          <span className="text-xs text-muted-foreground">{f.label}</span>
+                          <span className="text-sm font-semibold text-foreground">{f.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {hasAdditionalPhotos && (
+                  <div className="bg-card rounded-2xl shadow-card p-5">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                      <Camera className="w-4 h-4 text-primary" /> {t("post.additional_photos")}
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {propertyPhotos.map((url, i) => (
+                        <img key={i} src={url} className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Reference ${i + 1}`} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
-import { PlusCircle, Camera, X, Upload } from "lucide-react";
+import { PlusCircle, Camera, X, Upload, Star } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function PostJob() {
@@ -19,6 +19,8 @@ export default function PostJob() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
+  const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -26,11 +28,20 @@ export default function PostJob() {
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
     urgency: "scheduled", description: "", team_size: "1",
-    door_access_info: "",
+    door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
+    alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
   });
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+
+  const handleMainPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (mainPhotoPreview) URL.revokeObjectURL(mainPhotoPreview);
+    setMainPhotoFile(file);
+    setMainPhotoPreview(URL.createObjectURL(file));
+  };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -38,10 +49,8 @@ export default function PostJob() {
       toast.error(t("post.max_photos"));
       return;
     }
-    const newFiles = [...photoFiles, ...files];
-    setPhotoFiles(newFiles);
-    const newPreviews = files.map((f) => URL.createObjectURL(f));
-    setPhotoPreviews((prev) => [...prev, ...newPreviews]);
+    setPhotoFiles((prev) => [...prev, ...files]);
+    setPhotoPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
   };
 
   const removePhoto = (index: number) => {
@@ -50,20 +59,13 @@ export default function PostJob() {
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const uploadPhotos = async (): Promise<string[]> => {
-    if (!user || photoFiles.length === 0) return [];
-    setUploadingPhotos(true);
-    const urls: string[] = [];
-    for (const file of photoFiles) {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("property-photos").upload(path, file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("property-photos").getPublicUrl(path);
-      urls.push(urlData.publicUrl);
-    }
-    setUploadingPhotos(false);
-    return urls;
+  const uploadFile = async (file: File, folder: string): Promise<string> => {
+    const ext = file.name.split(".").pop();
+    const path = `${user!.id}/${folder}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("property-photos").upload(path, file);
+    if (error) throw error;
+    const { data } = supabase.storage.from("property-photos").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,17 +75,23 @@ export default function PostJob() {
       toast.error(t("security.contact_blocked"));
       return;
     }
+    if (!mainPhotoFile) {
+      toast.error(t("post.main_photo_required"));
+      return;
+    }
     setLoading(true);
+    setUploadingPhotos(true);
     try {
       const price = parseFloat(form.price) || 0;
       const platformFee = Math.round(price * 0.1 * 100) / 100;
       const cleanerEarnings = Math.round((price - platformFee) * 100) / 100;
 
-      const propertyPhotos = await uploadPhotos();
-
-      const ownerInstructions = form.cleaning_type === "airbnb"
-        ? `Guest Stay: ${form.guest_stay_length} days, Guests: ${form.number_of_guests}`
-        : null;
+      const mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
+      const additionalUrls: string[] = [];
+      for (const file of photoFiles) {
+        additionalUrls.push(await uploadFile(file, "additional"));
+      }
+      setUploadingPhotos(false);
 
       const { error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
@@ -92,14 +100,22 @@ export default function PostJob() {
         description: form.description || null, total_amount: price,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: parseInt(form.team_size) || 1,
-        property_photos: propertyPhotos.length > 0 ? propertyPhotos : null,
+        main_property_photo: mainPhotoUrl,
+        property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        door_code: form.door_code || null,
+        supply_code: form.supply_code || null,
+        lockbox_code: form.lockbox_code || null,
+        gate_code: form.gate_code || null,
+        alarm_instructions: form.alarm_instructions || null,
+        parking_instructions: form.parking_instructions || null,
         door_access_info: form.door_access_info || null,
-        owner_instructions: ownerInstructions,
-      });
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+      } as any);
       if (error) throw error;
       toast.success(t("post.success"));
       navigate("/my-jobs");
-    } catch { toast.error(t("post.error")); } finally { setLoading(false); }
+    } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
   };
 
   const isAirbnb = form.cleaning_type === "airbnb";
@@ -167,14 +183,38 @@ export default function PostJob() {
           </div>
         </div>
 
-        {/* Property Photos */}
+        {/* Main Property Photo */}
+        <div className="bg-card rounded-2xl shadow-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Star className="w-5 h-5 text-primary" />
+            <p className="text-sm font-semibold text-foreground">{t("post.main_photo")} *</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("post.main_photo_hint")}</p>
+
+          {mainPhotoPreview ? (
+            <div className="relative aspect-video rounded-xl overflow-hidden border border-border">
+              <img src={mainPhotoPreview} alt="" className="w-full h-full object-cover" />
+              <button type="button" onClick={() => { URL.revokeObjectURL(mainPhotoPreview); setMainPhotoFile(null); setMainPhotoPreview(""); }} className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl p-6 cursor-pointer hover:border-primary/50 transition-colors bg-primary/5">
+              <Camera className="w-6 h-6 text-primary" />
+              <span className="text-sm font-medium text-primary">{t("post.select_main_photo")}</span>
+              <input type="file" accept="image/*" onChange={handleMainPhotoSelect} className="hidden" />
+            </label>
+          )}
+        </div>
+
+        {/* Additional Photos */}
         <div className="bg-card rounded-2xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-primary" />
-            <p className="text-sm font-semibold text-foreground">{t("post.property_photos")}</p>
+            <p className="text-sm font-semibold text-foreground">{t("post.additional_photos")}</p>
           </div>
-          <p className="text-xs text-muted-foreground">{t("post.property_photos_hint")}</p>
-          
+          <p className="text-xs text-muted-foreground">{t("post.additional_photos_hint")}</p>
+
           {photoPreviews.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
               {photoPreviews.map((src, i) => (
@@ -196,19 +236,43 @@ export default function PostJob() {
           <p className="text-xs text-muted-foreground text-center">{t("post.max_photos_label")}</p>
         </div>
 
-        {/* Property Details */}
+        {/* Access & Property Details */}
         <div className="bg-card rounded-2xl shadow-card p-4 space-y-3">
-          <p className="text-sm font-semibold text-foreground">{t("post.property_details")}</p>
-          <p className="text-xs text-muted-foreground">{t("post.property_details_hint")}</p>
-          <Textarea
-            placeholder={t("post.access_info_placeholder")}
-            value={form.door_access_info}
-            onChange={(e) => update("door_access_info", e.target.value)}
-            className="rounded-xl min-h-[100px]"
-          />
+          <p className="text-sm font-semibold text-foreground">{t("post.access_details")}</p>
+          <p className="text-xs text-muted-foreground">{t("post.access_details_hint")}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{t("post.door_code")}</Label>
+              <Input placeholder="e.g. #1234" value={form.door_code} onChange={(e) => update("door_code", e.target.value)} className="rounded-xl h-10" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{t("post.supply_code")}</Label>
+              <Input placeholder="e.g. #5678" value={form.supply_code} onChange={(e) => update("supply_code", e.target.value)} className="rounded-xl h-10" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{t("post.lockbox_code")}</Label>
+              <Input placeholder="e.g. 9999" value={form.lockbox_code} onChange={(e) => update("lockbox_code", e.target.value)} className="rounded-xl h-10" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">{t("post.gate_code")}</Label>
+              <Input placeholder="e.g. *456" value={form.gate_code} onChange={(e) => update("gate_code", e.target.value)} className="rounded-xl h-10" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t("post.alarm_instructions")}</Label>
+            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t("post.parking_instructions")}</Label>
+            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t("post.additional_notes")}</Label>
+            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" />
+          </div>
         </div>
 
-        {/* Airbnb Details (conditional) */}
+        {/* Airbnb Details */}
         {isAirbnb && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="bg-card rounded-2xl shadow-card p-4 space-y-3 border border-primary/20">
             <p className="text-sm font-semibold text-primary">{t("post.airbnb_details")}</p>
