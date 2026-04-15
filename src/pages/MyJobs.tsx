@@ -173,9 +173,32 @@ export default function MyJobs() {
           </div>
         )}
 
+        {/* Escrow status badge */}
+        {job.escrow_status && job.escrow_status !== "pending" && (
+          <div className="mb-3">
+            <Badge className={`text-[10px] font-bold border-0 ${
+              job.escrow_status === "paid" ? "bg-blue-100 text-blue-700" :
+              job.escrow_status === "released" ? "bg-green-100 text-green-700" :
+              job.escrow_status === "disputed" ? "bg-red-100 text-red-700" :
+              "bg-muted text-muted-foreground"
+            }`}>
+              <Shield className="w-3 h-3 mr-1" />
+              {t(`escrow.${job.escrow_status}`)}
+            </Badge>
+          </div>
+        )}
+
         {/* Approval section with completion photos */}
         {showApproval && (
           <div className="mb-3 space-y-3">
+            {/* Auto-approve countdown */}
+            {job.pending_review_at && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-amber-700">{t("myjobs.auto_approve_warning")}</span>
+              </div>
+            )}
+
             {job.completion_photos && job.completion_photos.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
@@ -198,12 +221,23 @@ export default function MyJobs() {
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {showApproval && (
-            <Button size="sm" onClick={() => approveJob(job.id)}
-              className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
-              <CheckCircle className="w-3 h-3 mr-1" /> {t("myjobs.approve")}
-            </Button>
+            <>
+              <Button size="sm" onClick={() => approveJob(job.id)}
+                className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
+                <CheckCircle className="w-3 h-3 mr-1" /> {t("myjobs.approve")}
+              </Button>
+              {job.hired_cleaner_id && job.escrow_status !== "disputed" && (
+                <Button size="sm" variant="outline" onClick={() => setDisputeJob({ jobId: job.id, reportedId: job.hired_cleaner_id! })}
+                  className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
+                  <AlertTriangle className="w-3 h-3 mr-1" /> {t("myjobs.report_issue")}
+                </Button>
+              )}
+              {job.escrow_status === "disputed" && (
+                <Badge className="bg-red-100 text-red-700 border-0 text-[10px]">{t("dispute.under_review")}</Badge>
+              )}
+            </>
           )}
           {["hired", "in_progress", "pending_review", "completed"].includes(job.status) && (
             <Button size="sm" variant="outline" onClick={() => navigate(`/job/${job.id}`)}
