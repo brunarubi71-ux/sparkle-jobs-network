@@ -325,6 +325,9 @@ export default function MyJobs() {
       {reviewJob && (
         <ReviewModal open={!!reviewJob} onClose={() => { setReviewJob(null); fetchJobs(); }} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />
       )}
+      {disputeJob && (
+        <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
+      )}
       <BottomNav />
     </div>
   );
