@@ -47,6 +47,7 @@ export default function MyJobs() {
   const [jobs, setJobs] = useState<JobWithApplicants[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
+  const [disputeJob, setDisputeJob] = useState<{ jobId: string; reportedId: string } | null>(null);
   const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => { if (user) fetchJobs(); }, [user]);
