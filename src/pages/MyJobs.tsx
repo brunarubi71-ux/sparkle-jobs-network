@@ -31,6 +31,8 @@ interface JobWithApplicants {
   created_at: string;
   completion_photos: string[] | null;
   completion_notes: string | null;
+  escrow_status: string;
+  pending_review_at: string | null;
   applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
 }
 
