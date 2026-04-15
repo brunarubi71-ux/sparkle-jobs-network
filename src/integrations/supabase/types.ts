@@ -284,6 +284,36 @@ export type Database = {
           },
         ]
       }
+      platform_violations: {
+        Row: {
+          auto_penalty_applied: boolean
+          context: string
+          created_at: string
+          id: string
+          message_snippet: string | null
+          user_id: string
+          violation_type: string
+        }
+        Insert: {
+          auto_penalty_applied?: boolean
+          context?: string
+          created_at?: string
+          id?: string
+          message_snippet?: string | null
+          user_id: string
+          violation_type: string
+        }
+        Update: {
+          auto_penalty_applied?: boolean
+          context?: string
+          created_at?: string
+          id?: string
+          message_snippet?: string | null
+          user_id?: string
+          violation_type?: string
+        }
+        Relationships: []
+      }
       portfolio_photos: {
         Row: {
           caption: string | null
@@ -344,6 +374,8 @@ export type Database = {
           total_earnings: number | null
           transportation: string | null
           updated_at: string
+          violation_score: number
+          visibility_penalty: number
           worker_type: string
           years_in_business: number | null
         }
@@ -382,6 +414,8 @@ export type Database = {
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string
+          violation_score?: number
+          visibility_penalty?: number
           worker_type?: string
           years_in_business?: number | null
         }
@@ -420,6 +454,8 @@ export type Database = {
           total_earnings?: number | null
           transportation?: string | null
           updated_at?: string
+          violation_score?: number
+          visibility_penalty?: number
           worker_type?: string
           years_in_business?: number | null
         }
