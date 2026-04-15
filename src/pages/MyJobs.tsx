@@ -98,7 +98,11 @@ export default function MyJobs() {
   };
 
   const approveJob = async (jobId: string) => {
-    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", jobId);
+    await supabase.from("jobs").update({
+      status: "completed",
+      owner_confirmed_completion: true,
+      escrow_status: "released",
+    } as any).eq("id", jobId);
     toast.success(t("myjobs.job_approved"));
     fetchJobs();
   };
