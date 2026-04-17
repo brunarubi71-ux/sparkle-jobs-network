@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import BottomNav from "@/components/BottomNav";
+import ReviewModal from "@/components/ReviewModal";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { syncBadges } from "@/lib/badges";
 
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
@@ -27,8 +29,16 @@ export default function JobDetails() {
   const [completing, setCompleting] = useState(false);
   const [startingJob, setStartingJob] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => { if (id) fetchJob(); }, [id]);
+  useEffect(() => {
+    if (job?.status === "completed" && user && id) {
+      supabase.from("reviews").select("id").eq("job_id", id).eq("reviewer_id", user.id).maybeSingle()
+        .then(({ data }) => setHasReviewed(!!data));
+    }
+  }, [job?.status, user, id]);
 
   const fetchJob = async () => {
     setLoading(true);
@@ -83,21 +93,19 @@ export default function JobDetails() {
   const confirmCompletion = async () => {
     if (!id || !job) return;
     await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
-    const { data: cleanerProfile } = await supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", job.hired_cleaner_id).single();
+    const { data: cleanerProfile } = await supabase.from("profiles").select("jobs_completed, total_earnings, worker_type").eq("id", job.hired_cleaner_id).single();
     if (cleanerProfile) {
+      const newJobs = (cleanerProfile.jobs_completed || 0) + 1;
+      const newEarnings = Number(cleanerProfile.total_earnings || 0) + Number(job.cleaner_earnings || 0);
       await supabase.from("profiles").update({
-        jobs_completed: (cleanerProfile.jobs_completed || 0) + 1,
-        total_earnings: (cleanerProfile.total_earnings || 0) + (job.cleaner_earnings || 0),
+        jobs_completed: newJobs,
+        total_earnings: newEarnings,
       }).eq("id", job.hired_cleaner_id);
-    }
-    const count = (cleanerProfile?.jobs_completed || 0) + 1;
-    const badges = [];
-    if (count >= 10) badges.push("Rising Cleaner");
-    if (count >= 25) badges.push("Top Cleaner");
-    if (count >= 50) badges.push("Elite Cleaner");
-    for (const badge of badges) {
-      const { data: existing } = await supabase.from("rewards").select("id").eq("user_id", job.hired_cleaner_id).eq("badge_name", badge).maybeSingle();
-      if (!existing) await supabase.from("rewards").insert({ user_id: job.hired_cleaner_id, badge_name: badge });
+
+      const workerType = ((cleanerProfile as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
+      const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", job.hired_cleaner_id);
+      const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
+      await syncBadges(job.hired_cleaner_id, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
     }
     setShowPaymentSuccess(true);
     setTimeout(() => setShowPaymentSuccess(false), 3000);
@@ -386,13 +394,23 @@ export default function JobDetails() {
 
         {/* Cleaner: Completed */}
         {isCleaner && job.status === "completed" && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-7 h-7 text-emerald-500" />
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-7 h-7 text-emerald-500" />
+              </div>
+              <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
+              <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
             </div>
-            <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
-            <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+            {!hasReviewed && job.owner_id && (
+              <Button onClick={() => setReviewOpen(true)}
+                className="w-full h-12 rounded-xl gradient-primary text-white font-semibold">
+                <Sparkles className="w-4 h-4 mr-2" /> Leave a Review
+              </Button>
+            )}
+            {hasReviewed && (
+              <p className="text-xs text-center text-muted-foreground">✓ Review submitted</p>
+            )}
           </motion.div>
         )}
 
@@ -429,14 +447,33 @@ export default function JobDetails() {
 
         {/* Owner: Completed */}
         {isOwner && job.status === "completed" && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-            <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-            <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
-            <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+              <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
+              <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+            </div>
+            {!hasReviewed && job.hired_cleaner_id && (
+              <Button onClick={() => setReviewOpen(true)}
+                className="w-full h-12 rounded-xl gradient-primary text-white font-semibold">
+                <Sparkles className="w-4 h-4 mr-2" /> Leave a Review
+              </Button>
+            )}
+            {hasReviewed && (
+              <p className="text-xs text-center text-muted-foreground">✓ Review submitted</p>
+            )}
           </motion.div>
         )}
       </div>
+
+      {job && id && (isOwner || isCleaner) && (
+        <ReviewModal
+          open={reviewOpen}
+          onClose={() => { setReviewOpen(false); setHasReviewed(true); }}
+          jobId={id}
+          reviewedId={isOwner ? job.hired_cleaner_id : job.owner_id}
+        />
+      )}
 
       <BottomNav />
     </div>

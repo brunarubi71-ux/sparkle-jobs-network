@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
+import BadgeDisplay from "@/components/BadgeDisplay";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -272,19 +273,9 @@ export default function Profile() {
           )}
         </motion.div>
 
-        {rewards.length > 0 && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> {t("profile.badges")} ({rewards.length})</h3>
-            <div className="flex flex-wrap gap-2">
-              {rewards.map(r => {
-                const def = BADGE_DEFINITIONS.find(b => b.name === r.badge_name);
-                return (
-                  <Badge key={r.id} className="bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-primary/20">
-                    {def?.emoji || "🏅"} {r.badge_name}
-                  </Badge>
-                );
-              })}
-            </div>
+        {user && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+            <BadgeDisplay userId={user.id} />
           </motion.div>
         )}
 
