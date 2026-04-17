@@ -1,6 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { getJobsUsedThisWeek } from "@/lib/planLimits";
+
+// Re-export so callers can do: import { getJobsUsedThisWeek } from "@/hooks/useAuth"
+export { getJobsUsedThisWeek } from "@/lib/planLimits";
 
 interface Profile {
   id: string;
@@ -44,6 +48,8 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  /** Jobs used during the CURRENT week (resets when jobs_used_date is from a previous week). */
+  jobsUsedThisWeek: number;
   signUp: (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -124,8 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const jobsUsedThisWeek = profile
+    ? getJobsUsedThisWeek(profile.jobs_used_date, profile.jobs_used_today)
+    : 0;
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, jobsUsedThisWeek, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

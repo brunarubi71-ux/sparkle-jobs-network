@@ -23,6 +23,7 @@ import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from 
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getPlanLimits, getJobsUsedThisWeek } from "@/lib/planLimits";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];
@@ -92,13 +93,7 @@ const getTimeSince = (dateStr: string, t: (k: string) => string) => {
   return `${Math.floor(hrs / 24)}${t("time.days_ago")}`;
 };
 
-function getJobLimits(tier: string) {
-  switch (tier) {
-    case "pro": return { maxJobs: Infinity };
-    case "premium": return { maxJobs: 3 };
-    default: return { maxJobs: 2 };
-  }
-}
+// Plan limits are centralized in src/lib/planLimits.ts
 
 const getJobPosition = (job: Job, index: number, center: Coordinates): Coordinates => {
   if (typeof job.latitude === "number" && typeof job.longitude === "number")
@@ -159,6 +154,9 @@ export default function Jobs() {
         const newJob = payload.new as Job & { team_size_required?: number };
         // Helpers only see team jobs in realtime too
         if (profile?.worker_type === "helper" && (newJob.team_size_required ?? 1) < 2) return;
+        // Free users don't get urgent job notifications
+        const tierLimits = getPlanLimits(profile?.plan_tier);
+        if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
           const tier = profile?.plan_tier || "free";
           const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
@@ -241,6 +239,12 @@ export default function Jobs() {
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
+    // Free plan users cannot see urgent jobs
+    const tierLimits = getPlanLimits(profile?.plan_tier);
+    if (!tierLimits.canSeeUrgentJobs) {
+      result = result.filter(j => j.urgency !== "urgent" && j.urgency !== "asap");
+    }
+
     // Apply filter
     switch (activeFilter) {
       case "urgent":
@@ -271,7 +275,7 @@ export default function Jobs() {
     }
 
     return result;
-  }, [enrichedJobs, search, activeFilter, userLocation]);
+  }, [enrichedJobs, search, activeFilter, userLocation, profile?.plan_tier]);
 
   /* ── clear selected if filtered out ── */
   useEffect(() => {
@@ -281,11 +285,10 @@ export default function Jobs() {
   /* ── accept logic ── */
   const canAcceptJob = () => {
     if (!profile) return false;
-    const { maxJobs } = getJobLimits(profile.plan_tier || "free");
-    if (maxJobs === Infinity) return true;
-    const today = new Date().toISOString().split("T")[0];
-    const usedToday = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
-    return usedToday < maxJobs;
+    const { maxJobsPerWeek } = getPlanLimits(profile.plan_tier);
+    if (!Number.isFinite(maxJobsPerWeek)) return true;
+    const usedThisWeek = getJobsUsedThisWeek(profile.jobs_used_date, profile.jobs_used_today);
+    return usedThisWeek < maxJobsPerWeek;
   };
 
   const handleAcceptClick = (job: Job) => {
