@@ -23,6 +23,7 @@ import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from 
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getPlanLimits, getJobsUsedThisWeek } from "@/lib/planLimits";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];
@@ -92,13 +93,7 @@ const getTimeSince = (dateStr: string, t: (k: string) => string) => {
   return `${Math.floor(hrs / 24)}${t("time.days_ago")}`;
 };
 
-function getJobLimits(tier: string) {
-  switch (tier) {
-    case "pro": return { maxJobs: Infinity };
-    case "premium": return { maxJobs: 3 };
-    default: return { maxJobs: 2 };
-  }
-}
+// Plan limits are centralized in src/lib/planLimits.ts
 
 const getJobPosition = (job: Job, index: number, center: Coordinates): Coordinates => {
   if (typeof job.latitude === "number" && typeof job.longitude === "number")
@@ -281,11 +276,10 @@ export default function Jobs() {
   /* ── accept logic ── */
   const canAcceptJob = () => {
     if (!profile) return false;
-    const { maxJobs } = getJobLimits(profile.plan_tier || "free");
-    if (maxJobs === Infinity) return true;
-    const today = new Date().toISOString().split("T")[0];
-    const usedToday = profile.jobs_used_date === today ? profile.jobs_used_today : 0;
-    return usedToday < maxJobs;
+    const { maxJobsPerWeek } = getPlanLimits(profile.plan_tier);
+    if (!Number.isFinite(maxJobsPerWeek)) return true;
+    const usedThisWeek = getJobsUsedThisWeek(profile.jobs_used_date, profile.jobs_used_today);
+    return usedThisWeek < maxJobsPerWeek;
   };
 
   const handleAcceptClick = (job: Job) => {
