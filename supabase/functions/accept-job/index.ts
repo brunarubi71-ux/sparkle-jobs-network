@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     // Verify the job exists and is still open (do NOT hire the cleaner — just submit an application)
     const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .select("id, owner_id, status, hired_cleaner_id")
+      .select("id, owner_id, status, hired_cleaner_id, urgency")
       .eq("id", jobId)
       .maybeSingle();
 
@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
     if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
       return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
         status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Free plan users cannot accept urgent jobs
+    if (tier === "free" && (jobRow.urgency === "urgent" || jobRow.urgency === "asap")) {
+      return new Response(JSON.stringify({ success: false, error: "Urgent jobs are available on Pro and Premium plans only." }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -167,7 +175,7 @@ Deno.serve(async (req) => {
     if (isNewAcceptance) {
       const { error: updateProfileError } = await admin
         .from("profiles")
-        .update({ jobs_used_today: usedToday + 1, jobs_used_date: today })
+        .update({ jobs_used_today: usedThisWeek + 1, jobs_used_date: todayIso })
         .eq("id", user.id);
 
       if (updateProfileError) {
