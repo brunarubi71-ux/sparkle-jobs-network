@@ -56,12 +56,11 @@ function RoleHome() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <LanguageProvider>
-        
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
+    <LanguageProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Sonner />
             <Routes>
               <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
               <Route path="/admin-login" element={<AdminLogin />} />
@@ -83,10 +82,10 @@ const App = () => (
               <Route path="/checkout/return" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </LanguageProvider>
-    </TooltipProvider>
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
