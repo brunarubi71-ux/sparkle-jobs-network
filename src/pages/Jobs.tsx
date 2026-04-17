@@ -147,13 +147,15 @@ export default function Jobs() {
   };
 
   /* ── fetch jobs + realtime ── */
-  useEffect(() => { fetchJobs(); }, []);
+  useEffect(() => { fetchJobs(); }, [profile?.worker_type]);
 
   useEffect(() => {
     const channel = supabase
       .channel("new-jobs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "jobs" }, (payload) => {
-        const newJob = payload.new as Job;
+        const newJob = payload.new as Job & { team_size_required?: number };
+        // Helpers only see team jobs in realtime too
+        if (profile?.worker_type === "helper" && (newJob.team_size_required ?? 1) < 2) return;
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
           const tier = profile?.plan_tier || "free";
           const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
@@ -172,16 +174,22 @@ export default function Jobs() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [profile?.plan_tier]);
+  }, [profile?.plan_tier, profile?.worker_type]);
 
   const fetchJobs = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from("jobs")
       .select("*")
       .eq("status", "open")
-      .is("hired_cleaner_id", null)
-      .order("created_at", { ascending: false });
+      .is("hired_cleaner_id", null);
+
+    // Helpers can only see jobs that require a team (>= 2 people)
+    if (profile?.worker_type === "helper") {
+      query = query.gte("team_size_required", 2);
+    }
+
+    const { data } = await query.order("created_at", { ascending: false });
     setJobs((data as Job[]) || []);
     setLoading(false);
   };

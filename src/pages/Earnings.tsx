@@ -59,6 +59,8 @@ export default function Earnings() {
 
   const totalEarnings = profile?.total_earnings || stats.total;
   const jobsCompleted = profile?.jobs_completed || jobs.length;
+  const isHelper = profile?.worker_type === "helper";
+  const helperEarnings = (profile as any)?.helper_earnings || 0;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -137,6 +139,30 @@ export default function Earnings() {
             <p className="text-xs text-muted-foreground">{t("earnings.avg_per_job")}</p>
           </motion.div>
         </div>
+
+        {/* Helper Earnings Section */}
+        {isHelper && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.28 }}
+            className="bg-card rounded-2xl shadow-card p-4 border-2 border-primary/30"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary" />
+                Helper Earnings
+              </h3>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-primary/15 text-primary">
+                Helper
+              </span>
+            </div>
+            <p className="text-3xl font-extrabold text-foreground">${helperEarnings.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total earned as a team helper on cleaner-led jobs
+            </p>
+          </motion.div>
+        )}
 
         {/* Recent Jobs */}
         {jobs.length > 0 && (

@@ -33,6 +33,7 @@ interface Profile {
   plan_tier: "free" | "premium" | "pro";
   has_transportation: boolean;
   worker_type: "cleaner" | "helper";
+  helper_earnings?: number | null;
   is_available_now: boolean;
   created_at: string;
   updated_at: string;
