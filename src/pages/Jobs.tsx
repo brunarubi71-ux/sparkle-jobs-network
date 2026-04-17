@@ -429,7 +429,7 @@ export default function Jobs() {
                     <h2 className="truncate text-base font-semibold text-foreground">{selectedJob.title}</h2>
                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
-                      {selectedJob.city || selectedJob.address || "N/A"}
+                      {selectedJob.city || "N/A"}
                     </p>
                   </div>
                   <Badge variant="outline">{selectedJob.cleaning_type}</Badge>
