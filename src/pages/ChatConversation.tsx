@@ -81,40 +81,15 @@ export default function ChatConversation() {
   const sendMessage = async () => {
     if (!newMsg.trim() || !user || !id) return;
 
+    // Always block any contact info sharing in chat
     const detection = detectContactInfo(newMsg);
-
-    // Pre-acceptance: block ALL contact info
-    if (detection.detected && isPreAcceptance) {
+    if (detection.detected) {
       setContactWarning(true);
-      setWarningCount(prev => prev + 1);
-
-      // Log violation
+      setWarningCount((prev) => prev + 1);
       await logViolation(user.id, detection.types[0], "chat", maskContactInfo(newMsg));
-      setViolationScore(prev => prev + 1);
-
-      if (warningCount >= 2) {
-        toast.error(t("protection.repeated_violation"));
-      } else {
-        toast.error(t("chat.contact_blocked"));
-      }
+      setViolationScore((prev) => prev + 1);
+      toast.warning("⚠️ Sharing contact information is not allowed. Please complete the booking through Shinely.");
       return;
-    }
-
-    // Post-acceptance: block external contact sharing but allow general chat
-    if (detection.detected && isPostAcceptance) {
-      // Allow phone/email mentions more leniently after acceptance
-      // But still block payment apps and social media handles
-      const blockedPostAcceptance = detection.types.filter(t =>
-        ["payment_app", "social_media", "social_handle"].includes(t)
-      );
-
-      if (blockedPostAcceptance.length > 0) {
-        setContactWarning(true);
-        await logViolation(user.id, blockedPostAcceptance[0], "chat", maskContactInfo(newMsg));
-        setViolationScore(prev => prev + 1);
-        toast.error(t("protection.external_blocked"));
-        return;
-      }
     }
 
     setSending(true);
