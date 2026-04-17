@@ -20,12 +20,12 @@ interface CleanerJob {
   bedrooms: number;
   bathrooms: number;
   city: string | null;
-  status: string;
+  status: string; // effective status: "pending" | actual job status
   created_at: string;
   date_time: string | null;
 }
 
-const ACTIVE_STATUSES = ["accepted", "hired", "in_progress", "pending_review"];
+const ACTIVE_STATUSES = ["pending", "accepted", "hired", "in_progress", "pending_review"];
 
 export default function CleanerMyJobs() {
   const { user } = useAuth();
@@ -38,13 +38,15 @@ export default function CleanerMyJobs() {
 
   const highlightJobId = searchParams.get("highlight");
 
+  // Real status → badge config (color + label + icon)
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    accepted: { color: "bg-accent text-accent-foreground", label: t("status.accepted"), icon: "🤝" },
-    hired: { color: "bg-accent text-accent-foreground", label: t("status.hired"), icon: "🤝" },
-    in_progress: { color: "bg-accent text-accent-foreground", label: t("status.in_progress"), icon: "🔧" },
-    pending_review: { color: "bg-accent text-accent-foreground", label: t("status.pending_review"), icon: "⏳" },
-    completed: { color: "bg-accent text-accent-foreground", label: t("status.completed"), icon: "✅" },
-    cancelled: { color: "bg-accent text-accent-foreground", label: t("status.cancelled"), icon: "❌" },
+    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval", icon: "⏳" },
+    accepted: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
+    hired: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
+    in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress", icon: "🔧" },
+    pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review"), icon: "⏳" },
+    completed: { color: "bg-green-100 text-green-700", label: "Completed", icon: "✅" },
+    cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled"), icon: "❌" },
   };
 
   useEffect(() => {
@@ -57,14 +59,31 @@ export default function CleanerMyJobs() {
 
   const fetchJobs = async () => {
     setLoading(true);
-    const { data } = await supabase
+
+    // Jobs where the cleaner has been hired (or further along)
+    const { data: hiredJobs } = await supabase
       .from("jobs")
       .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
       .eq("hired_cleaner_id", user!.id)
-      .in("status", [...ACTIVE_STATUSES, "completed", "cancelled"])
+      .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
       .order("created_at", { ascending: false });
 
-    setJobs((data as CleanerJob[]) || []);
+    // Jobs where the cleaner has applied but is still awaiting owner approval
+    const { data: pendingApps } = await supabase
+      .from("job_applications")
+      .select("job_id, status, jobs:jobs!job_applications_job_id_fkey(id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time)")
+      .eq("cleaner_id", user!.id)
+      .eq("status", "pending");
+
+    const hired = (hiredJobs as CleanerJob[]) || [];
+    const hiredIds = new Set(hired.map((j) => j.id));
+
+    const pending: CleanerJob[] = ((pendingApps as any[]) || [])
+      .map((row) => row.jobs)
+      .filter((j) => j && !hiredIds.has(j.id))
+      .map((j) => ({ ...(j as CleanerJob), status: "pending" }));
+
+    setJobs([...pending, ...hired]);
     setLoading(false);
   };
 
@@ -76,12 +95,13 @@ export default function CleanerMyJobs() {
       }
 
       const statusOrder: Record<string, number> = {
-        accepted: 0,
+        pending: 0,
         hired: 1,
-        in_progress: 2,
-        pending_review: 3,
-        completed: 4,
-        cancelled: 5,
+        accepted: 2,
+        in_progress: 3,
+        pending_review: 4,
+        completed: 5,
+        cancelled: 6,
       };
 
       const statusDelta = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
