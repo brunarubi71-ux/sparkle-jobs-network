@@ -118,7 +118,17 @@ export default function ChatConversation() {
     }
 
     setSending(true);
-    await supabase.from("messages").insert({ conversation_id: id, sender_id: user.id, message_text: newMsg.trim() });
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: id,
+      sender_id: user.id,
+      message_text: newMsg.trim(),
+    });
+    if (error) {
+      console.error("[Chat] Failed to send message:", error);
+      toast.error(error.message || "Failed to send message");
+      setSending(false);
+      return;
+    }
     setNewMsg("");
     setSending(false);
     setContactWarning(false);
