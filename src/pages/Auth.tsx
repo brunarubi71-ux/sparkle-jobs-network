@@ -64,25 +64,7 @@ export default function Auth() {
         transition={{ duration: 0.5 }}
         className="relative z-10 flex flex-col items-center mb-8"
       >
-        <img
-          src={logoImg}
-          alt="Shinely"
-          className="h-[60px] w-auto object-contain drop-shadow-xl opacity-100"
-          width={220}
-          height={60}
-          onError={(e) => {
-            const img = e.currentTarget;
-            img.style.display = "none";
-            const fallback = img.nextElementSibling as HTMLElement | null;
-            if (fallback) fallback.style.display = "block";
-          }}
-        />
-        <span
-          style={{ display: "none", color: "#FFFFFF", fontSize: "36px", fontWeight: 700, fontStyle: "italic" }}
-          className="drop-shadow-xl"
-        >
-          Shinely
-        </span>
+        <h1 style={{fontFamily:"Georgia,serif", fontSize:"72px", fontStyle:"italic", fontWeight:"700", color:"#FFFFFF", opacity:"1", textShadow:"0 4px 16px rgba(0,0,0,0.3)", margin:"0 0 8px 0", letterSpacing:"3px", lineHeight:"1"}}>Shinely</h1>
         <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
           {t("auth.tagline")}
         </p>
