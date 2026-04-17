@@ -41,9 +41,9 @@ export default function Schedules() {
 
   const getContactLimit = () => {
     const tier = profile?.plan_tier || "free";
-    if (tier === "pro") return Infinity;
-    if (tier === "premium") return 2;
-    return 1;
+    if (tier === "premium") return Infinity;
+    if (tier === "pro") return 1; // single lifetime unlock
+    return 0; // free: no contact unlocks
   };
 
   const canUnlockContact = () => {
@@ -66,7 +66,7 @@ export default function Schedules() {
     await refreshProfile();
   };
 
-  const isUnlocked = (id: string) => (profile?.plan_tier === "pro") || unlockedIds.has(id);
+  const isUnlocked = (id: string) => (profile?.plan_tier === "premium") || unlockedIds.has(id);
 
   return (
     <div className="min-h-screen bg-background pb-20">
