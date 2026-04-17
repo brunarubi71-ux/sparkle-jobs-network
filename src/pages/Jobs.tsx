@@ -219,7 +219,7 @@ export default function Jobs() {
   /* ── search + filter + sort ── */
   const filtered = useMemo(() => {
     let result = enrichedJobs.filter((job) =>
-      [job.title, job.city || "", job.address || "", job.cleaning_type, job.description || ""]
+      [job.title, job.city || "", job.cleaning_type, job.description || ""]
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
