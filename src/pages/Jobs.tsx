@@ -16,6 +16,9 @@ import PremiumModal from "@/components/PremiumModal";
 import JobConfirmationModal from "@/components/JobConfirmationModal";
 import BottomNav from "@/components/BottomNav";
 import JobFilterChips, { type JobFilter } from "@/components/jobs/JobFilterChips";
+import EmptyState from "@/components/EmptyState";
+import BackToTop from "@/components/BackToTop";
+import PullToRefresh from "@/components/PullToRefresh";
 import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from "@/lib/distance";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -178,20 +181,27 @@ export default function Jobs() {
 
   const fetchJobs = async () => {
     setLoading(true);
-    let query = supabase
-      .from("jobs")
-      .select("*")
-      .eq("status", "open")
-      .is("hired_cleaner_id", null);
+    try {
+      let query = supabase
+        .from("jobs")
+        .select("*")
+        .eq("status", "open")
+        .is("hired_cleaner_id", null);
 
-    // Helpers can only see jobs that require a team (>= 2 people)
-    if (profile?.worker_type === "helper") {
-      query = query.gte("team_size_required", 2);
+      // Helpers can only see jobs that require a team (>= 2 people)
+      if (profile?.worker_type === "helper") {
+        query = query.gte("team_size_required", 2);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+      if (error) throw error;
+      setJobs((data as Job[]) || []);
+    } catch (err) {
+      console.error("[Jobs] fetch error:", err);
+      toast.error("Couldn't load jobs. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query.order("created_at", { ascending: false });
-    setJobs((data as Job[]) || []);
-    setLoading(false);
   };
 
   /* ── geolocation ── */
@@ -327,6 +337,7 @@ export default function Jobs() {
   const mapHeight = mapExpanded ? "h-[85vh]" : "h-[52vh]";
 
   return (
+    <PullToRefresh onRefresh={fetchJobs}>
     <div className="min-h-screen bg-background pb-20">
       {/* ── MAP ── */}
       <section className={`relative ${mapHeight} min-h-[340px] overflow-hidden border-b border-border bg-card transition-all duration-300`}>
@@ -487,11 +498,11 @@ export default function Jobs() {
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
         ) : filtered.length === 0 ? (
-          <div className="py-12 text-center">
-            <Sparkles className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
-            <p className="text-muted-foreground">{t("jobs.no_jobs")}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{t("jobs.check_back")}</p>
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title={t("jobs.no_jobs")}
+            description={t("jobs.check_back")}
+          />
         ) : (
           filtered.map((job, index) => {
             const fomo = getFomoBadge(job);
@@ -580,7 +591,9 @@ export default function Jobs() {
         />
       )}
 
+      <BackToTop />
       <BottomNav />
     </div>
+    </PullToRefresh>
   );
 }

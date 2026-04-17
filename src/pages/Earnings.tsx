@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { DollarSign, TrendingUp, Briefcase, Calendar, ArrowUp, ArrowDown, Award } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
+import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useState, useEffect, useMemo } from "react";
 
@@ -21,13 +23,20 @@ export default function Earnings() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
-        .from("jobs")
-        .select("status, cleaner_earnings, created_at")
-        .eq("hired_cleaner_id", user.id)
-        .eq("status", "completed");
-      setJobs(data || []);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from("jobs")
+          .select("status, cleaner_earnings, created_at")
+          .eq("hired_cleaner_id", user.id)
+          .eq("status", "completed");
+        if (error) throw error;
+        setJobs(data || []);
+      } catch (err) {
+        console.error("[Earnings] fetch error:", err);
+        toast.error("Couldn't load earnings. Please check your connection.");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [user]);
 
@@ -185,6 +194,14 @@ export default function Earnings() {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {!loading && jobs.length === 0 && (
+          <EmptyState
+            icon={DollarSign}
+            title="No earnings yet"
+            description="Complete your first job to start earning. Your stats will show up here."
+          />
         )}
 
         {loading && (

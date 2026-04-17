@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import SplashScreen from "@/components/SplashScreen";
+import { AnimatePresence } from "framer-motion";
 import Jobs from "./pages/Jobs";
 import Schedules from "./pages/Schedules";
 import Chat from "./pages/Chat";
@@ -54,13 +57,22 @@ function RoleHome() {
   return <Jobs />;
 }
 
-const App = () => (
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 1600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <BrowserRouter>
         <AuthProvider>
           <TooltipProvider>
             <Sonner />
+            <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Routes>
               <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
               <Route path="/admin-login" element={<AdminLogin />} />
@@ -87,6 +99,7 @@ const App = () => (
       </BrowserRouter>
     </LanguageProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
