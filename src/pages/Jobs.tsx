@@ -154,6 +154,9 @@ export default function Jobs() {
         const newJob = payload.new as Job & { team_size_required?: number };
         // Helpers only see team jobs in realtime too
         if (profile?.worker_type === "helper" && (newJob.team_size_required ?? 1) < 2) return;
+        // Free users don't get urgent job notifications
+        const tierLimits = getPlanLimits(profile?.plan_tier);
+        if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
           const tier = profile?.plan_tier || "free";
           const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
@@ -236,6 +239,12 @@ export default function Jobs() {
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
+    // Free plan users cannot see urgent jobs
+    const tierLimits = getPlanLimits(profile?.plan_tier);
+    if (!tierLimits.canSeeUrgentJobs) {
+      result = result.filter(j => j.urgency !== "urgent" && j.urgency !== "asap");
+    }
+
     // Apply filter
     switch (activeFilter) {
       case "urgent":
@@ -266,7 +275,7 @@ export default function Jobs() {
     }
 
     return result;
-  }, [enrichedJobs, search, activeFilter, userLocation]);
+  }, [enrichedJobs, search, activeFilter, userLocation, profile?.plan_tier]);
 
   /* ── clear selected if filtered out ── */
   useEffect(() => {
