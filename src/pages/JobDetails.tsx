@@ -394,13 +394,23 @@ export default function JobDetails() {
 
         {/* Cleaner: Completed */}
         {isCleaner && job.status === "completed" && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-7 h-7 text-emerald-500" />
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-7 h-7 text-emerald-500" />
+              </div>
+              <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
+              <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
             </div>
-            <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
-            <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+            {!hasReviewed && job.owner_id && (
+              <Button onClick={() => setReviewOpen(true)}
+                className="w-full h-12 rounded-xl gradient-primary text-white font-semibold">
+                <Sparkles className="w-4 h-4 mr-2" /> Leave a Review
+              </Button>
+            )}
+            {hasReviewed && (
+              <p className="text-xs text-center text-muted-foreground">✓ Review submitted</p>
+            )}
           </motion.div>
         )}
 
@@ -437,14 +447,33 @@ export default function JobDetails() {
 
         {/* Owner: Completed */}
         {isOwner && job.status === "completed" && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-            <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-            <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
-            <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+              <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-bold text-foreground mb-1">{t("job.completed")}</h3>
+              <p className="text-sm text-muted-foreground">{t("job.payment_released")}</p>
+            </div>
+            {!hasReviewed && job.hired_cleaner_id && (
+              <Button onClick={() => setReviewOpen(true)}
+                className="w-full h-12 rounded-xl gradient-primary text-white font-semibold">
+                <Sparkles className="w-4 h-4 mr-2" /> Leave a Review
+              </Button>
+            )}
+            {hasReviewed && (
+              <p className="text-xs text-center text-muted-foreground">✓ Review submitted</p>
+            )}
           </motion.div>
         )}
       </div>
+
+      {job && id && (isOwner || isCleaner) && (
+        <ReviewModal
+          open={reviewOpen}
+          onClose={() => { setReviewOpen(false); checkReviewedAfter(); }}
+          jobId={id}
+          reviewedId={isOwner ? job.hired_cleaner_id : job.owner_id}
+        />
+      )}
 
       <BottomNav />
     </div>
