@@ -78,12 +78,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const usedToday = profile.jobs_used_date === today ? profile.jobs_used_today ?? 0 : 0;
-    const maxJobs = profile.plan_tier === "pro" ? Number.POSITIVE_INFINITY : profile.plan_tier === "premium" ? 3 : 2;
+    // ── Weekly job limits (week starts Monday) ──
+    const today = new Date();
+    const todayIso = today.toISOString().slice(0, 10);
+    const day = today.getUTCDay(); // 0=Sun..6=Sat
+    const diff = day === 0 ? -6 : 1 - day;
+    const weekStartDate = new Date(today);
+    weekStartDate.setUTCDate(today.getUTCDate() + diff);
+    const weekStartIso = weekStartDate.toISOString().slice(0, 10);
 
-    if (Number.isFinite(maxJobs) && usedToday >= maxJobs) {
-      return new Response(JSON.stringify({ success: false, error: "Daily job limit reached." }), {
+    const usedThisWeek =
+      profile.jobs_used_date && profile.jobs_used_date >= weekStartIso
+        ? profile.jobs_used_today ?? 0
+        : 0;
+
+    const tier = profile.plan_tier ?? "free";
+    const maxJobsPerWeek =
+      tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 5 : 1;
+
+    if (Number.isFinite(maxJobsPerWeek) && usedThisWeek >= maxJobsPerWeek) {
+      return new Response(JSON.stringify({ success: false, error: "Weekly job limit reached. Upgrade your plan for more jobs." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
