@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
+import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Conversation {
@@ -28,9 +30,16 @@ export default function Chat() {
   }, [user]);
 
   const fetchConversations = async () => {
-    const { data } = await supabase.from("conversations").select("*").order("created_at", { ascending: false });
-    setConversations((data as Conversation[]) || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("conversations").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      setConversations((data as Conversation[]) || []);
+    } catch (err) {
+      console.error("[Chat] fetch error:", err);
+      toast.error("Couldn't load conversations. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,11 +57,11 @@ export default function Chat() {
             ))}
           </div>
         ) : conversations.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">{t("chat.no_conversations")}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("chat.no_conversations_hint")}</p>
-          </div>
+          <EmptyState
+            icon={MessageCircle}
+            title={t("chat.no_conversations")}
+            description={t("chat.no_conversations_hint")}
+          />
         ) : (
           conversations.map((conv, i) => (
             <motion.button

@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ShimmerCard from "@/components/ShimmerCard";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
+import BackToTop from "@/components/BackToTop";
+import PullToRefresh from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
@@ -54,32 +57,39 @@ export default function MyJobs() {
 
   const fetchJobs = async () => {
     setLoading(true);
-    const { data: jobsData } = await supabase
-      .from("jobs")
-      .select("*")
-      .eq("owner_id", user!.id)
-      .order("created_at", { ascending: false });
-    if (!jobsData) { setLoading(false); return; }
+    try {
+      const { data: jobsData, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("owner_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!jobsData) { setJobs([]); return; }
 
-    const jobsWithApplicants: JobWithApplicants[] = [];
-    for (const job of jobsData) {
-      const { data: apps } = await supabase
-        .from("job_applications")
-        .select("id, cleaner_id, status")
-        .eq("job_id", job.id);
-      const applicants = [];
-      for (const app of apps || []) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", app.cleaner_id)
-          .single();
-        applicants.push({ ...app, cleaner_name: profile?.full_name || "Cleaner" });
+      const jobsWithApplicants: JobWithApplicants[] = [];
+      for (const job of jobsData) {
+        const { data: apps } = await supabase
+          .from("job_applications")
+          .select("id, cleaner_id, status")
+          .eq("job_id", job.id);
+        const applicants = [];
+        for (const app of apps || []) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", app.cleaner_id)
+            .single();
+          applicants.push({ ...app, cleaner_name: profile?.full_name || "Cleaner" });
+        }
+        jobsWithApplicants.push({ ...job, applicants } as JobWithApplicants);
       }
-      jobsWithApplicants.push({ ...job, applicants } as JobWithApplicants);
+      setJobs(jobsWithApplicants);
+    } catch (err) {
+      console.error("[MyJobs] fetch error:", err);
+      toast.error("Couldn't load your jobs. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setJobs(jobsWithApplicants);
-    setLoading(false);
   };
 
   const hireCleaner = async (jobId: string, cleanerId: string) => {
@@ -266,18 +276,19 @@ export default function MyJobs() {
     );
   };
 
-  const EmptyState = ({ message }: { message: string }) => (
-    <div className="py-12 text-center"><p className="text-muted-foreground">{message}</p></div>
+  const renderEmpty = (message: string) => (
+    <EmptyState icon={Briefcase} title={message} description={t("myjobs.subtitle")} />
   );
 
   const renderList = (list: JobWithApplicants[], emptyMsg: string) =>
     loading
       ? Array.from({ length: 3 }).map((_, i) => <ShimmerCard key={i} />)
       : list.length === 0
-        ? <EmptyState message={emptyMsg} />
+        ? renderEmpty(emptyMsg)
         : list.map((job, i) => <JobCard key={job.id} job={job} index={i} />);
 
   return (
+    <PullToRefresh onRefresh={fetchJobs}>
     <div className="min-h-screen bg-background pb-20">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">{t("myjobs.title")}</h1>
@@ -328,7 +339,9 @@ export default function MyJobs() {
       {disputeJob && (
         <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
       )}
+      <BackToTop />
       <BottomNav />
     </div>
+    </PullToRefresh>
   );
 }
