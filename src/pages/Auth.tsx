@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import logoImg from "@/assets/shinely-logo.png";
+import logoImg from "@/assets/logo-white.png";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -64,7 +64,25 @@ export default function Auth() {
         transition={{ duration: 0.5 }}
         className="relative z-10 flex flex-col items-center mb-8"
       >
-        <img src={logoImg} alt="Shinely" className="h-20 w-auto object-contain drop-shadow-xl" width={220} height={220} />
+        <img
+          src={logoImg}
+          alt="Shinely"
+          className="h-[60px] w-auto object-contain drop-shadow-xl opacity-100"
+          width={220}
+          height={60}
+          onError={(e) => {
+            const img = e.currentTarget;
+            img.style.display = "none";
+            const fallback = img.nextElementSibling as HTMLElement | null;
+            if (fallback) fallback.style.display = "block";
+          }}
+        />
+        <span
+          style={{ display: "none", color: "#FFFFFF", fontSize: "36px", fontWeight: 700, fontStyle: "italic" }}
+          className="drop-shadow-xl"
+        >
+          Shinely
+        </span>
         <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
           {t("auth.tagline")}
         </p>
