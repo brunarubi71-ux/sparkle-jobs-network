@@ -64,7 +64,11 @@ export default function Auth() {
         transition={{ duration: 0.5 }}
         className="relative z-10 flex flex-col items-center mb-8"
       >
-        <h1 style={{fontFamily:"Georgia,serif", fontSize:"72px", fontStyle:"italic", fontWeight:"700", color:"#FFFFFF", opacity:"1", textShadow:"0 4px 16px rgba(0,0,0,0.3)", margin:"0 0 8px 0", letterSpacing:"3px", lineHeight:"1"}}>Shinely</h1>
+        <img
+          src={logoImg}
+          alt="Shinely"
+          style={{height:"72px", width:"auto", objectFit:"contain", filter:"brightness(0) invert(1)", opacity:"1"}}
+        />
         <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
           {t("auth.tagline")}
         </p>
