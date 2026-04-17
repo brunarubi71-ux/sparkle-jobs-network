@@ -89,56 +89,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: acceptedJob, error: acceptError } = await admin
+    // Verify the job exists and is still open (do NOT hire the cleaner — just submit an application)
+    const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .update({ status: "accepted", hired_cleaner_id: user.id })
-      .eq("id", jobId)
-      .eq("status", "open")
-      .is("hired_cleaner_id", null)
       .select("id, owner_id, status, hired_cleaner_id")
+      .eq("id", jobId)
       .maybeSingle();
 
-    if (acceptError) {
-      throw new Error(`Could not accept job: ${acceptError.message}`);
+    if (jobError) {
+      throw new Error(`Could not load job: ${jobError.message}`);
     }
 
-    let job = acceptedJob;
-    const isNewAcceptance = Boolean(acceptedJob);
-
-    if (!job) {
-      const { data: existingJob, error: existingJobError } = await admin
-        .from("jobs")
-        .select("id, owner_id, status, hired_cleaner_id")
-        .eq("id", jobId)
-        .maybeSingle();
-
-      if (existingJobError) {
-        throw new Error(`Could not verify job state: ${existingJobError.message}`);
-      }
-
-      if (!existingJob || existingJob.hired_cleaner_id !== user.id) {
-        return new Response(JSON.stringify({ success: false, error: "This job is no longer available." }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      job = existingJob;
+    if (!jobRow) {
+      return new Response(JSON.stringify({ success: false, error: "This job no longer exists." }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
+    if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
+      return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create or update the cleaner's application as PENDING (awaiting owner approval)
     const { data: existingApplication } = await admin
       .from("job_applications")
-      .select("id")
+      .select("id, status")
       .eq("job_id", jobId)
       .eq("cleaner_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
+    const isNewAcceptance = !existingApplication;
+
     if (existingApplication) {
       const { error: updateApplicationError } = await admin
         .from("job_applications")
-        .update({ status: "accepted" })
+        .update({ status: "pending" })
         .eq("id", existingApplication.id);
 
       if (updateApplicationError) {
@@ -147,11 +138,16 @@ Deno.serve(async (req) => {
     } else {
       const { error: insertApplicationError } = await admin
         .from("job_applications")
-        .insert({ job_id: jobId, cleaner_id: user.id, status: "accepted" });
+        .insert({ job_id: jobId, cleaner_id: user.id, status: "pending" });
 
       if (insertApplicationError) {
         throw new Error(`Could not create application: ${insertApplicationError.message}`);
       }
+    }
+
+    // Mark the job as having applicants so the owner sees it in the active queue
+    if (jobRow.status === "open") {
+      await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
     }
 
     if (isNewAcceptance) {
@@ -165,6 +161,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Open a conversation between cleaner and owner so they can chat before hire
     const { data: existingConversation } = await admin
       .from("conversations")
       .select("id")
@@ -175,14 +172,14 @@ Deno.serve(async (req) => {
     if (!existingConversation) {
       const { error: insertConversationError } = await admin
         .from("conversations")
-        .insert({ job_id: jobId, cleaner_id: user.id, owner_id: job.owner_id });
+        .insert({ job_id: jobId, cleaner_id: user.id, owner_id: jobRow.owner_id });
 
       if (insertConversationError) {
         throw new Error(`Could not create conversation: ${insertConversationError.message}`);
       }
     }
 
-    return new Response(JSON.stringify({ success: true, jobId: job.id, status: job.status }), {
+    return new Response(JSON.stringify({ success: true, jobId, status: "pending" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
