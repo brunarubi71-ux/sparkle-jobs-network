@@ -219,7 +219,7 @@ export default function Jobs() {
   /* ── search + filter + sort ── */
   const filtered = useMemo(() => {
     let result = enrichedJobs.filter((job) =>
-      [job.title, job.city || "", job.address || "", job.cleaning_type, job.description || ""]
+      [job.title, job.city || "", job.cleaning_type, job.description || ""]
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
@@ -429,7 +429,7 @@ export default function Jobs() {
                     <h2 className="truncate text-base font-semibold text-foreground">{selectedJob.title}</h2>
                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
-                      {selectedJob.city || selectedJob.address || "N/A"}
+                      {selectedJob.city || "N/A"}
                     </p>
                   </div>
                   <Badge variant="outline">{selectedJob.cleaning_type}</Badge>
@@ -519,7 +519,7 @@ export default function Jobs() {
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.city || job.address || "N/A"}</span>
+                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.city || "N/A"}</span>
                   <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {job.bedrooms}</span>
                   <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {job.bathrooms}</span>
                   <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
