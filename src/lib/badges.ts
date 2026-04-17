@@ -28,7 +28,14 @@ export async function syncBadges(
   const { data: existing } = await supabase.from("rewards").select("badge_name").eq("user_id", userId);
   const existingNames = new Set((existing || []).map(r => r.badge_name));
 
-  const newBadges = BADGE_DEFINITIONS.filter(b => b.check(stats) && !existingNames.has(b.name));
+  const cleanerOnly = new Set(["Rising Cleaner", "Top Cleaner", "Elite Cleaner"]);
+  const helperOnly = new Set(["Rising Helper", "Top Helper", "Elite Helper"]);
+
+  const newBadges = BADGE_DEFINITIONS.filter(b => {
+    if (workerType === "helper" && cleanerOnly.has(b.name)) return false;
+    if (workerType === "cleaner" && helperOnly.has(b.name)) return false;
+    return b.check(stats) && !existingNames.has(b.name);
+  });
 
   if (newBadges.length > 0) {
     await supabase.from("rewards").insert(
