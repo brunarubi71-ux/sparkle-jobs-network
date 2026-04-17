@@ -30,7 +30,7 @@ export default function JobConfirmationModal({ open, onClose, onConfirm, loading
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setWantsUpgrade(false); } }}>
-      <DialogContent className="max-w-sm mx-auto rounded-2xl border-border">
+      <DialogContent className="max-w-sm w-[calc(100%-2rem)] mx-auto rounded-2xl border-border max-h-[90vh] overflow-y-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 fixed z-50">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-foreground text-center">{t("confirm.title")}</DialogTitle>
         </DialogHeader>
