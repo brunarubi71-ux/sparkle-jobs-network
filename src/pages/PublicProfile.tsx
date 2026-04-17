@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Star, Award, Briefcase, Crown, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import BadgeDisplay from "@/components/BadgeDisplay";
 
 export default function PublicProfile() {
   const { id } = useParams<{ id: string }>();
@@ -79,12 +80,9 @@ export default function PublicProfile() {
         </motion.div>
 
         {/* Rewards */}
-        {rewards.length > 0 && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl shadow-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Badges</h3>
-            <div className="flex flex-wrap gap-2">
-              {rewards.map(r => <Badge key={r.id} className="bg-accent text-primary border-0">{r.badge_name}</Badge>)}
-            </div>
+        {id && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+            <BadgeDisplay userId={id} />
           </motion.div>
         )}
 
