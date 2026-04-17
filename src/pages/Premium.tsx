@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Percent, Rocket, Shield, Clock } from "lucide-react";
+import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Percent, Rocket, Shield, Clock, Lock, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
@@ -24,9 +24,10 @@ export default function Premium() {
       price: 0,
       period: "",
       features: [
-        { icon: Zap, text: t("plan.2_jobs_daily") },
-        { icon: Users, text: t("plan.1_contact_only") },
+        { icon: Zap, text: t("plan.1_job_weekly") },
+        { icon: Lock, text: t("plan.0_contacts") },
         { icon: Percent, text: t("plan.10_percent_fee") },
+        { icon: Flame, text: t("plan.no_urgent_jobs") },
       ],
       cta: t("premium.start_free"),
       urgency: t("premium.free_urgency"),
@@ -40,12 +41,11 @@ export default function Premium() {
       price: 9.99,
       period: "/month",
       features: [
-        { icon: Zap, text: t("plan.3_jobs_daily") },
-        { icon: Users, text: t("plan.2_contacts") },
-        { icon: Eye, text: t("plan.be_seen_first") },
-        { icon: Clock, text: t("plan.get_jobs_first") },
-        { icon: Shield, text: t("plan.pro_badge") },
+        { icon: Zap, text: t("plan.5_jobs_weekly") },
+        { icon: Users, text: t("plan.1_contact_lifetime") },
         { icon: Percent, text: t("plan.10_percent_fee") },
+        { icon: Flame, text: t("plan.urgent_access") },
+        { icon: Shield, text: t("plan.pro_badge") },
       ],
       cta: t("premium.get_more_jobs"),
       urgency: t("premium.pro_urgency"),
@@ -61,12 +61,10 @@ export default function Premium() {
       features: [
         { icon: Rocket, text: t("plan.unlimited_jobs") },
         { icon: Users, text: t("plan.unlimited_contacts") },
-        { icon: TrendingUp, text: t("plan.never_miss_high_paying") },
-        { icon: Eye, text: t("plan.highest_visibility") },
-        { icon: Star, text: t("plan.always_first") },
-        { icon: Clock, text: t("plan.instant_jobs") },
-        { icon: Crown, text: t("plan.premium_badge") },
         { icon: Percent, text: t("plan.5_percent_fee") },
+        { icon: Flame, text: t("plan.all_jobs_access") },
+        { icon: Eye, text: t("plan.appear_first_owners") },
+        { icon: Crown, text: t("plan.premium_badge") },
       ],
       cta: t("premium.earn_more_now"),
       urgency: t("premium.premium_urgency"),
