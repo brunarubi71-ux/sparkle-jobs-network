@@ -191,8 +191,16 @@ export default function Profile() {
         <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
           {profile?.is_premium && <Badge className="bg-amber-400/20 text-amber-100 border-amber-400/30 text-[10px]"><Crown className="w-3 h-3 mr-1" /> Premium</Badge>}
           {levelInfo.current && <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 text-[10px]">{levelInfo.current.emoji} {levelInfo.current.name}</Badge>}
+          {(profile as any)?.worker_type === "helper" && (
+            <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
+              Helper
+            </Badge>
+          )}
           <span className="text-primary-foreground/70 text-sm capitalize">{profile?.role}</span>
         </div>
+        {(profile as any)?.worker_type === "helper" && (
+          <p className="text-primary-foreground/80 text-xs mt-1">Sem veículo próprio</p>
+        )}
         {avgRating > 0 && (
           <div className="flex items-center justify-center gap-1 mt-2">
             <Star className="w-4 h-4 fill-amber-400 text-amber-400" />

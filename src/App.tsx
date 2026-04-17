@@ -50,6 +50,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 function RoleHome() {
   const { profile } = useAuth();
   if (profile?.role === "owner") return <PostJob />;
+  // Helpers see the same Jobs feed as cleaners
   return <Jobs />;
 }
 

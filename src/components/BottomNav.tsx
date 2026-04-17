@@ -26,6 +26,7 @@ export default function BottomNav() {
     { path: "/profile", label: t("nav.profile"), icon: User },
   ];
 
+  // Helpers use the same navigation as cleaners
   const tabs = profile?.role === "owner" ? ownerTabs : cleanerTabs;
 
   return (
