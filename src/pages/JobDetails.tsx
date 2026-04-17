@@ -469,7 +469,7 @@ export default function JobDetails() {
       {job && id && (isOwner || isCleaner) && (
         <ReviewModal
           open={reviewOpen}
-          onClose={() => { setReviewOpen(false); checkReviewedAfter(); }}
+          onClose={() => { setReviewOpen(false); setHasReviewed(true); }}
           jobId={id}
           reviewedId={isOwner ? job.hired_cleaner_id : job.owner_id}
         />
