@@ -46,18 +46,20 @@ export default function Profile() {
   const fetchExtras = async () => {
     if (!user || !profile) return;
 
+    // Always pull fresh "My Rating" = avg of reviews where reviewed_id = current user
+    const { data: received } = await supabase
+      .from("reviews")
+      .select("rating, review_text, created_at, id")
+      .eq("reviewed_id", user.id)
+      .order("created_at", { ascending: false });
+    const list = received || [];
+    setAvgRatingReceived(
+      list.length
+        ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
+        : 0
+    );
+
     if (profile.role === "owner") {
-      // "My Rating" = average rating cleaners/helpers gave TO this owner
-      const { data: received } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewed_id", user.id);
-      const receivedList = received || [];
-      setAvgRatingReceived(
-        receivedList.length
-          ? Math.round((receivedList.reduce((s, r: any) => s + r.rating, 0) / receivedList.length) * 10) / 10
-          : 0
-      );
       const { data: hiredJobs } = await supabase
         .from("jobs")
         .select("hired_cleaner_id")
@@ -73,18 +75,7 @@ export default function Profile() {
         .eq("status", "completed");
       setOwnerJobsCompleted(completedCount || 0);
     } else {
-      const { data: received } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("reviewed_id", user.id)
-        .order("created_at", { ascending: false });
-      const list = received || [];
       setReviews(list);
-      setAvgRatingReceived(
-        list.length
-          ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
-          : 0
-      );
     }
   };
 
