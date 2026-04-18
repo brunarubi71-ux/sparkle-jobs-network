@@ -87,9 +87,12 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
+      {open && (
+        <style>{`[data-radix-dialog-overlay]{z-index:99998 !important;}`}</style>
+      )}
       <DialogContent
         className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto"
-        style={{ zIndex: 99999 }}
+        style={{ zIndex: 99999, position: "fixed" }}
       >
         <DialogHeader>
           <div className="flex items-center gap-2">
