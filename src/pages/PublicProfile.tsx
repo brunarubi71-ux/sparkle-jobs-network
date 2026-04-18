@@ -24,8 +24,7 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
-  const [avgRatingGiven, setAvgRatingGiven] = useState(0);
-  const [cleanersHired, setCleanersHired] = useState(0);
+  const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -39,22 +38,23 @@ export default function PublicProfile() {
     if (!p) return;
 
     if (p.role === "owner") {
-      const { data: given } = await supabase
+      // Public "My Rating" for owner = avg of ratings cleaners gave to this owner
+      const { data: received } = await supabase
         .from("reviews")
         .select("rating")
-        .eq("reviewer_id", id!);
-      const list = given || [];
-      setAvgRatingGiven(
+        .eq("reviewed_id", id!);
+      const list = received || [];
+      setAvgRatingReceived(
         list.length
           ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
           : 0
       );
-      const { data: hiredJobs } = await supabase
+      const { count: completedCount } = await supabase
         .from("jobs")
-        .select("hired_cleaner_id")
+        .select("id", { count: "exact", head: true })
         .eq("owner_id", id!)
-        .not("hired_cleaner_id", "is", null);
-      setCleanersHired(new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id)).size);
+        .eq("status", "completed");
+      setOwnerJobsCompleted(completedCount || 0);
     } else {
       const { data: received } = await supabase
         .from("reviews")
@@ -188,7 +188,7 @@ export default function PublicProfile() {
           </Button>
         )}
 
-        {/* Stats grid 2x2 */}
+        {/* Stats grid 2x2 — public view (no Cleaners Hired, no Total Earned) */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -196,29 +196,34 @@ export default function PublicProfile() {
         >
           {isOwner ? (
             <>
-              <StatCard icon={<Home className="w-4 h-4" />} value={jobsCompleted} label="Homes Cleaned" />
-              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
-              <StatCard
-                icon={<Star className="w-4 h-4" />}
-                value={avgRatingGiven > 0 ? avgRatingGiven.toFixed(1) : "—"}
-                label="Avg Rating Given"
-              />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
-            </>
-          ) : (
-            <>
+              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label="Jobs Completed" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
                 value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
-                label="Avg Rating"
+                label="My Rating"
               />
-              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
-              {/* No Total Earned for public view */}
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
               <StatCard
-                icon={<DollarSign className="w-4 h-4" />}
-                value={reviews.length}
-                label="Reviews"
+                icon={<Briefcase className="w-4 h-4" />}
+                value={(profile.specialties?.length ?? 0) > 0 ? profile.specialties.join(", ") : "—"}
+                label="Property Type"
+                small
+              />
+            </>
+          ) : (
+            <>
+              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
+              <StatCard
+                icon={<Star className="w-4 h-4" />}
+                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                label="My Rating"
+              />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard
+                icon={<Star className="w-4 h-4" />}
+                value={(profile.specialties?.length ?? 0) > 0 ? profile.specialties.join(", ") : "—"}
+                label="Specialties"
+                small
               />
             </>
           )}

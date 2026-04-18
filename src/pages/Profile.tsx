@@ -35,7 +35,7 @@ export default function Profile() {
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
-  const [avgRatingGiven, setAvgRatingGiven] = useState(0);
+  // Owner now uses avgRatingReceived (rating cleaners gave to owner). avgRatingGiven kept for backward compat but unused.
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
@@ -47,14 +47,15 @@ export default function Profile() {
     if (!user || !profile) return;
 
     if (profile.role === "owner") {
-      const { data: given } = await supabase
+      // "My Rating" = average rating cleaners/helpers gave TO this owner
+      const { data: received } = await supabase
         .from("reviews")
-        .select("rating, reviewed_id")
-        .eq("reviewer_id", user.id);
-      const givenList = given || [];
-      setAvgRatingGiven(
-        givenList.length
-          ? Math.round((givenList.reduce((s, r: any) => s + r.rating, 0) / givenList.length) * 10) / 10
+        .select("rating")
+        .eq("reviewed_id", user.id);
+      const receivedList = received || [];
+      setAvgRatingReceived(
+        receivedList.length
+          ? Math.round((receivedList.reduce((s, r: any) => s + r.rating, 0) / receivedList.length) * 10) / 10
           : 0
       );
       const { data: hiredJobs } = await supabase
@@ -242,8 +243,8 @@ export default function Profile() {
               <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
-                value={avgRatingGiven > 0 ? avgRatingGiven.toFixed(1) : "—"}
-                label="Avg Rating Given"
+                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                label="My Rating"
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
