@@ -71,7 +71,7 @@ export default function Auth() {
         <img
           src={logoImg}
           alt="Shinely"
-          style={{ height: "90px", width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: "1" }}
+          style={{ height: "120px", width: "auto", maxWidth: "280px", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 1 }}
         />
         <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
           {t("auth.tagline")}
