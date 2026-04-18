@@ -28,13 +28,15 @@ interface CleanerJob {
 const ACTIVE_STATUSES = ["pending", "accepted", "hired", "in_progress", "pending_review"];
 
 export default function CleanerMyJobs() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
+
+  const profileJobsCompleted = (profile as any)?.jobs_completed ?? 0;
 
   const highlightJobId = searchParams.get("highlight");
 
