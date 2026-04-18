@@ -369,6 +369,7 @@ export default function Profile() {
       </div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+      <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <BottomNav />
     </div>
   );

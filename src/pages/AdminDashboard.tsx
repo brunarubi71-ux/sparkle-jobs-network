@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, Users, Briefcase, DollarSign, Star, Crown, LogOut, BarChart3 } from "lucide-react";
+import { Shield, Users, Briefcase, DollarSign, Star, Crown, LogOut, BarChart3, ShieldCheck, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-type Tab = "overview" | "users" | "jobs" | "payments" | "reviews" | "premium";
+type Tab = "overview" | "users" | "jobs" | "payments" | "reviews" | "premium" | "identity";
 
 export default function AdminDashboard() {
   const { user, profile, signOut } = useAuth();
@@ -57,6 +57,24 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => { await signOut(); navigate("/admin-login"); };
 
+  const pendingIdentity = users.filter((u: any) => u.identity_status === "pending");
+
+  const reviewIdentity = async (userId: string, decision: "approved" | "rejected") => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ identity_status: decision, identity_reviewed_at: new Date().toISOString() } as any)
+      .eq("id", userId);
+    if (error) { toast.error("Failed to update status"); return; }
+    toast.success(`Identity ${decision}`);
+    fetchAll();
+  };
+
+  const getSignedDocUrl = async (path: string | null): Promise<string | null> => {
+    if (!path) return null;
+    const { data } = await supabase.storage.from("identity-docs").createSignedUrl(path, 60 * 10);
+    return data?.signedUrl || null;
+  };
+
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: "overview", label: "Overview", icon: BarChart3 },
     { key: "users", label: "Users", icon: Users },
@@ -64,6 +82,7 @@ export default function AdminDashboard() {
     { key: "payments", label: "Payments", icon: DollarSign },
     { key: "reviews", label: "Reviews", icon: Star },
     { key: "premium", label: "Premium", icon: Crown },
+    { key: "identity", label: "Identity", icon: ShieldCheck },
   ];
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -204,6 +223,71 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {tab === "identity" && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Identity Verification ({pendingIdentity.length} pending)
+            </h2>
+            {pendingIdentity.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No pending identity verifications.</p>
+            ) : (
+              pendingIdentity.map((u: any) => (
+                <IdentityReviewCard key={u.id} user={u} getSignedUrl={getSignedDocUrl} onDecide={reviewIdentity} />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function IdentityReviewCard({ user, getSignedUrl, onDecide }: { user: any; getSignedUrl: (p: string | null) => Promise<string | null>; onDecide: (id: string, d: "approved" | "rejected") => void }) {
+  const [docUrl, setDocUrl] = useState<string | null>(null);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setDocUrl(await getSignedUrl(user.identity_document_url));
+      setSelfieUrl(await getSignedUrl(user.identity_selfie_url));
+    })();
+  }, [user.id]);
+
+  return (
+    <div className="bg-card rounded-xl shadow-card p-3 space-y-3">
+      <div>
+        <p className="text-sm font-medium text-foreground">{user.full_name || "Unnamed"}</p>
+        <p className="text-xs text-muted-foreground">{user.email}</p>
+        {user.identity_submitted_at && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">Submitted: {new Date(user.identity_submitted_at).toLocaleString()}</p>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-1">Document</p>
+          {docUrl ? (
+            <a href={docUrl} target="_blank" rel="noreferrer">
+              <img src={docUrl} alt="Document" className="w-full aspect-square object-cover rounded-lg border border-border" />
+            </a>
+          ) : <div className="aspect-square bg-muted rounded-lg" />}
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-1">Selfie</p>
+          {selfieUrl ? (
+            <a href={selfieUrl} target="_blank" rel="noreferrer">
+              <img src={selfieUrl} alt="Selfie" className="w-full aspect-square object-cover rounded-lg border border-border" />
+            </a>
+          ) : <div className="aspect-square bg-muted rounded-lg" />}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={() => onDecide(user.id, "approved")} className="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
+          <Check className="w-3.5 h-3.5 mr-1" /> Approve
+        </Button>
+        <Button onClick={() => onDecide(user.id, "rejected")} variant="outline" className="flex-1 h-9 rounded-lg text-destructive border-destructive/30 text-xs">
+          <X className="w-3.5 h-3.5 mr-1" /> Reject
+        </Button>
       </div>
     </div>
   );
