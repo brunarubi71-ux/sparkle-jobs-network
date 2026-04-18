@@ -257,6 +257,9 @@ export default function Profile() {
           )}
         </motion.div>
 
+        {/* Profile completion progress */}
+        <ProfileCompletion profile={profile} isOwner={isOwner} avatarUrl={avatarUrl} />
+
         {/* Identity verification (workers only) */}
         {isWorker && (
           <motion.div
