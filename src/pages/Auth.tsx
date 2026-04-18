@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import TermsModal from "@/components/TermsModal";
+import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo-white.png";
 
 export default function Auth() {
@@ -17,6 +19,8 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"cleaner" | "owner">("cleaner");
   const [hasTransportation, setHasTransportation] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signUp, signIn } = useAuth();
@@ -186,12 +190,41 @@ export default function Auth() {
             </div>
           )}
 
+          {isSignUp && (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="terms"
+                checked={acceptedTerms}
+                onCheckedChange={(c) => setAcceptedTerms(c === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+                {t("auth.agree_to")}{" "}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {t("auth.terms_of_service")}
+                </button>{" "}
+                {t("auth.and")}{" "}
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {t("auth.privacy_policy")}
+                </button>
+              </label>
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive font-medium">{error}</p>}
 
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-12 rounded-xl gradient-primary text-white font-semibold text-base shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98]"
+            disabled={loading || (isSignUp && !acceptedTerms)}
+            className="w-full h-12 rounded-xl gradient-primary text-white font-semibold text-base shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? "..." : isSignUp ? t("auth.sign_up") : t("auth.log_in")}
           </Button>
@@ -230,6 +263,8 @@ export default function Auth() {
           </button>
         </p>
       </motion.div>
+
+      <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target } from "lucide-react";
+import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target, FileText } from "lucide-react";
+import TermsModal from "@/components/TermsModal";
 import { syncBadges, BADGE_DEFINITIONS } from "@/lib/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [editing, setEditing] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
@@ -313,8 +315,17 @@ export default function Profile() {
         <Button variant="outline" className="w-full h-12 rounded-xl border-border text-muted-foreground" onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
+
+        <button
+          onClick={() => setTermsOpen(true)}
+          className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline pt-2 pb-4"
+        >
+          <FileText className="w-3 h-3" />
+          {t("auth.terms_of_service")}
+        </button>
       </div>
 
+      <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
       <BottomNav />
     </div>
   );
