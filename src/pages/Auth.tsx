@@ -55,6 +55,16 @@ export default function Auth() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setError(error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4 py-8">
       <div className="absolute inset-0 bg-gradient-to-br from-[hsl(271,91%,55%)] via-[hsl(270,80%,60%)] to-[hsl(270,92%,70%)]" />
