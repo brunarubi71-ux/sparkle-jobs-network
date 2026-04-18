@@ -46,6 +46,7 @@ interface Job {
   hired_cleaner_id: string | null;
   latitude: number | null;
   longitude: number | null;
+  owner_verified?: boolean;
 }
 
 interface JobWithDistance extends Job {

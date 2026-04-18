@@ -161,6 +161,11 @@ export default function PublicProfile() {
                 <ShieldCheck className="w-3 h-3 mr-1" /> Verified
               </Badge>
             )}
+            {!isWorker && identityApproved && (
+              <Badge className="bg-emerald-500/90 text-white border-0 text-[10px] hover:bg-emerald-500/90">
+                🏠 ✓ Verified Owner
+              </Badge>
+            )}
             {isWorker && workerType === "helper" && (
               <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
                 Helper
