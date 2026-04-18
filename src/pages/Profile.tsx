@@ -37,6 +37,7 @@ export default function Profile() {
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
   const [avgRatingGiven, setAvgRatingGiven] = useState(0);
   const [cleanersHired, setCleanersHired] = useState(0);
+  const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
   useEffect(() => {
     if (user && profile) fetchExtras();
