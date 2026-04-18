@@ -38,22 +38,23 @@ export default function PublicProfile() {
     if (!p) return;
 
     if (p.role === "owner") {
-      const { data: given } = await supabase
+      // Public "My Rating" for owner = avg of ratings cleaners gave to this owner
+      const { data: received } = await supabase
         .from("reviews")
         .select("rating")
-        .eq("reviewer_id", id!);
-      const list = given || [];
-      setAvgRatingGiven(
+        .eq("reviewed_id", id!);
+      const list = received || [];
+      setAvgRatingReceived(
         list.length
           ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
           : 0
       );
-      const { data: hiredJobs } = await supabase
+      const { count: completedCount } = await supabase
         .from("jobs")
-        .select("hired_cleaner_id")
+        .select("id", { count: "exact", head: true })
         .eq("owner_id", id!)
-        .not("hired_cleaner_id", "is", null);
-      setCleanersHired(new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id)).size);
+        .eq("status", "completed");
+      setOwnerJobsCompleted(completedCount || 0);
     } else {
       const { data: received } = await supabase
         .from("reviews")
