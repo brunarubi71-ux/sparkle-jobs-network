@@ -422,3 +422,52 @@ function StatCard({
     </div>
   );
 }
+
+function ProfileCompletion({
+  profile, isOwner, avatarUrl,
+}: { profile: any; isOwner: boolean; avatarUrl?: string }) {
+  const checks = isOwner
+    ? [
+        { ok: !!avatarUrl, label: "Add profile photo" },
+        { ok: !!profile.full_name, label: "Add full name" },
+        { ok: !!profile.bio, label: "Add bio" },
+        { ok: (profile.specialties || []).length > 0, label: "Select property type" },
+      ]
+    : [
+        { ok: !!avatarUrl, label: "Add profile photo" },
+        { ok: !!profile.full_name, label: "Add full name" },
+        { ok: !!profile.bio, label: "Add bio" },
+        { ok: (profile.specialties || []).length > 0, label: "Add specialties" },
+        { ok: (profile.languages || []).length > 0, label: "Add languages" },
+        { ok: (profile.experience_years || 0) > 0, label: "Add years of experience" },
+      ];
+  const completed = checks.filter((c) => c.ok).length;
+  const pct = Math.round((completed / checks.length) * 100);
+  const missing = checks.filter((c) => !c.ok);
+
+  if (pct === 100) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.04 }}
+      className="bg-card rounded-2xl shadow-card p-4"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-foreground">Profile completion</h3>
+        <span className="text-sm font-bold text-primary">{pct}%</span>
+      </div>
+      <Progress value={pct} className="h-2 mb-3" />
+      {missing.length > 0 && (
+        <ul className="space-y-1">
+          {missing.map((m) => (
+            <li key={m.label} className="text-xs text-muted-foreground flex items-center gap-2">
+              <span className="text-destructive">✗</span> {m.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </motion.div>
+  );
+}
