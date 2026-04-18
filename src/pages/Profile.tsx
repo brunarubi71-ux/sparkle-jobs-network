@@ -46,18 +46,20 @@ export default function Profile() {
   const fetchExtras = async () => {
     if (!user || !profile) return;
 
+    // Always pull fresh "My Rating" = avg of reviews where reviewed_id = current user
+    const { data: received } = await supabase
+      .from("reviews")
+      .select("rating, review_text, created_at, id")
+      .eq("reviewed_id", user.id)
+      .order("created_at", { ascending: false });
+    const list = received || [];
+    setAvgRatingReceived(
+      list.length
+        ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
+        : 0
+    );
+
     if (profile.role === "owner") {
-      // "My Rating" = average rating cleaners/helpers gave TO this owner
-      const { data: received } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewed_id", user.id);
-      const receivedList = received || [];
-      setAvgRatingReceived(
-        receivedList.length
-          ? Math.round((receivedList.reduce((s, r: any) => s + r.rating, 0) / receivedList.length) * 10) / 10
-          : 0
-      );
       const { data: hiredJobs } = await supabase
         .from("jobs")
         .select("hired_cleaner_id")
@@ -73,18 +75,7 @@ export default function Profile() {
         .eq("status", "completed");
       setOwnerJobsCompleted(completedCount || 0);
     } else {
-      const { data: received } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("reviewed_id", user.id)
-        .order("created_at", { ascending: false });
-      const list = received || [];
       setReviews(list);
-      setAvgRatingReceived(
-        list.length
-          ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
-          : 0
-      );
     }
   };
 
@@ -142,9 +133,7 @@ export default function Profile() {
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className={`w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative ${
-            profile.is_premium ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-primary" : ""
-          }`}
+          className="w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative border-[3px] border-white"
         >
           {avatarUrl ? (
             <>
@@ -176,8 +165,9 @@ export default function Profile() {
         <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
+          <span className="text-primary-foreground/80 text-sm capitalize font-medium">{profile.role}</span>
           {profile.is_premium && (
-            <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px]">
+            <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px] hover:bg-amber-400/25">
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
           )}
@@ -191,7 +181,6 @@ export default function Profile() {
               Helper
             </Badge>
           )}
-          <span className="text-primary-foreground/70 text-sm capitalize">{profile.role}</span>
         </div>
 
         {/* Edit Profile button */}
@@ -302,12 +291,16 @@ export default function Profile() {
               )}
             </div>
             {(identityStatus === "unverified" || identityStatus === "rejected") && (
-              <Button
-                onClick={() => setIdentityOpen(true)}
-                className="w-full mt-3 h-10 rounded-xl gradient-primary text-primary-foreground"
-              >
-                Verify Identity
-              </Button>
+              <div className="mt-3 flex justify-center">
+                <Button
+                  onClick={() => setIdentityOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-5 rounded-full border-primary text-primary hover:bg-primary/5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Verify Identity
+                </Button>
+              </div>
             )}
             {identityStatus === "pending" && (
               <p className="text-xs text-muted-foreground mt-2">

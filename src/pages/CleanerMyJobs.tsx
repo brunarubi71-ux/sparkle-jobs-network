@@ -28,13 +28,15 @@ interface CleanerJob {
 const ACTIVE_STATUSES = ["pending", "accepted", "hired", "in_progress", "pending_review"];
 
 export default function CleanerMyJobs() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
+
+  const profileJobsCompleted = (profile as any)?.jobs_completed ?? 0;
 
   const highlightJobId = searchParams.get("highlight");
 
@@ -189,7 +191,7 @@ export default function CleanerMyJobs() {
               {t("cleaner_jobs.active")} ({activeJobs.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              {t("cleaner_jobs.completed")} ({completedJobs.length})
+              {t("cleaner_jobs.completed")} ({profileJobsCompleted})
             </TabsTrigger>
             <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.cancelled")} ({cancelledJobs.length})
