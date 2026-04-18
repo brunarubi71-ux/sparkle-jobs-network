@@ -129,24 +129,6 @@ export default function Profile() {
     <div className="min-h-screen bg-background pb-24">
       {/* ── Purple header ── */}
       <div className="gradient-primary px-4 pt-8 pb-20 text-center relative">
-        {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="absolute top-4 right-4 text-primary-foreground/80 hover:text-primary-foreground"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={saveProfile} disabled={saving} className="text-primary-foreground">
-              <Save className="w-5 h-5" />
-            </button>
-            <button onClick={() => setEditing(false)} className="text-primary-foreground/80">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
         {/* Avatar 96px */}
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
@@ -156,32 +138,33 @@ export default function Profile() {
           }`}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} className="w-full h-full object-cover" />
+            <>
+              <img src={avatarUrl} className="w-full h-full object-cover" alt="Profile" />
+              {/* Click avatar to change */}
+              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center">
+                <Camera className="w-6 h-6 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+                />
+              </label>
+            </>
           ) : (
-            <span className="text-3xl font-bold text-primary-foreground">
-              {profile.full_name?.charAt(0)?.toUpperCase() || "?"}
-            </span>
+            <label className="w-full h-full flex items-center justify-center cursor-pointer">
+              <Camera className="w-9 h-9 text-primary-foreground/90" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+              />
+            </label>
           )}
-          <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-card flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform">
-            <Camera className="w-4 h-4 text-primary" />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-            />
-          </label>
         </motion.div>
 
-        {editing ? (
-          <Input
-            value={form.full_name}
-            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-            className="bg-primary-foreground/20 border-0 text-primary-foreground text-center rounded-xl h-10 max-w-xs mx-auto"
-          />
-        ) : (
-          <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
-        )}
+        <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
           {profile.is_premium && (
@@ -201,6 +184,14 @@ export default function Profile() {
           )}
           <span className="text-primary-foreground/70 text-sm capitalize">{profile.role}</span>
         </div>
+
+        {/* Edit Profile button */}
+        <button
+          onClick={() => setEditOpen(true)}
+          className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground text-xs font-medium transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Edit Profile
+        </button>
       </div>
 
       {/* ── Body ── */}
