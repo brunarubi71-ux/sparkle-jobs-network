@@ -24,9 +24,11 @@ export default function JobDetails() {
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const [completionNotes, setCompletionNotes] = useState("");
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const MIN_COMPLETION_PHOTOS = 10;
   const [startingJob, setStartingJob] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -67,10 +69,17 @@ export default function JobDetails() {
   const uploadCompletionPhoto = async (file: File) => {
     if (!user || !id) return;
     setUploading(true);
-    const path = `completion/${id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("portfolio").upload(path, file);
-    if (error) { toast.error(t("job.upload_failed")); setUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from("portfolio").getPublicUrl(path);
+    const ext = file.name.split(".").pop() || "jpg";
+    const nextIndex = completionPhotos.length + 1;
+    const path = `${id}/completion/foto_${nextIndex}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("property-photos").upload(path, file);
+    if (error) {
+      console.error("[JobDetails] photo upload failed:", error);
+      toast.error(t("job.upload_failed"));
+      setUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("property-photos").getPublicUrl(path);
     const updated = [...completionPhotos, publicUrl];
     await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
     setCompletionPhotos(updated);
@@ -78,13 +87,47 @@ export default function JobDetails() {
     toast.success(t("job.photo_uploaded"));
   };
 
+  const removeCompletionPhoto = async (url: string) => {
+    if (!id) return;
+    const updated = completionPhotos.filter(p => p !== url);
+    setCompletionPhotos(updated);
+    setPhotoCaptions(prev => {
+      const next = { ...prev };
+      delete next[url];
+      return next;
+    });
+    await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    // Best-effort delete from storage (path is the part after the bucket public URL)
+    try {
+      const marker = "/property-photos/";
+      const idx = url.indexOf(marker);
+      if (idx !== -1) {
+        const path = url.substring(idx + marker.length);
+        await supabase.storage.from("property-photos").remove([path]);
+      }
+    } catch (e) {
+      console.error("[JobDetails] photo delete failed:", e);
+    }
+  };
+
   const submitCompletion = async () => {
-    if (!id || completionPhotos.length === 0) {
-      toast.error(t("job.upload_one_photo"));
+    if (!id) return;
+    if (completionPhotos.length < MIN_COMPLETION_PHOTOS) {
+      toast.error(`Please add at least ${MIN_COMPLETION_PHOTOS} photos to complete this job.`);
       return;
     }
     setCompleting(true);
-    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: completionNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
+    // Append captions to notes (so they persist without a schema change)
+    const captionLines = completionPhotos
+      .map((url, i) => {
+        const cap = (photoCaptions[url] || "").trim();
+        return cap ? `Photo ${i + 1}: ${cap}` : null;
+      })
+      .filter(Boolean) as string[];
+    const finalNotes = captionLines.length > 0
+      ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
+      : completionNotes;
+    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
     toast.success(t("job.submitted_review"));
     await fetchJob();
     setCompleting(false);
