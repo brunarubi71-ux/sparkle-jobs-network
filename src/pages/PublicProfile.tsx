@@ -24,8 +24,7 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
-  const [avgRatingGiven, setAvgRatingGiven] = useState(0);
-  const [cleanersHired, setCleanersHired] = useState(0);
+  const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
   useEffect(() => {
     if (!id) return;
