@@ -22,6 +22,7 @@ export default function JobDetails() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [job, setJob] = useState<any>(null);
+  const [ownerVerified, setOwnerVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
