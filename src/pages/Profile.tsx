@@ -37,6 +37,7 @@ export default function Profile() {
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
   const [avgRatingGiven, setAvgRatingGiven] = useState(0);
   const [cleanersHired, setCleanersHired] = useState(0);
+  const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
   useEffect(() => {
     if (user && profile) fetchExtras();
@@ -63,6 +64,13 @@ export default function Profile() {
         .not("hired_cleaner_id", "is", null);
       const distinct = new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id));
       setCleanersHired(distinct.size);
+
+      const { count: completedCount } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id)
+        .eq("status", "completed");
+      setOwnerJobsCompleted(completedCount || 0);
     } else {
       const { data: received } = await supabase
         .from("reviews")
@@ -230,7 +238,7 @@ export default function Profile() {
         >
           {isOwner ? (
             <>
-              <StatCard icon={<Home className="w-4 h-4" />} value={jobsCompleted} label="Homes Cleaned" />
+              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label="Jobs Completed" />
               <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
