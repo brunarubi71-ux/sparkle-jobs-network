@@ -291,12 +291,16 @@ export default function Profile() {
               )}
             </div>
             {(identityStatus === "unverified" || identityStatus === "rejected") && (
-              <Button
-                onClick={() => setIdentityOpen(true)}
-                className="w-full mt-3 h-10 rounded-xl gradient-primary text-primary-foreground"
-              >
-                Verify Identity
-              </Button>
+              <div className="mt-3 flex justify-center">
+                <Button
+                  onClick={() => setIdentityOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-5 rounded-full border-primary text-primary hover:bg-primary/5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Verify Identity
+                </Button>
+              </div>
             )}
             {identityStatus === "pending" && (
               <p className="text-xs text-muted-foreground mt-2">
