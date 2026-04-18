@@ -395,6 +395,7 @@ export default function Profile() {
         defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"}
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
+      <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
       <BottomNav />
     </div>
   );
