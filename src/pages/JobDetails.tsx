@@ -22,6 +22,7 @@ export default function JobDetails() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [job, setJob] = useState<any>(null);
+  const [ownerVerified, setOwnerVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -49,6 +50,13 @@ export default function JobDetails() {
       setJob(data);
       setCompletionPhotos((data as any).completion_photos || []);
       setCompletionNotes((data as any).completion_notes || "");
+      // Fetch owner verification status
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("identity_status")
+        .eq("id", (data as any).owner_id)
+        .maybeSingle();
+      setOwnerVerified((ownerProfile as any)?.identity_status === "approved");
     }
     setLoading(false);
   };
@@ -232,6 +240,11 @@ export default function JobDetails() {
             <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5" /> {job.bedrooms} {t("common.bed")}</span>
             <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> {job.bathrooms} {t("common.bath")}</span>
             <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
+            {ownerVerified && (
+              <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] hover:bg-emerald-100">
+                🏠 ✓ Verified Owner
+              </Badge>
+            )}
           </div>
           {job.address && <p className="text-sm text-muted-foreground mb-2"><MapPin className="w-3.5 h-3.5 inline mr-1 text-primary" />{job.address}</p>}
           {job.description && <p className="text-sm text-foreground/80 leading-relaxed">{job.description}</p>}

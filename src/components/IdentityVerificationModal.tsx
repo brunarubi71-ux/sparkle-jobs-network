@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2 } from "lucide-react";
+import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -13,15 +13,19 @@ interface IdentityVerificationModalProps {
 }
 
 export default function IdentityVerificationModal({ open, onOpenChange, onSubmitted }: IdentityVerificationModalProps) {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const isOwner = profile?.role === "owner";
+
   const [docFile, setDocFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [addressFile, setAddressFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const reset = () => {
     setDocFile(null);
     setSelfieFile(null);
+    setAddressFile(null);
     setSubmitted(false);
   };
 
@@ -30,7 +34,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
     onOpenChange(val);
   };
 
-  const uploadFile = async (file: File, kind: "document" | "selfie") => {
+  const uploadFile = async (file: File, kind: string) => {
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user!.id}/${kind}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("identity-docs").upload(path, file, { upsert: true });
@@ -38,22 +42,36 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
     return path;
   };
 
+  const allReady = isOwner
+    ? !!(docFile && addressFile && selfieFile)
+    : !!(docFile && selfieFile);
+
   const handleSubmit = async () => {
-    if (!user || !docFile || !selfieFile) return;
+    if (!user || !allReady) return;
     setSubmitting(true);
     try {
-      const [docPath, selfiePath] = await Promise.all([
-        uploadFile(docFile, "document"),
-        uploadFile(selfieFile, "selfie"),
-      ]);
+      const uploads: Promise<string>[] = [
+        uploadFile(docFile!, "document"),
+        uploadFile(selfieFile!, "selfie"),
+      ];
+      if (isOwner) uploads.push(uploadFile(addressFile!, "address"));
+
+      const results = await Promise.all(uploads);
+      const docPath = results[0];
+      const selfiePath = results[1];
+      const addressPath = isOwner ? results[2] : null;
+
+      const updatePayload: any = {
+        identity_status: "pending",
+        identity_document_url: docPath,
+        identity_selfie_url: selfiePath,
+        identity_submitted_at: new Date().toISOString(),
+      };
+      if (isOwner) updatePayload.identity_address_proof_url = addressPath;
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          identity_status: "pending",
-          identity_document_url: docPath,
-          identity_selfie_url: selfiePath,
-          identity_submitted_at: new Date().toISOString(),
-        } as any)
+        .update(updatePayload)
         .eq("id", user.id);
       if (error) throw error;
       await refreshProfile();
@@ -69,7 +87,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
@@ -77,7 +95,9 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             </div>
             <div>
               <DialogTitle className="text-foreground">Verify Your Identity</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Required before applying to jobs</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isOwner ? "Required before posting your first job" : "Required before applying to jobs"}
+              </p>
             </div>
           </div>
         </DialogHeader>
@@ -96,34 +116,44 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
         ) : (
           <div className="space-y-4 py-2">
             <p className="text-xs text-muted-foreground">
-              Upload a clear photo of your ID document and a selfie holding it. Accepted: ID, Driver's License, or Passport.
+              {isOwner
+                ? "We verify Owners to keep cleaners safe. All documents are encrypted and only seen by our review team."
+                : "Upload a clear photo of your ID document and a selfie holding it. Accepted: ID, Driver's License, or Passport."}
             </p>
 
-            {/* Document upload */}
-            <label className="block">
-              <span className="text-xs font-medium text-foreground mb-1.5 block">Document Photo</span>
-              <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${docFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                <Upload className={`w-5 h-5 mx-auto mb-1.5 ${docFile ? "text-primary" : "text-muted-foreground"}`} />
-                <p className="text-xs font-medium text-foreground">{docFile ? docFile.name : "Upload Document"}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{docFile ? "Tap to replace" : "ID, License or Passport"}</p>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
-              </div>
-            </label>
+            {/* 1. ID Document */}
+            <UploadField
+              icon={isOwner ? FileText : Upload}
+              label={isOwner ? "📄 Upload ID" : "Document Photo"}
+              hint={isOwner ? "ID, License or Passport" : (docFile ? "Tap to replace" : "ID, License or Passport")}
+              file={docFile}
+              onChange={setDocFile}
+            />
 
-            {/* Selfie upload */}
-            <label className="block">
-              <span className="text-xs font-medium text-foreground mb-1.5 block">Selfie with Document</span>
-              <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${selfieFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                <Camera className={`w-5 h-5 mx-auto mb-1.5 ${selfieFile ? "text-primary" : "text-muted-foreground"}`} />
-                <p className="text-xs font-medium text-foreground">{selfieFile ? selfieFile.name : "Take Selfie"}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{selfieFile ? "Tap to replace" : "Hold your ID next to your face"}</p>
-                <input type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => setSelfieFile(e.target.files?.[0] || null)} />
-              </div>
-            </label>
+            {/* 2. Owner only: proof of address */}
+            {isOwner && (
+              <UploadField
+                icon={Home}
+                label="🏠 Proof of Address"
+                hint="Utility bill, lease or bank statement (must show your name & address)"
+                file={addressFile}
+                onChange={setAddressFile}
+              />
+            )}
+
+            {/* 3. Selfie */}
+            <UploadField
+              icon={Camera}
+              label={isOwner ? "🤳 Selfie with ID" : "Selfie with Document"}
+              hint="Hold your ID next to your face"
+              file={selfieFile}
+              onChange={setSelfieFile}
+              capture
+            />
 
             <Button
               onClick={handleSubmit}
-              disabled={!docFile || !selfieFile || submitting}
+              disabled={!allReady || submitting}
               className="w-full h-11 rounded-xl gradient-primary text-primary-foreground"
             >
               {submitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>) : "Submit for Review"}
@@ -132,5 +162,34 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UploadField({
+  icon: Icon, label, hint, file, onChange, capture,
+}: {
+  icon: any;
+  label: string;
+  hint: string;
+  file: File | null;
+  onChange: (f: File | null) => void;
+  capture?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-foreground mb-1.5 block">{label}</span>
+      <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+        <Icon className={`w-5 h-5 mx-auto mb-1.5 ${file ? "text-primary" : "text-muted-foreground"}`} />
+        <p className="text-xs font-medium text-foreground">{file ? file.name : "Tap to upload"}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{file ? "Tap to replace" : hint}</p>
+        <input
+          type="file"
+          accept="image/*"
+          {...(capture ? { capture: "user" as any } : {})}
+          className="hidden"
+          onChange={(e) => onChange(e.target.files?.[0] || null)}
+        />
+      </div>
+    </label>
   );
 }

@@ -46,6 +46,7 @@ interface Job {
   hired_cleaner_id: string | null;
   latitude: number | null;
   longitude: number | null;
+  owner_verified?: boolean;
 }
 
 interface JobWithDistance extends Job {
@@ -195,7 +196,24 @@ export default function Jobs() {
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      setJobs((data as Job[]) || []);
+      const rawJobs = (data as Job[]) || [];
+
+      // Fetch owner identity_status for verified-owner badges
+      const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
+      let verifiedOwners = new Set<string>();
+      if (ownerIds.length > 0) {
+        const { data: ownerProfiles } = await supabase
+          .from("profiles")
+          .select("id, identity_status")
+          .in("id", ownerIds);
+        verifiedOwners = new Set(
+          (ownerProfiles || [])
+            .filter((p: any) => p.identity_status === "approved")
+            .map((p: any) => p.id)
+        );
+      }
+
+      setJobs(rawJobs.map(j => ({ ...j, owner_verified: verifiedOwners.has(j.owner_id) })));
     } catch (err) {
       console.error("[Jobs] fetch error:", err);
       toast.error("Couldn't load jobs. Please check your connection and try again.");
@@ -548,11 +566,16 @@ export default function Jobs() {
                   )}
                 </div>
 
-                <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.city || "N/A"}</span>
                   <span className="flex items-center gap-1"><Bed className="h-3 w-3" /> {job.bedrooms}</span>
                   <span className="flex items-center gap-1"><Bath className="h-3 w-3" /> {job.bathrooms}</span>
                   <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
+                  {job.owner_verified && (
+                    <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] hover:bg-emerald-100">
+                      🏠 ✓ Verified Owner
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Distance + ETA row */}
