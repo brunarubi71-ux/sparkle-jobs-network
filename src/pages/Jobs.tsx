@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import ShimmerCard from "@/components/ShimmerCard";
 import PremiumModal from "@/components/PremiumModal";
 import JobConfirmationModal from "@/components/JobConfirmationModal";
+import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import BottomNav from "@/components/BottomNav";
 import JobFilterChips, { type JobFilter } from "@/components/jobs/JobFilterChips";
 import EmptyState from "@/components/EmptyState";
@@ -123,6 +124,7 @@ export default function Jobs() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [confirmJob, setConfirmJob] = useState<Job | null>(null);
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobWithDistance | null>(null);
   const [mapCenter, setMapCenter] = useState<Coordinates>(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -293,6 +295,12 @@ export default function Jobs() {
 
   const handleAcceptClick = (job: Job) => {
     if (!user || !profile) return;
+    // Cleaners and Helpers must be identity-verified before applying
+    const isWorker = profile.role === "cleaner";
+    if (isWorker && (profile as any).identity_status !== "approved") {
+      setShowIdentityModal(true);
+      return;
+    }
     if (!canAcceptJob()) { setShowPaywall(true); return; }
     setConfirmJob(job);
   };
@@ -593,6 +601,8 @@ export default function Jobs() {
           currentTier={profile?.plan_tier || "free"}
         />
       )}
+
+      <IdentityVerificationModal open={showIdentityModal} onOpenChange={setShowIdentityModal} />
 
       <BackToTop />
       <BottomNav />
