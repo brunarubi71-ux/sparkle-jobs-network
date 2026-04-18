@@ -15,6 +15,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
+import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface JobWithApplicants {

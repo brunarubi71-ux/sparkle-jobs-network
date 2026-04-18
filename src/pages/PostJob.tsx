@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { PlusCircle, Camera, X, Upload, Star } from "lucide-react";
+import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function PostJob() {
@@ -113,6 +114,8 @@ export default function PostJob() {
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
       } as any);
       if (error) throw error;
+      // Award owner points for posting a job
+      try { await awardPoints(user.id, "job_posted"); } catch {}
       toast.success(t("post.success"));
       navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }

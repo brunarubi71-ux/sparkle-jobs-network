@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
+import { awardPoints } from "@/lib/points";
 
 interface Props {
   open: boolean;
@@ -31,6 +32,29 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         rating,
         review_text: text || null,
       });
+
+      // Award points to the reviewer (depends on the role of the person being reviewed)
+      try {
+        const { data: reviewedProfile } = await supabase
+          .from("profiles")
+          .select("role, worker_type, points")
+          .eq("id", reviewedId)
+          .maybeSingle();
+        const reviewedRole = (reviewedProfile as any)?.role;
+        const reviewedWorkerType = (reviewedProfile as any)?.worker_type;
+        if (reviewedRole === "owner") {
+          await awardPoints(user.id, "review_given_owner");
+        } else if (reviewedWorkerType === "helper") {
+          await awardPoints(user.id, "review_given_helper");
+        } else {
+          await awardPoints(user.id, "review_given_cleaner");
+        }
+        // Bonus for the reviewed person if they got 5 stars (and they are a worker)
+        if (rating === 5 && reviewedRole !== "owner") {
+          await awardPoints(reviewedId, "received_5_star");
+        }
+      } catch {}
+
       toast.success("Review submitted!");
       onClose();
     } catch {
