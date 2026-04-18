@@ -35,7 +35,7 @@ export default function Profile() {
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
-  const [avgRatingGiven, setAvgRatingGiven] = useState(0);
+  // Owner now uses avgRatingReceived (rating cleaners gave to owner). avgRatingGiven kept for backward compat but unused.
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
 
