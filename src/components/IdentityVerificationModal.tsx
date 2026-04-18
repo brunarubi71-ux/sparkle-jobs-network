@@ -87,7 +87,10 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto"
+        style={{ zIndex: 99999 }}
+      >
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
