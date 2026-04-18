@@ -7,6 +7,7 @@ import { Shield, Users, Briefcase, DollarSign, Star, Crown, LogOut, BarChart3, S
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { awardPoints } from "@/lib/points";
 
 type Tab = "overview" | "users" | "jobs" | "payments" | "reviews" | "premium" | "identity";
 
@@ -65,6 +66,9 @@ export default function AdminDashboard() {
       .update({ identity_status: decision, identity_reviewed_at: new Date().toISOString() } as any)
       .eq("id", userId);
     if (error) { toast.error("Failed to update status"); return; }
+    if (decision === "approved") {
+      try { await awardPoints(userId, "identity_verified"); } catch {}
+    }
     toast.success(`Identity ${decision}`);
     fetchAll();
   };
