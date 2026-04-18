@@ -250,34 +250,58 @@ export default function AdminDashboard() {
 function IdentityReviewCard({ user, getSignedUrl, onDecide }: { user: any; getSignedUrl: (p: string | null) => Promise<string | null>; onDecide: (id: string, d: "approved" | "rejected") => void }) {
   const [docUrl, setDocUrl] = useState<string | null>(null);
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [addressUrl, setAddressUrl] = useState<string | null>(null);
+
+  const isOwner = user.role === "owner";
+  const workerType = user.worker_type || "cleaner";
+  const roleLabel = isOwner ? "Owner" : workerType === "helper" ? "Helper" : "Cleaner";
+  const roleBadgeClass = isOwner
+    ? "bg-blue-100 text-blue-700"
+    : workerType === "helper"
+    ? "bg-purple-100 text-purple-700"
+    : "bg-emerald-100 text-emerald-700";
 
   useEffect(() => {
     (async () => {
       setDocUrl(await getSignedUrl(user.identity_document_url));
       setSelfieUrl(await getSignedUrl(user.identity_selfie_url));
+      setAddressUrl(await getSignedUrl(user.identity_address_proof_url));
     })();
   }, [user.id]);
 
   return (
     <div className="bg-card rounded-xl shadow-card p-3 space-y-3">
-      <div>
-        <p className="text-sm font-medium text-foreground">{user.full_name || "Unnamed"}</p>
-        <p className="text-xs text-muted-foreground">{user.email}</p>
-        {user.identity_submitted_at && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">Submitted: {new Date(user.identity_submitted_at).toLocaleString()}</p>
-        )}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{user.full_name || "Unnamed"}</p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          {user.identity_submitted_at && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">Submitted: {new Date(user.identity_submitted_at).toLocaleString()}</p>
+          )}
+        </div>
+        <Badge className={`${roleBadgeClass} border-0 text-[10px] flex-shrink-0`}>{roleLabel}</Badge>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid ${isOwner ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Document</p>
+          <p className="text-[10px] text-muted-foreground mb-1">📄 ID Document</p>
           {docUrl ? (
             <a href={docUrl} target="_blank" rel="noreferrer">
               <img src={docUrl} alt="Document" className="w-full aspect-square object-cover rounded-lg border border-border" />
             </a>
           ) : <div className="aspect-square bg-muted rounded-lg" />}
         </div>
+        {isOwner && (
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1">🏠 Proof of Address</p>
+            {addressUrl ? (
+              <a href={addressUrl} target="_blank" rel="noreferrer">
+                <img src={addressUrl} alt="Proof of Address" className="w-full aspect-square object-cover rounded-lg border border-border" />
+              </a>
+            ) : <div className="aspect-square bg-muted rounded-lg" />}
+          </div>
+        )}
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Selfie</p>
+          <p className="text-[10px] text-muted-foreground mb-1">🤳 Selfie {isOwner ? "with ID" : ""}</p>
           {selfieUrl ? (
             <a href={selfieUrl} target="_blank" rel="noreferrer">
               <img src={selfieUrl} alt="Selfie" className="w-full aspect-square object-cover rounded-lg border border-border" />
