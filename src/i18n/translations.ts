@@ -888,6 +888,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.or_continue": "o continúa con",
     "auth.google": "Continuar con Google",
     "auth.tagline": "Marketplace Premium de Limpieza",
+    "auth.slogan": "Limpieza. Confianza. Marketplace.",
     "auth.cleaner": "Limpiador(a)",
     "auth.owner": "Propietario",
     "auth.transportation_question": "¿Tienes transporte propio?",
