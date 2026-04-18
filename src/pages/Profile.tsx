@@ -3,16 +3,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
-  Crown, Star, LogOut, Camera, Edit2, Save, X, FileText,
+  Crown, Star, LogOut, Camera, FileText,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase,
+  DollarSign, CalendarDays, Briefcase, Pencil,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
+import EditProfileModal from "@/components/EditProfileModal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
 import PointsBadgesSection from "@/components/PointsBadgesSection";
 import { useNavigate } from "react-router-dom";
@@ -30,31 +30,13 @@ export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [editing, setEditing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
   const [avgRatingGiven, setAvgRatingGiven] = useState(0);
   const [cleanersHired, setCleanersHired] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    full_name: "",
-    city: "",
-    bio: "",
-    specialties: "",
-  });
-
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        full_name: profile.full_name || "",
-        city: profile.city || "",
-        bio: (profile as any).bio || "",
-        specialties: ((profile as any).specialties || []).join(", "),
-      });
-    }
-  }, [profile]);
 
   useEffect(() => {
     if (user && profile) fetchExtras();
@@ -64,7 +46,6 @@ export default function Profile() {
     if (!user || !profile) return;
 
     if (profile.role === "owner") {
-      // Reviews this owner GAVE
       const { data: given } = await supabase
         .from("reviews")
         .select("rating, reviewed_id")
@@ -75,7 +56,6 @@ export default function Profile() {
           ? Math.round((givenList.reduce((s, r: any) => s + r.rating, 0) / givenList.length) * 10) / 10
           : 0
       );
-      // Distinct cleaners hired
       const { data: hiredJobs } = await supabase
         .from("jobs")
         .select("hired_cleaner_id")
@@ -84,7 +64,6 @@ export default function Profile() {
       const distinct = new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id));
       setCleanersHired(distinct.size);
     } else {
-      // Reviews this worker RECEIVED
       const { data: received } = await supabase
         .from("reviews")
         .select("*")
@@ -97,34 +76,6 @@ export default function Profile() {
           ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
           : 0
       );
-    }
-  };
-
-  const saveProfile = async () => {
-    if (!user) return;
-    const { containsContactInfo } = await import("@/lib/contactFilter");
-    if (containsContactInfo(form.bio)) {
-      toast.error(t("security.contact_blocked"));
-      return;
-    }
-    setSaving(true);
-    try {
-      await supabase
-        .from("profiles")
-        .update({
-          full_name: form.full_name,
-          city: form.city,
-          bio: form.bio,
-          specialties: form.specialties.split(",").map((s) => s.trim()).filter(Boolean),
-        })
-        .eq("id", user.id);
-      await refreshProfile();
-      setEditing(false);
-      toast.success(t("profile.updated"));
-    } catch {
-      toast.error(t("common.failed"));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -178,24 +129,6 @@ export default function Profile() {
     <div className="min-h-screen bg-background pb-24">
       {/* ── Purple header ── */}
       <div className="gradient-primary px-4 pt-8 pb-20 text-center relative">
-        {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="absolute top-4 right-4 text-primary-foreground/80 hover:text-primary-foreground"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={saveProfile} disabled={saving} className="text-primary-foreground">
-              <Save className="w-5 h-5" />
-            </button>
-            <button onClick={() => setEditing(false)} className="text-primary-foreground/80">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
         {/* Avatar 96px */}
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
@@ -205,32 +138,33 @@ export default function Profile() {
           }`}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} className="w-full h-full object-cover" />
+            <>
+              <img src={avatarUrl} className="w-full h-full object-cover" alt="Profile" />
+              {/* Click avatar to change */}
+              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center">
+                <Camera className="w-6 h-6 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+                />
+              </label>
+            </>
           ) : (
-            <span className="text-3xl font-bold text-primary-foreground">
-              {profile.full_name?.charAt(0)?.toUpperCase() || "?"}
-            </span>
+            <label className="w-full h-full flex items-center justify-center cursor-pointer">
+              <Camera className="w-9 h-9 text-primary-foreground/90" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+              />
+            </label>
           )}
-          <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-card flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform">
-            <Camera className="w-4 h-4 text-primary" />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-            />
-          </label>
         </motion.div>
 
-        {editing ? (
-          <Input
-            value={form.full_name}
-            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-            className="bg-primary-foreground/20 border-0 text-primary-foreground text-center rounded-xl h-10 max-w-xs mx-auto"
-          />
-        ) : (
-          <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
-        )}
+        <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
           {profile.is_premium && (
@@ -250,6 +184,14 @@ export default function Profile() {
           )}
           <span className="text-primary-foreground/70 text-sm capitalize">{profile.role}</span>
         </div>
+
+        {/* Edit Profile button */}
+        <button
+          onClick={() => setEditOpen(true)}
+          className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground text-xs font-medium transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Edit Profile
+        </button>
       </div>
 
       {/* ── Body ── */}
@@ -314,6 +256,9 @@ export default function Profile() {
             </>
           )}
         </motion.div>
+
+        {/* Profile completion progress */}
+        <ProfileCompletion profile={profile} isOwner={isOwner} avatarUrl={avatarUrl} />
 
         {/* Identity verification (workers only) */}
         {isWorker && (
@@ -382,47 +327,24 @@ export default function Profile() {
             className="bg-card rounded-2xl shadow-card p-4"
           >
             <h3 className="text-sm font-semibold text-foreground mb-3">About Me</h3>
-            {editing ? (
-              <div className="space-y-3">
-                <Input
-                  placeholder="City"
-                  value={form.city}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                  className="rounded-xl h-10"
-                />
-                <Textarea
-                  placeholder="Tell owners about yourself..."
-                  value={form.bio}
-                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                  className="rounded-xl min-h-[80px]"
-                />
-                <Input
-                  placeholder="Specialties (comma-separated)"
-                  value={form.specialties}
-                  onChange={(e) => setForm((f) => ({ ...f, specialties: e.target.value }))}
-                  className="rounded-xl h-10"
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(profile as any)?.bio ? (
-                  <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    Add a short bio so owners get to know you.
-                  </p>
-                )}
-                {(profile as any)?.specialties?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {(profile as any).specialties.map((s: string) => (
-                      <Badge key={s} variant="outline" className="text-[10px]">
-                        {s}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="space-y-2">
+              {(profile as any)?.bio ? (
+                <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Add a short bio so owners get to know you.
+                </p>
+              )}
+              {(profile as any)?.specialties?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {(profile as any).specialties.map((s: string) => (
+                    <Badge key={s} variant="outline" className="text-[10px]">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -473,6 +395,7 @@ export default function Profile() {
         defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"}
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
+      <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
       <BottomNav />
     </div>
   );
@@ -497,5 +420,54 @@ function StatCard({
       <p className={`font-bold text-foreground ${small ? "text-base" : "text-xl"}`}>{value}</p>
       <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
     </div>
+  );
+}
+
+function ProfileCompletion({
+  profile, isOwner, avatarUrl,
+}: { profile: any; isOwner: boolean; avatarUrl?: string }) {
+  const checks = isOwner
+    ? [
+        { ok: !!avatarUrl, label: "Add profile photo" },
+        { ok: !!profile.full_name, label: "Add full name" },
+        { ok: !!profile.bio, label: "Add bio" },
+        { ok: (profile.specialties || []).length > 0, label: "Select property type" },
+      ]
+    : [
+        { ok: !!avatarUrl, label: "Add profile photo" },
+        { ok: !!profile.full_name, label: "Add full name" },
+        { ok: !!profile.bio, label: "Add bio" },
+        { ok: (profile.specialties || []).length > 0, label: "Add specialties" },
+        { ok: (profile.languages || []).length > 0, label: "Add languages" },
+        { ok: (profile.experience_years || 0) > 0, label: "Add years of experience" },
+      ];
+  const completed = checks.filter((c) => c.ok).length;
+  const pct = Math.round((completed / checks.length) * 100);
+  const missing = checks.filter((c) => !c.ok);
+
+  if (pct === 100) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.04 }}
+      className="bg-card rounded-2xl shadow-card p-4"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-foreground">Profile completion</h3>
+        <span className="text-sm font-bold text-primary">{pct}%</span>
+      </div>
+      <Progress value={pct} className="h-2 mb-3" />
+      {missing.length > 0 && (
+        <ul className="space-y-1">
+          {missing.map((m) => (
+            <li key={m.label} className="text-xs text-muted-foreground flex items-center gap-2">
+              <span className="text-destructive">✗</span> {m.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </motion.div>
   );
 }
