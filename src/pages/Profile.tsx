@@ -324,47 +324,24 @@ export default function Profile() {
             className="bg-card rounded-2xl shadow-card p-4"
           >
             <h3 className="text-sm font-semibold text-foreground mb-3">About Me</h3>
-            {editing ? (
-              <div className="space-y-3">
-                <Input
-                  placeholder="City"
-                  value={form.city}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                  className="rounded-xl h-10"
-                />
-                <Textarea
-                  placeholder="Tell owners about yourself..."
-                  value={form.bio}
-                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                  className="rounded-xl min-h-[80px]"
-                />
-                <Input
-                  placeholder="Specialties (comma-separated)"
-                  value={form.specialties}
-                  onChange={(e) => setForm((f) => ({ ...f, specialties: e.target.value }))}
-                  className="rounded-xl h-10"
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(profile as any)?.bio ? (
-                  <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    Add a short bio so owners get to know you.
-                  </p>
-                )}
-                {(profile as any)?.specialties?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {(profile as any).specialties.map((s: string) => (
-                      <Badge key={s} variant="outline" className="text-[10px]">
-                        {s}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="space-y-2">
+              {(profile as any)?.bio ? (
+                <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Add a short bio so owners get to know you.
+                </p>
+              )}
+              {(profile as any)?.specialties?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {(profile as any).specialties.map((s: string) => (
+                    <Badge key={s} variant="outline" className="text-[10px]">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
