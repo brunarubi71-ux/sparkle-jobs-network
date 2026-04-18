@@ -30,20 +30,13 @@ export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [editing, setEditing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
   const [avgRatingGiven, setAvgRatingGiven] = useState(0);
   const [cleanersHired, setCleanersHired] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    full_name: "",
-    city: "",
-    bio: "",
-    specialties: "",
-  });
 
   useEffect(() => {
     if (profile) {
