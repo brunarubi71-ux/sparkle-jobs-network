@@ -240,6 +240,11 @@ export default function JobDetails() {
             <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5" /> {job.bedrooms} {t("common.bed")}</span>
             <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> {job.bathrooms} {t("common.bath")}</span>
             <Badge variant="outline" className="text-[10px]">{job.cleaning_type}</Badge>
+            {ownerVerified && (
+              <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] hover:bg-emerald-100">
+                🏠 ✓ Verified Owner
+              </Badge>
+            )}
           </div>
           {job.address && <p className="text-sm text-muted-foreground mb-2"><MapPin className="w-3.5 h-3.5 inline mr-1 text-primary" />{job.address}</p>}
           {job.description && <p className="text-sm text-foreground/80 leading-relaxed">{job.description}</p>}
