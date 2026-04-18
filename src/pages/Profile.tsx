@@ -39,17 +39,6 @@ export default function Profile() {
   const [cleanersHired, setCleanersHired] = useState(0);
 
   useEffect(() => {
-    if (profile) {
-      setForm({
-        full_name: profile.full_name || "",
-        city: profile.city || "",
-        bio: (profile as any).bio || "",
-        specialties: ((profile as any).specialties || []).join(", "),
-      });
-    }
-  }, [profile]);
-
-  useEffect(() => {
     if (user && profile) fetchExtras();
   }, [user, profile?.role]);
 
@@ -57,7 +46,6 @@ export default function Profile() {
     if (!user || !profile) return;
 
     if (profile.role === "owner") {
-      // Reviews this owner GAVE
       const { data: given } = await supabase
         .from("reviews")
         .select("rating, reviewed_id")
@@ -68,7 +56,6 @@ export default function Profile() {
           ? Math.round((givenList.reduce((s, r: any) => s + r.rating, 0) / givenList.length) * 10) / 10
           : 0
       );
-      // Distinct cleaners hired
       const { data: hiredJobs } = await supabase
         .from("jobs")
         .select("hired_cleaner_id")
@@ -77,7 +64,6 @@ export default function Profile() {
       const distinct = new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id));
       setCleanersHired(distinct.size);
     } else {
-      // Reviews this worker RECEIVED
       const { data: received } = await supabase
         .from("reviews")
         .select("*")
@@ -90,34 +76,6 @@ export default function Profile() {
           ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
           : 0
       );
-    }
-  };
-
-  const saveProfile = async () => {
-    if (!user) return;
-    const { containsContactInfo } = await import("@/lib/contactFilter");
-    if (containsContactInfo(form.bio)) {
-      toast.error(t("security.contact_blocked"));
-      return;
-    }
-    setSaving(true);
-    try {
-      await supabase
-        .from("profiles")
-        .update({
-          full_name: form.full_name,
-          city: form.city,
-          bio: form.bio,
-          specialties: form.specialties.split(",").map((s) => s.trim()).filter(Boolean),
-        })
-        .eq("id", user.id);
-      await refreshProfile();
-      setEditing(false);
-      toast.success(t("profile.updated"));
-    } catch {
-      toast.error(t("common.failed"));
-    } finally {
-      setSaving(false);
     }
   };
 
