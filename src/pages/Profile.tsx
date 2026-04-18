@@ -38,10 +38,46 @@ export default function Profile() {
   // Owner now uses avgRatingReceived (rating cleaners gave to owner). avgRatingGiven kept for backward compat but unused.
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
+  const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
+
+  // Force fresh profile on mount so jobs_completed / total_earnings reflect latest DB state
+  useEffect(() => {
+    refreshProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (user && profile) fetchExtras();
+    if (user && profile) {
+      fetchExtras();
+      fetchActivePlan();
+    }
   }, [user, profile?.role]);
+
+  const fetchActivePlan = async () => {
+    if (!user) return;
+    // Confirm real plan via subscriptions table (active or trialing, not expired)
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("status, plan_name, current_period_end, cancel_at_period_end")
+      .eq("user_id", user.id)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const stillValid =
+      !!sub &&
+      (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+
+    if (stillValid) {
+      const name = (sub!.plan_name || "").toLowerCase();
+      if (name.includes("pro")) setActivePlanTier("pro");
+      else if (name.includes("premium")) setActivePlanTier("premium");
+      else setActivePlanTier(((profile as any)?.plan_tier as any) || "premium");
+    } else {
+      setActivePlanTier(((profile as any)?.plan_tier as any) || "free");
+    }
+  };
 
   const fetchExtras = async () => {
     if (!user || !profile) return;
@@ -166,7 +202,12 @@ export default function Profile() {
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
           <span className="text-primary-foreground/80 text-sm capitalize font-medium">{profile.role}</span>
-          {profile.is_premium && (
+          {activePlanTier === "pro" && (
+            <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
+              <Crown className="w-3 h-3 mr-1" /> Pro
+            </Badge>
+          )}
+          {activePlanTier === "premium" && (
             <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px] hover:bg-amber-400/25">
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
