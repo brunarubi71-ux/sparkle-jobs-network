@@ -10,16 +10,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BottomNav from "@/components/BottomNav";
+import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import { toast } from "sonner";
-import { PlusCircle, Camera, X, Upload, Star } from "lucide-react";
+import { PlusCircle, Camera, X, Upload, Star, ShieldAlert } from "lucide-react";
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function PostJob() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [identityOpen, setIdentityOpen] = useState(false);
+  const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
+  const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
