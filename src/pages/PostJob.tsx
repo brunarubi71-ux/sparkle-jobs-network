@@ -76,6 +76,10 @@ export default function PostJob() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (ownerNeedsVerification) {
+      setIdentityOpen(true);
+      return;
+    }
     if (containsContactInfo(form.description) || containsContactInfo(form.title) || containsContactInfo(form.address)) {
       toast.error(t("security.contact_blocked"));
       return;
