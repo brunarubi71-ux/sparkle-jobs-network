@@ -196,7 +196,24 @@ export default function Jobs() {
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      setJobs((data as Job[]) || []);
+      const rawJobs = (data as Job[]) || [];
+
+      // Fetch owner identity_status for verified-owner badges
+      const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
+      let verifiedOwners = new Set<string>();
+      if (ownerIds.length > 0) {
+        const { data: ownerProfiles } = await supabase
+          .from("profiles")
+          .select("id, identity_status")
+          .in("id", ownerIds);
+        verifiedOwners = new Set(
+          (ownerProfiles || [])
+            .filter((p: any) => p.identity_status === "approved")
+            .map((p: any) => p.id)
+        );
+      }
+
+      setJobs(rawJobs.map(j => ({ ...j, owner_verified: verifiedOwners.has(j.owner_id) })));
     } catch (err) {
       console.error("[Jobs] fetch error:", err);
       toast.error("Couldn't load jobs. Please check your connection and try again.");
