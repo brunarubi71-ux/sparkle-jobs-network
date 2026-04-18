@@ -38,10 +38,46 @@ export default function Profile() {
   // Owner now uses avgRatingReceived (rating cleaners gave to owner). avgRatingGiven kept for backward compat but unused.
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
+  const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
+
+  // Force fresh profile on mount so jobs_completed / total_earnings reflect latest DB state
+  useEffect(() => {
+    refreshProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (user && profile) fetchExtras();
+    if (user && profile) {
+      fetchExtras();
+      fetchActivePlan();
+    }
   }, [user, profile?.role]);
+
+  const fetchActivePlan = async () => {
+    if (!user) return;
+    // Confirm real plan via subscriptions table (active or trialing, not expired)
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("status, plan_name, current_period_end, cancel_at_period_end")
+      .eq("user_id", user.id)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const stillValid =
+      !!sub &&
+      (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+
+    if (stillValid) {
+      const name = (sub!.plan_name || "").toLowerCase();
+      if (name.includes("pro")) setActivePlanTier("pro");
+      else if (name.includes("premium")) setActivePlanTier("premium");
+      else setActivePlanTier(((profile as any)?.plan_tier as any) || "premium");
+    } else {
+      setActivePlanTier(((profile as any)?.plan_tier as any) || "free");
+    }
+  };
 
   const fetchExtras = async () => {
     if (!user || !profile) return;
