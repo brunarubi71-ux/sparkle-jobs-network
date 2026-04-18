@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target, FileText } from "lucide-react";
+import { Crown, MapPin, Briefcase, Star, LogOut, Award, Camera, Edit2, Save, X, Image as ImageIcon, TrendingUp, Target, FileText, ShieldCheck, Clock, ShieldAlert } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
+import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import { syncBadges, BADGE_DEFINITIONS } from "@/lib/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ export default function Profile() {
   const { t } = useLanguage();
   const [editing, setEditing] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
@@ -281,7 +283,46 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {isCleaner && (
+        {isCleaner && (() => {
+          const status = (profile as any)?.identity_status || "unverified";
+          return (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.12 }}
+              className="bg-card rounded-2xl shadow-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Identity Verification</h3>
+                </div>
+                {status === "approved" && (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">
+                    <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+                  </Badge>
+                )}
+                {status === "pending" && (
+                  <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">
+                    <Clock className="w-3 h-3 mr-1" /> Pending
+                  </Badge>
+                )}
+                {status === "rejected" && (
+                  <Badge className="bg-destructive/10 text-destructive border-0 text-[10px]">
+                    <ShieldAlert className="w-3 h-3 mr-1" /> Rejected
+                  </Badge>
+                )}
+                {status === "unverified" && (
+                  <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+                )}
+              </div>
+              {(status === "unverified" || status === "rejected") && (
+                <Button onClick={() => setIdentityOpen(true)} className="w-full mt-3 h-10 rounded-xl gradient-primary text-primary-foreground">
+                  Verify Identity
+                </Button>
+              )}
+              {status === "pending" && (
+                <p className="text-xs text-muted-foreground mt-2">Your documents are under review. You'll be notified within 24 hours.</p>
+              )}
+            </motion.div>
+          );
+        })()}
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-card rounded-2xl shadow-card p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1"><ImageIcon className="w-4 h-4" /> {t("profile.portfolio")}</h3>
