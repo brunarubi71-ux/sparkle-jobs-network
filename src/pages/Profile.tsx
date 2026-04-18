@@ -47,14 +47,15 @@ export default function Profile() {
     if (!user || !profile) return;
 
     if (profile.role === "owner") {
-      const { data: given } = await supabase
+      // "My Rating" = average rating cleaners/helpers gave TO this owner
+      const { data: received } = await supabase
         .from("reviews")
-        .select("rating, reviewed_id")
-        .eq("reviewer_id", user.id);
-      const givenList = given || [];
-      setAvgRatingGiven(
-        givenList.length
-          ? Math.round((givenList.reduce((s, r: any) => s + r.rating, 0) / givenList.length) * 10) / 10
+        .select("rating")
+        .eq("reviewed_id", user.id);
+      const receivedList = received || [];
+      setAvgRatingReceived(
+        receivedList.length
+          ? Math.round((receivedList.reduce((s, r: any) => s + r.rating, 0) / receivedList.length) * 10) / 10
           : 0
       );
       const { data: hiredJobs } = await supabase
