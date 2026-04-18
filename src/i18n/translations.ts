@@ -467,6 +467,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.or_continue": "ou continue com",
     "auth.google": "Continuar com Google",
     "auth.tagline": "Marketplace Premium de Limpeza",
+    "auth.slogan": "Limpeza. Confiança. Marketplace.",
     "auth.cleaner": "Faxineiro(a)",
     "auth.owner": "Proprietário",
     "auth.transportation_question": "Você tem transporte próprio?",
