@@ -64,6 +64,13 @@ export default function Profile() {
         .not("hired_cleaner_id", "is", null);
       const distinct = new Set((hiredJobs || []).map((j: any) => j.hired_cleaner_id));
       setCleanersHired(distinct.size);
+
+      const { count: completedCount } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id)
+        .eq("status", "completed");
+      setOwnerJobsCompleted(completedCount || 0);
     } else {
       const { data: received } = await supabase
         .from("reviews")
