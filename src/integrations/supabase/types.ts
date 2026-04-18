@@ -383,6 +383,11 @@ export type Database = {
           full_name: string | null
           has_transportation: boolean | null
           id: string
+          identity_document_url: string | null
+          identity_reviewed_at: string | null
+          identity_selfie_url: string | null
+          identity_status: string
+          identity_submitted_at: string | null
           is_available_now: boolean | null
           is_premium: boolean
           jobs_completed: number | null
@@ -423,6 +428,11 @@ export type Database = {
           full_name?: string | null
           has_transportation?: boolean | null
           id: string
+          identity_document_url?: string | null
+          identity_reviewed_at?: string | null
+          identity_selfie_url?: string | null
+          identity_status?: string
+          identity_submitted_at?: string | null
           is_available_now?: boolean | null
           is_premium?: boolean
           jobs_completed?: number | null
@@ -463,6 +473,11 @@ export type Database = {
           full_name?: string | null
           has_transportation?: boolean | null
           id?: string
+          identity_document_url?: string | null
+          identity_reviewed_at?: string | null
+          identity_selfie_url?: string | null
+          identity_status?: string
+          identity_submitted_at?: string | null
           is_available_now?: boolean | null
           is_premium?: boolean
           jobs_completed?: number | null
@@ -695,6 +710,7 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
