@@ -188,7 +188,7 @@ export default function PublicProfile() {
           </Button>
         )}
 
-        {/* Stats grid 2x2 */}
+        {/* Stats grid 2x2 — public view (no Cleaners Hired, no Total Earned) */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -196,29 +196,34 @@ export default function PublicProfile() {
         >
           {isOwner ? (
             <>
-              <StatCard icon={<Home className="w-4 h-4" />} value={jobsCompleted} label="Homes Cleaned" />
-              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
-              <StatCard
-                icon={<Star className="w-4 h-4" />}
-                value={avgRatingGiven > 0 ? avgRatingGiven.toFixed(1) : "—"}
-                label="Avg Rating Given"
-              />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
-            </>
-          ) : (
-            <>
+              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label="Jobs Completed" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
                 value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
-                label="Avg Rating"
+                label="My Rating"
               />
-              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
-              {/* No Total Earned for public view */}
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
               <StatCard
-                icon={<DollarSign className="w-4 h-4" />}
-                value={reviews.length}
-                label="Reviews"
+                icon={<Briefcase className="w-4 h-4" />}
+                value={(profile.specialties?.length ?? 0) > 0 ? profile.specialties.join(", ") : "—"}
+                label="Property Type"
+                small
+              />
+            </>
+          ) : (
+            <>
+              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
+              <StatCard
+                icon={<Star className="w-4 h-4" />}
+                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                label="My Rating"
+              />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard
+                icon={<Star className="w-4 h-4" />}
+                value={(profile.specialties?.length ?? 0) > 0 ? profile.specialties.join(", ") : "—"}
+                label="Specialties"
+                small
               />
             </>
           )}
