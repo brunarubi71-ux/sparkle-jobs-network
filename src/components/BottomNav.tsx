@@ -1,29 +1,63 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { t } = useLanguage();
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+
+  useEffect(() => {
+    if (!user || profile?.role !== "owner") {
+      setPendingReviewCount(0);
+      return;
+    }
+
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id)
+        .eq("status", "pending_review");
+      setPendingReviewCount(count || 0);
+    };
+
+    fetchCount();
+
+    const channel = supabase
+      .channel(`bottomnav-jobs-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs", filter: `owner_id=eq.${user.id}` },
+        () => fetchCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile?.role]);
 
   const cleanerTabs = [
-    { path: "/", label: t("nav.jobs"), icon: Briefcase },
-    { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList },
-    { path: "/earnings", label: t("nav.earnings"), icon: DollarSign },
-    { path: "/chat", label: t("nav.chat"), icon: MessageCircle },
-    { path: "/premium", label: t("nav.premium"), icon: Crown },
-    { path: "/profile", label: t("nav.profile"), icon: User },
+    { path: "/", label: t("nav.jobs"), icon: Briefcase, badge: 0 },
+    { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList, badge: 0 },
+    { path: "/earnings", label: t("nav.earnings"), icon: DollarSign, badge: 0 },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: 0 },
+    { path: "/premium", label: t("nav.premium"), icon: Crown, badge: 0 },
+    { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
 
   const ownerTabs = [
-    { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle },
-    { path: "/my-jobs", label: t("nav.my_jobs"), icon: List },
-    { path: "/sell-schedule", label: t("nav.sell"), icon: ShoppingBag },
-    { path: "/chat", label: t("nav.chat"), icon: MessageCircle },
-    { path: "/profile", label: t("nav.profile"), icon: User },
+    { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle, badge: 0 },
+    { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount },
+    { path: "/sell-schedule", label: t("nav.sell"), icon: ShoppingBag, badge: 0 },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: 0 },
+    { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
 
   // Helpers use the same navigation as cleaners
@@ -42,7 +76,15 @@ export default function BottomNav() {
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <tab.icon className={`w-5 h-5 ${active ? "text-primary" : ""}`} />
+              <div className="relative">
+                <tab.icon className={`w-5 h-5 ${active ? "text-primary" : ""}`} />
+                {tab.badge > 0 && (
+                  <span
+                    aria-label={`${tab.badge} pending`}
+                    className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card"
+                  />
+                )}
+              </div>
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           );
