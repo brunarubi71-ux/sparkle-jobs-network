@@ -202,7 +202,12 @@ export default function Profile() {
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
           <span className="text-primary-foreground/80 text-sm capitalize font-medium">{profile.role}</span>
-          {profile.is_premium && (
+          {activePlanTier === "pro" && (
+            <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
+              <Crown className="w-3 h-3 mr-1" /> Pro
+            </Badge>
+          )}
+          {activePlanTier === "premium" && (
             <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px] hover:bg-amber-400/25">
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
