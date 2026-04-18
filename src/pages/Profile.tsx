@@ -323,6 +323,8 @@ export default function Profile() {
             </motion.div>
           );
         })()}
+
+        {isCleaner && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="bg-card rounded-2xl shadow-card p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1"><ImageIcon className="w-4 h-4" /> {t("profile.portfolio")}</h3>
