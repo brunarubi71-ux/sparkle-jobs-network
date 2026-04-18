@@ -602,6 +602,8 @@ export default function Jobs() {
         />
       )}
 
+      <IdentityVerificationModal open={showIdentityModal} onOpenChange={setShowIdentityModal} />
+
       <BackToTop />
       <BottomNav />
     </div>
