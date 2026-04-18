@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
+import PointsToast from "@/components/PointsToast";
 import { AnimatePresence } from "framer-motion";
 import Jobs from "./pages/Jobs";
 import Schedules from "./pages/Schedules";
@@ -72,6 +73,7 @@ const App = () => {
         <AuthProvider>
           <TooltipProvider>
             <Sonner />
+            <PointsToast />
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Routes>
               <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />

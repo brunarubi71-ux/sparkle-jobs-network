@@ -15,6 +15,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
+import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface JobWithApplicants {
@@ -108,11 +109,22 @@ export default function MyJobs() {
   };
 
   const approveJob = async (jobId: string) => {
+    const job = jobs.find((j) => j.id === jobId);
     await supabase.from("jobs").update({
       status: "completed",
       owner_confirmed_completion: true,
       escrow_status: "released",
     } as any).eq("id", jobId);
+
+    // Award points: owner gets owner_job_completed; worker gets job_completed (+ first_job bonus)
+    try {
+      if (user) await awardPoints(user.id, "owner_job_completed");
+      if (job?.hired_cleaner_id) {
+        await awardPoints(job.hired_cleaner_id, "job_completed");
+        await awardPoints(job.hired_cleaner_id, "first_job_completed"); // one-time
+      }
+    } catch {}
+
     toast.success(t("myjobs.job_approved"));
     fetchJobs();
   };

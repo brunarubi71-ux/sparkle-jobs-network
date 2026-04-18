@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Star, Award, Briefcase, Crown, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import PointsBadgesSection from "@/components/PointsBadgesSection";
 
 export default function PublicProfile() {
   const { id } = useParams<{ id: string }>();
@@ -79,10 +80,23 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
-        {/* Rewards */}
+        {/* Rewards (legacy) */}
         {id && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
             <BadgeDisplay userId={id} />
+          </motion.div>
+        )}
+
+        {/* Points badges (unlocked only) */}
+        {profile && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.12 }}>
+            <PointsBadgesSection
+              points={profile.points ?? 0}
+              role={profile.role}
+              workerType={profile.worker_type}
+              identityApproved={(profile.identity_status || "unverified") === "approved"}
+              publicView
+            />
           </motion.div>
         )}
 
