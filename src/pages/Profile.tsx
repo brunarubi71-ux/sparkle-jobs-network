@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import PointsBadgesSection from "@/components/PointsBadgesSection";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -276,6 +277,17 @@ export default function Profile() {
             </div>
           )}
         </motion.div>
+
+        {user && profile && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.08 }}>
+            <PointsBadgesSection
+              points={(profile as any)?.points ?? 0}
+              role={profile.role as string}
+              workerType={(profile as any)?.worker_type}
+              identityApproved={((profile as any)?.identity_status || "unverified") === "approved"}
+            />
+          </motion.div>
+        )}
 
         {user && (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
