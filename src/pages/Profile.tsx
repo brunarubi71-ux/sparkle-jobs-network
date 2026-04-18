@@ -3,16 +3,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
-  Crown, Star, LogOut, Camera, Edit2, Save, X, FileText,
+  Crown, Star, LogOut, Camera, FileText,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase,
+  DollarSign, CalendarDays, Briefcase, Pencil,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
+import EditProfileModal from "@/components/EditProfileModal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
 import PointsBadgesSection from "@/components/PointsBadgesSection";
 import { useNavigate } from "react-router-dom";
