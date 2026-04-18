@@ -243,8 +243,8 @@ export default function Profile() {
               <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
-                value={avgRatingGiven > 0 ? avgRatingGiven.toFixed(1) : "—"}
-                label="Avg Rating Given"
+                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                label="My Rating"
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
