@@ -133,9 +133,7 @@ export default function Profile() {
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className={`w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative ${
-            profile.is_premium ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-primary" : ""
-          }`}
+          className="w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative border-[3px] border-white"
         >
           {avatarUrl ? (
             <>
@@ -167,8 +165,9 @@ export default function Profile() {
         <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
+          <span className="text-primary-foreground/80 text-sm capitalize font-medium">{profile.role}</span>
           {profile.is_premium && (
-            <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px]">
+            <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px] hover:bg-amber-400/25">
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
           )}
@@ -182,7 +181,6 @@ export default function Profile() {
               Helper
             </Badge>
           )}
-          <span className="text-primary-foreground/70 text-sm capitalize">{profile.role}</span>
         </div>
 
         {/* Edit Profile button */}
