@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MapPin, Bed, Bath, Camera, CheckCircle,
-  Image as ImageIcon, Play, Lock, Sparkles, Clock, Home, ImagePlus, Users, Calendar, Unlock, Key
+  Image as ImageIcon, Play, Lock, Sparkles, Clock, Home, ImagePlus, Users, Calendar, Unlock, Key, X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,11 @@ export default function JobDetails() {
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const [completionNotes, setCompletionNotes] = useState("");
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const MIN_COMPLETION_PHOTOS = 10;
   const [startingJob, setStartingJob] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -67,10 +69,17 @@ export default function JobDetails() {
   const uploadCompletionPhoto = async (file: File) => {
     if (!user || !id) return;
     setUploading(true);
-    const path = `completion/${id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("portfolio").upload(path, file);
-    if (error) { toast.error(t("job.upload_failed")); setUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from("portfolio").getPublicUrl(path);
+    const ext = file.name.split(".").pop() || "jpg";
+    const nextIndex = completionPhotos.length + 1;
+    const path = `${id}/completion/foto_${nextIndex}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("property-photos").upload(path, file);
+    if (error) {
+      console.error("[JobDetails] photo upload failed:", error);
+      toast.error(t("job.upload_failed"));
+      setUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("property-photos").getPublicUrl(path);
     const updated = [...completionPhotos, publicUrl];
     await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
     setCompletionPhotos(updated);
@@ -78,13 +87,47 @@ export default function JobDetails() {
     toast.success(t("job.photo_uploaded"));
   };
 
+  const removeCompletionPhoto = async (url: string) => {
+    if (!id) return;
+    const updated = completionPhotos.filter(p => p !== url);
+    setCompletionPhotos(updated);
+    setPhotoCaptions(prev => {
+      const next = { ...prev };
+      delete next[url];
+      return next;
+    });
+    await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    // Best-effort delete from storage (path is the part after the bucket public URL)
+    try {
+      const marker = "/property-photos/";
+      const idx = url.indexOf(marker);
+      if (idx !== -1) {
+        const path = url.substring(idx + marker.length);
+        await supabase.storage.from("property-photos").remove([path]);
+      }
+    } catch (e) {
+      console.error("[JobDetails] photo delete failed:", e);
+    }
+  };
+
   const submitCompletion = async () => {
-    if (!id || completionPhotos.length === 0) {
-      toast.error(t("job.upload_one_photo"));
+    if (!id) return;
+    if (completionPhotos.length < MIN_COMPLETION_PHOTOS) {
+      toast.error(`Please add at least ${MIN_COMPLETION_PHOTOS} photos to complete this job.`);
       return;
     }
     setCompleting(true);
-    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: completionNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
+    // Append captions to notes (so they persist without a schema change)
+    const captionLines = completionPhotos
+      .map((url, i) => {
+        const cap = (photoCaptions[url] || "").trim();
+        return cap ? `Photo ${i + 1}: ${cap}` : null;
+      })
+      .filter(Boolean) as string[];
+    const finalNotes = captionLines.length > 0
+      ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
+      : completionNotes;
+    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
     toast.success(t("job.submitted_review"));
     await fetchJob();
     setCompleting(false);
@@ -343,18 +386,75 @@ export default function JobDetails() {
                 </label>
               </div>
 
+              {/* Photo counter */}
+              {(() => {
+                const count = completionPhotos.length;
+                const reached = count >= MIN_COMPLETION_PHOTOS;
+                const pct = Math.min(100, (count / MIN_COMPLETION_PHOTOS) * 100);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-xs font-semibold ${reached ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {count}/{MIN_COMPLETION_PHOTOS} photos required
+                      </span>
+                      {reached && (
+                        <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Ready to finish
+                        </span>
+                      )}
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${reached ? "bg-emerald-500" : "bg-primary"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
               {completionPhotos.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2">
-                  {completionPhotos.map((url, i) => (
-                    <motion.img key={i} src={url} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                      className="w-full aspect-square object-cover rounded-xl border border-border" alt={`Work photo ${i + 1}`} />
-                  ))}
+                  {completionPhotos.map((url, i) => {
+                    const caption = photoCaptions[url] || "";
+                    return (
+                      <div key={url} className="space-y-1">
+                        <div className="relative group">
+                          <motion.img
+                            src={url}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="w-full aspect-square object-cover rounded-xl border border-border"
+                            alt={`Work photo ${i + 1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeCompletionPhoto(url)}
+                            aria-label="Remove photo"
+                            className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={30}
+                          value={caption}
+                          onChange={(e) =>
+                            setPhotoCaptions(prev => ({ ...prev, [url]: e.target.value }))
+                          }
+                          placeholder="Caption (optional)"
+                          className="w-full text-[10px] px-2 py-1 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-primary/20 rounded-xl p-8 text-center bg-primary/5">
                   <ImageIcon className="w-10 h-10 text-primary/40 mx-auto mb-2" />
                   <p className="text-sm text-foreground font-medium">{t("job.upload_work_photos")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("job.upload_required")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">At least {MIN_COMPLETION_PHOTOS} photos required</p>
                 </div>
               )}
 
@@ -372,10 +472,17 @@ export default function JobDetails() {
               </div>
             </div>
 
-            <Button onClick={submitCompletion} disabled={completing || completionPhotos.length === 0}
-              className="w-full h-16 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 font-bold text-lg shadow-[0_4px_14px_0_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]">
+            <Button
+              onClick={submitCompletion}
+              disabled={completing || completionPhotos.length < MIN_COMPLETION_PHOTOS}
+              className="w-full h-16 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 font-bold text-lg shadow-[0_4px_14px_0_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+            >
               <CheckCircle className="w-6 h-6 mr-2" />
-              {completing ? t("job.submitting") : t("job.mark_finished")}
+              {completing
+                ? t("job.submitting")
+                : completionPhotos.length < MIN_COMPLETION_PHOTOS
+                ? `${t("job.mark_finished")} (${completionPhotos.length}/${MIN_COMPLETION_PHOTOS})`
+                : t("job.mark_finished")}
             </Button>
           </motion.div>
         )}
