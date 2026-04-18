@@ -65,9 +65,42 @@ export default function Auth() {
     }
   };
 
+  const stars = [
+    { top: "8%", left: "10%", size: 14, opacity: 0.5 },
+    { top: "18%", right: "12%", size: 10, opacity: 0.35 },
+    { top: "42%", left: "6%", size: 18, opacity: 0.4 },
+    { bottom: "22%", right: "8%", size: 12, opacity: 0.55 },
+    { bottom: "10%", left: "14%", size: 8, opacity: 0.3 },
+    { top: "30%", right: "18%", size: 6, opacity: 0.6 },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4 py-8">
-      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(271,91%,55%)] via-[hsl(270,80%,60%)] to-[hsl(270,92%,70%)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(145deg, #4C1D95 0%, #7C3AED 35%, #A855F7 60%, #9333EA 80%, #6D28D9 100%)",
+        }}
+      />
+
+      {stars.map((s, i) => (
+        <span
+          key={i}
+          className="absolute z-0 select-none pointer-events-none text-white"
+          style={{
+            top: s.top as any,
+            left: (s as any).left,
+            right: (s as any).right,
+            bottom: (s as any).bottom,
+            fontSize: `${s.size}px`,
+            opacity: s.opacity,
+            lineHeight: 1,
+          }}
+        >
+          ✦
+        </span>
+      ))}
 
       <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcher />
@@ -82,10 +115,13 @@ export default function Auth() {
         <img
           src={logoImg}
           alt="Shinely"
-          style={{ height: "120px", width: "auto", maxWidth: "280px", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 1 }}
+          style={{ height: "100px", width: "auto", maxWidth: "280px", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 1 }}
         />
-        <p className="text-white/90 text-sm font-medium mt-2 tracking-wide">
-          {t("auth.tagline")}
+        <p
+          className="mt-3 text-white"
+          style={{ fontSize: "11px", letterSpacing: "2px", opacity: 0.7, fontWeight: 400 }}
+        >
+          {t("auth.slogan")}
         </p>
       </motion.div>
 
@@ -93,7 +129,8 @@ export default function Auth() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-[0_16px_48px_-12px_rgba(0,0,0,0.25)] p-7"
+        className="relative z-10 w-full max-w-sm bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.25)] px-7 pb-7"
+        style={{ borderRadius: "28px", paddingTop: "28px" }}
       >
         <h2 className="text-xl font-bold text-gray-900 mb-1">
           {isSignUp ? t("auth.create_account") : t("auth.welcome")}
