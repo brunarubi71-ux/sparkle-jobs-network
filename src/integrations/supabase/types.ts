@@ -407,6 +407,7 @@ export type Database = {
           full_name: string | null
           has_transportation: boolean | null
           id: string
+          identity_address_proof_url: string | null
           identity_document_url: string | null
           identity_reviewed_at: string | null
           identity_selfie_url: string | null
@@ -453,6 +454,7 @@ export type Database = {
           full_name?: string | null
           has_transportation?: boolean | null
           id: string
+          identity_address_proof_url?: string | null
           identity_document_url?: string | null
           identity_reviewed_at?: string | null
           identity_selfie_url?: string | null
@@ -499,6 +501,7 @@ export type Database = {
           full_name?: string | null
           has_transportation?: boolean | null
           id?: string
+          identity_address_proof_url?: string | null
           identity_document_url?: string | null
           identity_reviewed_at?: string | null
           identity_selfie_url?: string | null
