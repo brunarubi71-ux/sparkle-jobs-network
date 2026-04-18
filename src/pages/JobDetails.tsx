@@ -50,6 +50,13 @@ export default function JobDetails() {
       setJob(data);
       setCompletionPhotos((data as any).completion_photos || []);
       setCompletionNotes((data as any).completion_notes || "");
+      // Fetch owner verification status
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("identity_status")
+        .eq("id", (data as any).owner_id)
+        .maybeSingle();
+      setOwnerVerified((ownerProfile as any)?.identity_status === "approved");
     }
     setLoading(false);
   };
