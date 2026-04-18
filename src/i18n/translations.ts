@@ -20,6 +20,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "auth.or_continue": "or continue with",
     "auth.google": "Continue with Google",
     "auth.tagline": "Premium Cleaning Marketplace",
+    "auth.slogan": "Clean. Trusted. Marketplace.",
     "auth.cleaner": "Cleaner",
     "auth.owner": "Job Owner",
     "auth.transportation_question": "Do you have your own transportation?",
