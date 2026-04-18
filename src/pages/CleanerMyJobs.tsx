@@ -191,7 +191,7 @@ export default function CleanerMyJobs() {
               {t("cleaner_jobs.active")} ({activeJobs.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              {t("cleaner_jobs.completed")} ({completedJobs.length})
+              {t("cleaner_jobs.completed")} ({profileJobsCompleted})
             </TabsTrigger>
             <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.cancelled")} ({cancelledJobs.length})
