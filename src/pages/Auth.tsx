@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,23 +47,27 @@ export default function Auth() {
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
     });
-    if (error) {
+    if (result.error) {
       setError(t("common.google_failed"));
+      return;
     }
+    if (result.redirected) return;
+    navigate("/");
   };
 
   const handleAppleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "apple",
-      options: { redirectTo: window.location.origin },
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
     });
-    if (error) {
-      setError(error.message);
+    if (result.error) {
+      setError((result.error as any)?.message ?? "Apple sign-in failed");
+      return;
     }
+    if (result.redirected) return;
+    navigate("/");
   };
 
   const stars = [
