@@ -42,6 +42,33 @@ export default function Profile() {
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
 
+  // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
+  const isWorkerRole = profile?.role === "cleaner";
+  const { data: workerStats, isLoading: workerStatsLoading } = useQuery({
+    queryKey: ["worker-stats", user?.id],
+    enabled: !!user?.id && isWorkerRole,
+    queryFn: async () => {
+      const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
+        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id),
+        supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
+        supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("hired_cleaner_id", user!.id)
+          .eq("status", "completed"),
+      ]);
+      const ratings = (reviewsRes.data || []).map((r: any) => r.rating);
+      const avgRating =
+        ratings.length > 0
+          ? Math.round((ratings.reduce((s, n) => s + n, 0) / ratings.length) * 10) / 10
+          : null;
+      const jobsCompleted =
+        (profileRes.data?.jobs_completed as number | null) ?? jobsCountRes.count ?? 0;
+      const totalEarnings = Number(profileRes.data?.total_earnings ?? 0);
+      return { avgRating, jobsCompleted, totalEarnings };
+    },
+  });
+
   // Force fresh profile on mount so jobs_completed / total_earnings reflect latest DB state
   useEffect(() => {
     refreshProfile();
