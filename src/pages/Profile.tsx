@@ -311,14 +311,42 @@ export default function Profile() {
             <>
               <StatCard
                 icon={<Star className="w-4 h-4" />}
-                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-12" />
+                  ) : workerStats?.avgRating != null ? (
+                    workerStats.avgRating.toFixed(1)
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                  )
+                }
                 label="Avg Rating"
+                small={workerStats?.avgRating == null && !workerStatsLoading}
               />
-              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
+              <StatCard
+                icon={<Briefcase className="w-4 h-4" />}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-10" />
+                  ) : (
+                    workerStats?.jobsCompleted ?? 0
+                  )
+                }
+                label="Jobs Completed"
+              />
               <StatCard
                 icon={<DollarSign className="w-4 h-4" />}
-                value={`$${Number(totalEarnings).toFixed(0)}`}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-16" />
+                  ) : !workerStats?.totalEarnings ? (
+                    <span className="text-xs font-medium text-muted-foreground">Start earning today! 💰</span>
+                  ) : (
+                    `$${workerStats.totalEarnings.toFixed(0)}`
+                  )
+                }
                 label="Total Earned"
+                small={!workerStatsLoading && !workerStats?.totalEarnings}
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
