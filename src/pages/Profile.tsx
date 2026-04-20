@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
@@ -39,6 +41,33 @@ export default function Profile() {
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
+
+  // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
+  const isWorkerRole = profile?.role === "cleaner";
+  const { data: workerStats, isLoading: workerStatsLoading } = useQuery({
+    queryKey: ["worker-stats", user?.id],
+    enabled: !!user?.id && isWorkerRole,
+    queryFn: async () => {
+      const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
+        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id),
+        supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
+        supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("hired_cleaner_id", user!.id)
+          .eq("status", "completed"),
+      ]);
+      const ratings = (reviewsRes.data || []).map((r: any) => r.rating);
+      const avgRating =
+        ratings.length > 0
+          ? Math.round((ratings.reduce((s, n) => s + n, 0) / ratings.length) * 10) / 10
+          : null;
+      const jobsCompleted =
+        (profileRes.data?.jobs_completed as number | null) ?? jobsCountRes.count ?? 0;
+      const totalEarnings = Number(profileRes.data?.total_earnings ?? 0);
+      return { avgRating, jobsCompleted, totalEarnings };
+    },
+  });
 
   // Force fresh profile on mount so jobs_completed / total_earnings reflect latest DB state
   useEffect(() => {
@@ -282,14 +311,42 @@ export default function Profile() {
             <>
               <StatCard
                 icon={<Star className="w-4 h-4" />}
-                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-12" />
+                  ) : workerStats?.avgRating != null ? (
+                    workerStats.avgRating.toFixed(1)
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                  )
+                }
                 label="Avg Rating"
+                small={workerStats?.avgRating == null && !workerStatsLoading}
               />
-              <StatCard icon={<Briefcase className="w-4 h-4" />} value={jobsCompleted} label="Jobs Completed" />
+              <StatCard
+                icon={<Briefcase className="w-4 h-4" />}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-10" />
+                  ) : (
+                    workerStats?.jobsCompleted ?? 0
+                  )
+                }
+                label="Jobs Completed"
+              />
               <StatCard
                 icon={<DollarSign className="w-4 h-4" />}
-                value={`$${Number(totalEarnings).toFixed(0)}`}
+                value={
+                  workerStatsLoading ? (
+                    <Skeleton className="h-6 w-16" />
+                  ) : !workerStats?.totalEarnings ? (
+                    <span className="text-xs font-medium text-muted-foreground">Start earning today! 💰</span>
+                  ) : (
+                    `$${workerStats.totalEarnings.toFixed(0)}`
+                  )
+                }
                 label="Total Earned"
+                small={!workerStatsLoading && !workerStats?.totalEarnings}
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
