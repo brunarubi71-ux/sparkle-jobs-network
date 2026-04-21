@@ -35,6 +35,7 @@ export default function CleanerMyJobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabCounts, setTabCounts] = useState({ active: 0, completed: 0, cancelled: 0 });
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
 
   const profileJobsCompleted = (profile as any)?.jobs_completed ?? 0;
