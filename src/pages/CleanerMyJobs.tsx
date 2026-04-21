@@ -224,14 +224,17 @@ export default function CleanerMyJobs() {
 
       <div className="px-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="mb-4 grid w-full grid-cols-3 rounded-2xl bg-accent p-1">
-            <TabsTrigger value="active" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+          <TabsList className="mb-4 grid w-full grid-cols-4 rounded-2xl bg-accent p-1">
+            <TabsTrigger value="active" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.active")} ({tabCounts.active})
             </TabsTrigger>
-            <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+            <TabsTrigger value="applied" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+              Applied ({tabCounts.applied})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.completed")} ({tabCounts.completed})
             </TabsTrigger>
-            <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+            <TabsTrigger value="cancelled" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.cancelled")} ({tabCounts.cancelled})
             </TabsTrigger>
           </TabsList>
@@ -247,6 +250,20 @@ export default function CleanerMyJobs() {
               />
             ) : (
               activeJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
+            )}
+          </TabsContent>
+
+          <TabsContent value="applied" className="space-y-3">
+            {loading ? (
+              Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
+            ) : appliedJobs.length === 0 ? (
+              <EmptyState
+                icon={Briefcase}
+                title="No pending applications"
+                description="Jobs you've applied for will appear here while waiting for owner approval."
+              />
+            ) : (
+              appliedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
             )}
           </TabsContent>
 
