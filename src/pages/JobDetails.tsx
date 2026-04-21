@@ -305,6 +305,20 @@ export default function JobDetails() {
           job_id: id,
         });
 
+        // Payment Received notification for this worker
+        try {
+          await supabase.from("notifications").insert({
+            user_id: workerId,
+            title: "Payment Received 💰",
+            message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
+            type: "payment_received",
+            related_id: id,
+            link: "/wallet",
+          });
+        } catch (e) {
+          console.error("[JobDetails] payment notification failed", e);
+        }
+
         const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
         const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId);
         const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
