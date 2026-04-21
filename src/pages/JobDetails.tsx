@@ -5,7 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MapPin, Bed, Bath, Camera, CheckCircle,
-  Image as ImageIcon, Play, Lock, Sparkles, Clock, Home, ImagePlus, Users, Calendar, Unlock, Key, X
+  Image as ImageIcon, Play, Lock, Sparkles, Clock, Home, ImagePlus, Users, Calendar, Unlock, Key, X,
+  MessageCircle, Star
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -284,6 +285,74 @@ export default function JobDetails() {
             </div>
           )}
         </motion.div>
+
+        {/* Owner: Hired cleaner card */}
+        {isOwner && hiredCleaner && (
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.04 }}
+            className="bg-card rounded-2xl shadow-card p-4"
+          >
+            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" /> Your Cleaner
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-accent overflow-hidden flex-shrink-0">
+                {hiredCleaner.avatar_url ? (
+                  <img src={hiredCleaner.avatar_url} alt={hiredCleaner.full_name || "Cleaner"} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-primary font-bold">
+                    {(hiredCleaner.full_name || "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => navigate(`/profile/${hiredCleaner.id}`)}
+                className="flex-1 text-left min-w-0"
+              >
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {hiredCleaner.full_name || "Cleaner"}
+                </p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  {hiredCleaner.avg_rating != null ? hiredCleaner.avg_rating.toFixed(1) : "No ratings yet"}
+                </p>
+              </button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (!user || !hiredCleaner) return;
+                  // Find or create conversation between owner and hired cleaner for this job
+                  const { data: existing } = await supabase
+                    .from("conversations")
+                    .select("id")
+                    .eq("owner_id", user.id)
+                    .eq("cleaner_id", hiredCleaner.id)
+                    .eq("job_id", job.id)
+                    .maybeSingle();
+                  let convId = (existing as any)?.id;
+                  if (!convId) {
+                    const { data: created, error } = await supabase
+                      .from("conversations")
+                      .insert({ owner_id: user.id, cleaner_id: hiredCleaner.id, job_id: job.id })
+                      .select("id")
+                      .single();
+                    if (error) {
+                      toast.error("Could not open chat");
+                      return;
+                    }
+                    convId = (created as any).id;
+                  }
+                  navigate(`/chat/${convId}`);
+                }}
+                className="rounded-full gradient-primary text-white h-9 px-4"
+              >
+                <MessageCircle className="w-4 h-4 mr-1.5" /> Message
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Owner: Instructions (read-only view of what they entered) */}
         {isOwner && (
