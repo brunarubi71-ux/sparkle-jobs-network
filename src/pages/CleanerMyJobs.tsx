@@ -26,7 +26,7 @@ interface CleanerJob {
   date_time: string | null;
 }
 
-const ACTIVE_STATUSES = ["pending", "accepted", "hired", "in_progress", "pending_review"];
+const ACTIVE_STATUSES = ["accepted", "hired", "in_progress", "pending_review"];
 
 export default function CleanerMyJobs() {
   const { user, profile } = useAuth();
@@ -35,7 +35,7 @@ export default function CleanerMyJobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tabCounts, setTabCounts] = useState({ active: 0, completed: 0, cancelled: 0 });
+  const [tabCounts, setTabCounts] = useState({ active: 0, applied: 0, completed: 0, cancelled: 0 });
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
 
   const profileJobsCompleted = (profile as any)?.jobs_completed ?? 0;
@@ -89,7 +89,8 @@ export default function CleanerMyJobs() {
         .eq("status", "pending"),
     ]);
     setTabCounts({
-      active: (activeRes.count ?? 0) + (pendingAppsRes.count ?? 0),
+      active: activeRes.count ?? 0,
+      applied: pendingAppsRes.count ?? 0,
       completed: completedRes.count ?? 0,
       cancelled: cancelledRes.count ?? 0,
     });
@@ -149,6 +150,7 @@ export default function CleanerMyJobs() {
     });
 
   const activeJobs = useMemo(() => sortJobs(jobs.filter((job) => ACTIVE_STATUSES.includes(job.status))), [jobs, highlightJobId]);
+  const appliedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "pending")), [jobs, highlightJobId]);
   const completedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "completed")), [jobs, highlightJobId]);
   const cancelledJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "cancelled")), [jobs, highlightJobId]);
 
@@ -222,14 +224,17 @@ export default function CleanerMyJobs() {
 
       <div className="px-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="mb-4 grid w-full grid-cols-3 rounded-2xl bg-accent p-1">
-            <TabsTrigger value="active" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+          <TabsList className="mb-4 grid w-full grid-cols-4 rounded-2xl bg-accent p-1">
+            <TabsTrigger value="active" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.active")} ({tabCounts.active})
             </TabsTrigger>
-            <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+            <TabsTrigger value="applied" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+              Applied ({tabCounts.applied})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.completed")} ({tabCounts.completed})
             </TabsTrigger>
-            <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
+            <TabsTrigger value="cancelled" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.cancelled")} ({tabCounts.cancelled})
             </TabsTrigger>
           </TabsList>
@@ -245,6 +250,20 @@ export default function CleanerMyJobs() {
               />
             ) : (
               activeJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
+            )}
+          </TabsContent>
+
+          <TabsContent value="applied" className="space-y-3">
+            {loading ? (
+              Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
+            ) : appliedJobs.length === 0 ? (
+              <EmptyState
+                icon={Briefcase}
+                title="No pending applications"
+                description="Jobs you've applied for will appear here while waiting for owner approval."
+              />
+            ) : (
+              appliedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
             )}
           </TabsContent>
 
