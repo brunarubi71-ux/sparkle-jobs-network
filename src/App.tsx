@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { NotificationsProvider } from "@/hooks/useNotifications";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
@@ -81,6 +82,7 @@ const App = () => {
     <LanguageProvider>
       <BrowserRouter>
         <AuthProvider>
+          <NotificationsProvider>
           <TooltipProvider>
             <Sonner />
             <PointsToast />
@@ -108,6 +110,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
+          </NotificationsProvider>
         </AuthProvider>
       </BrowserRouter>
     </LanguageProvider>
