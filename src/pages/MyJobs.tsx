@@ -40,7 +40,7 @@ interface JobWithApplicants {
   applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
 }
 
-const ACTIVE_STATUSES = ["open", "applied", "hired", "accepted"];
+const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
 const IN_PROGRESS_STATUSES = ["in_progress"];
 const APPROVAL_STATUSES = ["pending_review"];
 
