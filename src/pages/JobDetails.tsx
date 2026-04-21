@@ -319,6 +319,44 @@ export default function JobDetails() {
           )}
         </motion.div>
 
+        {/* Cleaner: Posted by (owner) card */}
+        {!isOwner && ownerProfile && (
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.03 }}
+            className="bg-card rounded-2xl shadow-card p-4"
+          >
+            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+              <Home className="w-4 h-4 text-primary" /> Posted by
+            </h3>
+            <button
+              onClick={() => navigate(`/profile/${ownerProfile.id}`)}
+              className="flex items-center gap-3 w-full text-left hover:opacity-80 transition-opacity"
+            >
+              <div className="w-12 h-12 rounded-full bg-accent overflow-hidden flex-shrink-0">
+                {ownerProfile.avatar_url ? (
+                  <img src={ownerProfile.avatar_url} alt={ownerProfile.full_name || "Owner"} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-primary font-bold">
+                    {(ownerProfile.full_name || "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate hover:text-primary">
+                  {ownerProfile.full_name || "Owner"}
+                </p>
+                {ownerVerified && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    🏠 ✓ Verified Owner
+                  </p>
+                )}
+              </div>
+            </button>
+          </motion.div>
+        )}
+
         {/* Owner: Hired cleaner card */}
         {isOwner && hiredCleaner && (
           <motion.div
