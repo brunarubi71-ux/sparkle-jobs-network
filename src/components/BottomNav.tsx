@@ -11,11 +11,13 @@ export default function BottomNav() {
   const { profile, user } = useAuth();
   const { t } = useLanguage();
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [pendingApplicantsCount, setPendingApplicantsCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (!user || profile?.role !== "owner") {
       setPendingReviewCount(0);
+      setPendingApplicantsCount(0);
       return;
     }
 
@@ -28,14 +30,43 @@ export default function BottomNav() {
       setPendingReviewCount(count || 0);
     };
 
+    const fetchPendingApplicants = async () => {
+      // Get owner's open jobs
+      const { data: openJobs } = await supabase
+        .from("jobs")
+        .select("id")
+        .eq("owner_id", user.id)
+        .eq("status", "open");
+      const jobIds = (openJobs || []).map((j) => j.id);
+      if (jobIds.length === 0) {
+        setPendingApplicantsCount(0);
+        return;
+      }
+      const { count } = await supabase
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .in("job_id", jobIds)
+        .eq("status", "pending");
+      setPendingApplicantsCount(count || 0);
+    };
+
     fetchCount();
+    fetchPendingApplicants();
 
     const channel = supabase
       .channel(`bottomnav-jobs-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jobs", filter: `owner_id=eq.${user.id}` },
-        () => fetchCount()
+        () => {
+          fetchCount();
+          fetchPendingApplicants();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "job_applications" },
+        () => fetchPendingApplicants()
       )
       .subscribe();
 
@@ -121,7 +152,7 @@ export default function BottomNav() {
 
   const ownerTabs = [
     { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle, badge: 0 },
-    { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount },
+    { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount + pendingApplicantsCount },
     { path: "/wallet", label: "Wallet", icon: Wallet, badge: 0 },
     { path: "/schedules", label: t("nav.sell"), icon: ShoppingBag, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },

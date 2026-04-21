@@ -303,8 +303,15 @@ export default function Profile() {
               <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
-                value={avgRatingReceived > 0 ? avgRatingReceived.toFixed(1) : "—"}
+                value={
+                  avgRatingReceived > 0 ? (
+                    avgRatingReceived.toFixed(1)
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                  )
+                }
                 label="My Rating"
+                small={avgRatingReceived === 0}
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
