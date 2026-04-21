@@ -435,6 +435,7 @@ export type Database = {
           updated_at: string
           violation_score: number
           visibility_penalty: number
+          wallet_balance: number
           worker_type: string
           years_in_business: number | null
         }
@@ -483,6 +484,7 @@ export type Database = {
           updated_at?: string
           violation_score?: number
           visibility_penalty?: number
+          wallet_balance?: number
           worker_type?: string
           years_in_business?: number | null
         }
@@ -531,6 +533,7 @@ export type Database = {
           updated_at?: string
           violation_score?: number
           visibility_penalty?: number
+          wallet_balance?: number
           worker_type?: string
           years_in_business?: number | null
         }
@@ -731,6 +734,36 @@ export type Database = {
           created_at?: string
           helper_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          job_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          job_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          job_id?: string | null
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
