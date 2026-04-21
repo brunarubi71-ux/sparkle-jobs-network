@@ -291,11 +291,7 @@ export default function Jobs() {
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
-    // Free plan users cannot see urgent jobs
-    const tierLimits = getPlanLimits(profile?.plan_tier);
-    if (!tierLimits.canSeeUrgentJobs) {
-      result = result.filter(j => j.urgency !== "urgent" && j.urgency !== "asap");
-    }
+    // Note: plan limits never hide jobs from the list. They only restrict APPLY action.
 
     // Apply filter
     switch (activeFilter) {
