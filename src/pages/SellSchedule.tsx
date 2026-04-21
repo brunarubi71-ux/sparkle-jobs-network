@@ -45,7 +45,7 @@ export default function SellSchedule() {
       });
       if (error) throw error;
       toast.success(t("sell.success"));
-      navigate("/my-jobs");
+      navigate("/schedules");
     } catch { toast.error(t("sell.error")); } finally { setLoading(false); }
   };
 
