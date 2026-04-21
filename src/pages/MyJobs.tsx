@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
