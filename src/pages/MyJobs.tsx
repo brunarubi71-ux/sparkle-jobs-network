@@ -226,13 +226,13 @@ export default function MyJobs() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] font-medium text-foreground">🚗 Cleaners: {cleanersFilled}/{cleanersReq} filled</span>
-                    <span className={`text-[11px] font-bold ${cleansFilledFull(cleanersFilled, cleanersReq) ? "text-emerald-600" : "text-primary"}`}>
+                    <span className={`text-[11px] font-bold ${cleanersFilled >= cleanersReq ? "text-emerald-600" : "text-primary"}`}>
                       {Math.round(cleanersPct)}%
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={`h-full transition-all ${cleansFilledFull(cleanersFilled, cleanersReq) ? "bg-emerald-500" : "bg-primary"}`}
+                      className={`h-full transition-all ${cleanersFilled >= cleanersReq ? "bg-emerald-500" : "bg-primary"}`}
                       style={{ width: `${cleanersPct}%` }}
                     />
                   </div>
@@ -242,13 +242,13 @@ export default function MyJobs() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] font-medium text-foreground">🤝 Helpers: {helpersFilled}/{helpersReq} filled</span>
-                    <span className={`text-[11px] font-bold ${cleansFilledFull(helpersFilled, helpersReq) ? "text-emerald-600" : "text-primary"}`}>
+                    <span className={`text-[11px] font-bold ${helpersFilled >= helpersReq ? "text-emerald-600" : "text-primary"}`}>
                       {Math.round(helpersPct)}%
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={`h-full transition-all ${cleansFilledFull(helpersFilled, helpersReq) ? "bg-emerald-500" : "bg-primary"}`}
+                      className={`h-full transition-all ${helpersFilled >= helpersReq ? "bg-emerald-500" : "bg-primary"}`}
                       style={{ width: `${helpersPct}%` }}
                     />
                   </div>
