@@ -26,6 +26,7 @@ export default function JobDetails() {
   const [ownerVerified, setOwnerVerified] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper" }[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
