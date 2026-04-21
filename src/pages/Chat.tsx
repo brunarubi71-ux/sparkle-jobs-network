@@ -29,7 +29,10 @@ interface ConversationView extends Conversation {
   jobTitle: string | null;
   lastMessage: string | null;
   lastMessageAt: string | null;
+  lastMessageSenderId: string | null;
 }
+
+const readKey = (convId: string) => `last_read_${convId}`;
 
 export default function Chat() {
   const { user } = useAuth();
@@ -37,12 +40,27 @@ export default function Chat() {
   const { t } = useLanguage();
   const [conversations, setConversations] = useState<ConversationView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [readTick, setReadTick] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     fetchConversations();
     // Mark chat as visited so unread badge clears
     localStorage.setItem(`chat_last_visited_${user.id}`, new Date().toISOString());
+
+    // Realtime: refresh on any new message in conversations the user participates in
+    const channel = supabase
+      .channel(`chat-list-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => fetchConversations()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchConversations = async () => {
