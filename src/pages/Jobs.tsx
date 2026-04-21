@@ -129,6 +129,7 @@ export default function Jobs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallContent, setPaywallContent] = useState<{ title: string; message: string }>({ title: "", message: "" });
   const [accepting, setAccepting] = useState<string | null>(null);
   const [confirmJob, setConfirmJob] = useState<Job | null>(null);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
