@@ -33,12 +33,13 @@ interface JobWithApplicants {
   platform_fee: number;
   cleaner_earnings: number;
   hired_cleaner_id: string | null;
+  team_size_required: number;
   created_at: string;
   completion_photos: string[] | null;
   completion_notes: string | null;
   escrow_status: string;
   pending_review_at: string | null;
-  applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
+  applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string; worker_type?: "cleaner" | "helper"; avatar_url?: string | null }[];
 }
 
 const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
