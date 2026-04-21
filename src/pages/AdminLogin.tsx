@@ -27,7 +27,8 @@ export default function AdminLogin() {
         setLoading(false);
         return;
       }
-      navigate("/admin");
+      toast.success("Welcome back, admin");
+      navigate("/admin", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Login failed");
     } finally {
