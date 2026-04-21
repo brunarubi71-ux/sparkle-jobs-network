@@ -102,7 +102,7 @@ export default function PostJob() {
     setConfirmOpen(true);
   };
 
-  const confirmAndPay = async () => {
+  const submitJob = async (paymentMethod: "card" | "wallet") => {
     if (!user || !mainPhotoFile) return;
     setConfirmOpen(false);
     setLoading(true);
@@ -121,7 +121,9 @@ export default function PostJob() {
       }
       setUploadingPhotos(false);
 
-      const { error } = await supabase.from("jobs").insert({
+      const status = paymentMethod === "wallet" ? "open" : "pending_payment";
+
+      const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null, urgency: form.urgency,
@@ -130,7 +132,7 @@ export default function PostJob() {
         team_size_required: parseInt(form.team_size) || 1,
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
-        status: "pending_payment",
+        status,
         door_code: form.door_code || null,
         supply_code: form.supply_code || null,
         lockbox_code: form.lockbox_code || null,
@@ -140,13 +142,45 @@ export default function PostJob() {
         door_access_info: form.door_access_info || null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
+
+      if (paymentMethod === "wallet") {
+        // Deduct from wallet
+        const newBalance = Math.round((walletBalance - totalCharged) * 100) / 100;
+        await supabase.from("profiles").update({ wallet_balance: newBalance } as any).eq("id", user.id);
+        await supabase.from("wallet_transactions" as any).insert({
+          user_id: user.id,
+          amount: totalCharged,
+          type: "debit",
+          description: `Job posted: ${form.title}`,
+          job_id: insertedJob?.id || null,
+        });
+        await refreshProfile();
+        toast.success("Job posted and paid from wallet!");
+      } else {
+        toast.success("Job posted! Payment will be activated when Stripe is ready.");
+      }
+
       // Award owner points for posting a job
       try { await awardPoints(user.id, "job_posted"); } catch {}
-      toast.success("Job posted! Payment will be activated when Stripe is ready.");
       navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
+  };
+
+  const handlePayCard = () => {
+    toast.info("Payment coming soon");
+  };
+
+  const handlePayWallet = () => {
+    const price = parseFloat(form.price) || 0;
+    const fee = Math.round(price * 0.1 * 100) / 100;
+    const total = Math.round((price + fee) * 100) / 100;
+    if (walletBalance < total) {
+      toast.error("Insufficient wallet balance. Add funds or pay with card.");
+      return;
+    }
+    submitJob("wallet");
   };
 
   const isAirbnb = form.cleaning_type === "airbnb";
