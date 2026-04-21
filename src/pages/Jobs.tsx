@@ -48,6 +48,8 @@ interface Job {
   latitude: number | null;
   longitude: number | null;
   owner_verified?: boolean;
+  owner_name?: string | null;
+  owner_avatar?: string | null;
 }
 
 interface JobWithDistance extends Job {
@@ -199,22 +201,32 @@ export default function Jobs() {
       if (error) throw error;
       const rawJobs = (data as Job[]) || [];
 
-      // Fetch owner identity_status for verified-owner badges
+      // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
-      let verifiedOwners = new Set<string>();
+      const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();
       if (ownerIds.length > 0) {
         const { data: ownerProfiles } = await supabase
           .from("profiles")
-          .select("id, identity_status")
+          .select("id, identity_status, full_name, avatar_url")
           .in("id", ownerIds);
-        verifiedOwners = new Set(
-          (ownerProfiles || [])
-            .filter((p: any) => p.identity_status === "approved")
-            .map((p: any) => p.id)
-        );
+        (ownerProfiles || []).forEach((p: any) => {
+          ownerMap.set(p.id, {
+            verified: p.identity_status === "approved",
+            name: p.full_name,
+            avatar: p.avatar_url,
+          });
+        });
       }
 
-      setJobs(rawJobs.map(j => ({ ...j, owner_verified: verifiedOwners.has(j.owner_id) })));
+      setJobs(rawJobs.map(j => {
+        const o = ownerMap.get(j.owner_id);
+        return {
+          ...j,
+          owner_verified: o?.verified ?? false,
+          owner_name: o?.name ?? null,
+          owner_avatar: o?.avatar ?? null,
+        };
+      }));
     } catch (err) {
       console.error("[Jobs] fetch error:", err);
       toast.error("Couldn't load jobs. Please check your connection and try again.");
