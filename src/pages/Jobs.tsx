@@ -160,9 +160,14 @@ export default function Jobs() {
     const channel = supabase
       .channel("new-jobs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "jobs" }, (payload) => {
-        const newJob = payload.new as Job & { team_size_required?: number };
-        // Helpers only see team jobs in realtime too
-        if (profile?.worker_type === "helper" && (newJob.team_size_required ?? 1) < 2) return;
+        const newJob = payload.new as Job;
+        const cleanersReq = newJob.cleaners_required ?? 1;
+        const helpersReq = newJob.helpers_required ?? 0;
+        // Visibility:
+        // Helpers (no car) only see jobs needing helpers
+        // Cleaners (with car) see jobs needing cleaners OR jobs that only need helpers (they can still help)
+        if (profile?.worker_type === "helper" && helpersReq < 1) return;
+        if (profile?.worker_type === "cleaner" && cleanersReq < 1 && helpersReq < 1) return;
         // Free users don't get urgent job notifications
         const tierLimits = getPlanLimits(profile?.plan_tier);
         if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
