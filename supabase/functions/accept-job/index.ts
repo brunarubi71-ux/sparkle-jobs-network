@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select("id, role, plan_tier, jobs_used_today, jobs_used_date")
+      .select("id, role, plan_tier, jobs_used_today, jobs_used_date, worker_type")
       .eq("id", user.id)
       .single();
 
