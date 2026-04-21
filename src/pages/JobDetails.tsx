@@ -120,7 +120,10 @@ export default function JobDetails() {
   };
 
   const isOwner = job?.owner_id === user?.id;
-  const isCleaner = job?.hired_cleaner_id === user?.id;
+  const isHiredLead = job?.hired_cleaner_id === user?.id;
+  const isTeamMember = !!user && teamMembers.some(m => m.id === user.id);
+  // Any hired team member (lead cleaner or accepted helper/cleaner) can act as the worker
+  const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
 
   const startJob = async () => {
