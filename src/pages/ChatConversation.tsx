@@ -233,7 +233,7 @@ export default function ChatConversation() {
       )}
 
       <div className="bg-card border-t border-border px-4 py-3 flex gap-2">
-        <Input value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        <Input value={newMsg} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder={isPreAcceptance ? t("chat.limited_placeholder") : t("chat.type_message")}
           className="rounded-full h-10 bg-accent border-0" />
         <button onClick={sendMessage} disabled={sending || !newMsg.trim()}
