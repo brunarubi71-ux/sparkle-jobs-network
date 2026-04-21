@@ -174,10 +174,8 @@ export default function MyJobs() {
           <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {job.bathrooms}</span>
         </div>
 
-        <div className="bg-accent rounded-xl p-2.5 text-xs space-y-0.5 mb-3">
-          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span>${job.total_amount || job.price}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.platform_fee")}</span><span className="text-destructive">-${job.platform_fee || (Number(job.price) * 0.1).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.cleaner_gets")}</span><span className="text-primary font-medium">${job.cleaner_earnings || (Number(job.price) * 0.9).toFixed(2)}</span></div>
+        <div className="bg-accent rounded-xl p-2.5 text-xs mb-3">
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span className="font-medium">${job.total_amount || job.price}</span></div>
         </div>
 
         {/* Applicants for active jobs */}
