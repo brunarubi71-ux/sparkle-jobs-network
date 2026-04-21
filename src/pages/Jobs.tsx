@@ -47,6 +47,9 @@ interface Job {
   hired_cleaner_id: string | null;
   latitude: number | null;
   longitude: number | null;
+  cleaners_required?: number;
+  helpers_required?: number;
+  team_size_required?: number;
   owner_verified?: boolean;
   owner_name?: string | null;
   owner_avatar?: string | null;
