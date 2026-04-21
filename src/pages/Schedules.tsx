@@ -322,9 +322,20 @@ export default function Schedules() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">{t("schedules.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("schedules.subtitle")}</p>
+      <div className="px-4 pt-6 pb-4 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t("schedules.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("schedules.subtitle")}</p>
+        </div>
+        {isOwner && (
+          <Button
+            onClick={() => navigate("/sell-schedule")}
+            className="rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 shrink-0"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            New Listing
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="browse" className="px-4">
