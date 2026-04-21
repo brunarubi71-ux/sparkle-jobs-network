@@ -18,12 +18,13 @@ import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function PostJob() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const walletBalance = Number((profile as any)?.wallet_balance || 0);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
