@@ -126,7 +126,8 @@ export default function PostJob() {
       }
       setUploadingPhotos(false);
 
-      const status = paymentMethod === "wallet" ? "open" : "pending_payment";
+      // Both card and wallet save as 'open' for now (Stripe to be connected later)
+      const status = "open";
 
       const cleanersReq = parseInt(form.cleaners_required) || 0;
       const helpersReq = parseInt(form.helpers_required) || 0;
