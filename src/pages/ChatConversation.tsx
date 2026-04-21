@@ -166,11 +166,17 @@ export default function ChatConversation() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate("/chat")} className="text-foreground"><ArrowLeft className="w-5 h-5" /></button>
-        <h2 className="font-semibold text-foreground flex-1 truncate">{otherUserName || t("chat.conversation")}</h2>
+      <div className="bg-card border-b border-border px-3 h-14 flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={() => navigate("/chat")}
+          aria-label="Back"
+          className="text-foreground p-2 -ml-2 flex items-center justify-center flex-shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h2 className="font-semibold text-foreground flex-1 truncate text-sm">{otherUserName || t("chat.conversation")}</h2>
         {isPreAcceptance && (
-          <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
             <Lock className="w-2.5 h-2.5" /> {t("chat.contacts_locked")}
           </span>
         )}
