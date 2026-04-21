@@ -164,10 +164,10 @@ export default function Jobs() {
         const cleanersReq = newJob.cleaners_required ?? 1;
         const helpersReq = newJob.helpers_required ?? 0;
         // Visibility:
-        // Helpers (no car) only see jobs needing helpers
-        // Cleaners (with car) see jobs needing cleaners OR jobs that only need helpers (they can still help)
+        // Helpers (no car) only see jobs needing helpers (>=1)
+        // Cleaners (with car) only see jobs needing cleaners (>=1)
         if (profile?.worker_type === "helper" && helpersReq < 1) return;
-        if (profile?.worker_type === "cleaner" && cleanersReq < 1 && helpersReq < 1) return;
+        if (profile?.worker_type === "cleaner" && cleanersReq < 1) return;
         // Free users don't get urgent job notifications
         const tierLimits = getPlanLimits(profile?.plan_tier);
         if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
@@ -204,12 +204,12 @@ export default function Jobs() {
       let rawJobs = (data as Job[]) || [];
 
       // Visibility by worker_type:
-      // - Helpers (no car) see jobs where helpers_required >= 1
-      // - Cleaners (with car) see jobs where cleaners_required >= 1, OR helpers-only jobs
+      // - Helpers (no car) see jobs where helpers_required >= 1 (regardless of cleaners_required)
+      // - Cleaners (with car) see jobs where cleaners_required >= 1
       if (profile?.worker_type === "helper") {
         rawJobs = rawJobs.filter(j => (j.helpers_required ?? 0) >= 1);
       } else if (profile?.worker_type === "cleaner") {
-        rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1 || (j.helpers_required ?? 0) >= 1);
+        rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1);
       }
 
       // Fetch owner profile info (name, avatar, verification)
