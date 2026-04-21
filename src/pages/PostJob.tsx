@@ -23,7 +23,9 @@ export default function PostJob() {
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
+  // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
+  const showOwnerVerifyBanner = profile?.role === "owner" && (ownerIdentityStatus === "unverified" || ownerIdentityStatus === "rejected");
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
