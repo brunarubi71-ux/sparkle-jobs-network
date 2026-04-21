@@ -711,6 +711,8 @@ export default function Jobs() {
           jobTitle={confirmJob.title}
           jobPrice={confirmJob.price}
           currentTier={profile?.plan_tier || "free"}
+          cleanersRequired={confirmJob.cleaners_required ?? 1}
+          helpersRequired={confirmJob.helpers_required ?? 0}
         />
       )}
 
