@@ -37,6 +37,7 @@ export default function ChatConversation() {
   const [warningCount, setWarningCount] = useState(0);
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherUserName, setOtherUserName] = useState<string | null>(null);
+  const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +116,7 @@ export default function ChatConversation() {
     const { data: conv } = await supabase.from("conversations").select("job_id, cleaner_id, owner_id").eq("id", id!).single();
     if (conv) {
       const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
+      setOtherUserId(otherId);
       const { data: otherProfile } = await supabase.from("profiles").select("full_name").eq("id", otherId).single();
       if (otherProfile) setOtherUserName((otherProfile as any).full_name || null);
     }
@@ -174,7 +176,13 @@ export default function ChatConversation() {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="font-semibold text-foreground flex-1 truncate text-sm">{otherUserName || t("chat.conversation")}</h2>
+        <button
+          onClick={() => otherUserId && navigate(`/profile/${otherUserId}`)}
+          disabled={!otherUserId}
+          className="font-semibold text-foreground flex-1 truncate text-sm text-left hover:text-primary disabled:hover:text-foreground"
+        >
+          {otherUserName || t("chat.conversation")}
+        </button>
         {isPreAcceptance && (
           <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
             <Lock className="w-2.5 h-2.5" /> {t("chat.contacts_locked")}
