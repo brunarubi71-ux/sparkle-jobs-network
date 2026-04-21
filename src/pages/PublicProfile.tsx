@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Star, Crown, ShieldCheck, MessageCircle,
+  ArrowLeft, Star, ShieldCheck, MessageCircle,
   Home, CalendarDays, Briefcase, Car, CarFront, Languages, Image as ImageIcon, Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
