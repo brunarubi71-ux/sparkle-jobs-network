@@ -126,7 +126,8 @@ export default function PostJob() {
       }
       setUploadingPhotos(false);
 
-      const status = paymentMethod === "wallet" ? "open" : "pending_payment";
+      // Both card and wallet save as 'open' for now (Stripe to be connected later)
+      const status = "open";
 
       const cleanersReq = parseInt(form.cleaners_required) || 0;
       const helpersReq = parseInt(form.helpers_required) || 0;
@@ -168,10 +169,8 @@ export default function PostJob() {
           job_id: insertedJob?.id || null,
         });
         await refreshProfile();
-        toast.success("Job posted and paid from wallet!");
-      } else {
-        toast.success("Job posted! Payment will be activated when Stripe is ready.");
       }
+      toast.success("Job posted successfully! 🎉");
 
       // Award owner points for posting a job
       try { await awardPoints(user.id, "job_posted"); } catch {}
@@ -180,7 +179,7 @@ export default function PostJob() {
   };
 
   const handlePayCard = () => {
-    toast.info("Payment coming soon");
+    submitJob("card");
   };
 
   const handlePayWallet = () => {
@@ -457,6 +456,9 @@ export default function PostJob() {
                 >
                   Pay with Card — ${total.toFixed(2)}
                 </Button>
+                <p className="text-[11px] text-muted-foreground -mt-1 px-1">
+                  * Card payment will be processed when Stripe is activated
+                </p>
                 <Button
                   type="button"
                   variant="outline"
