@@ -346,7 +346,24 @@ export default function Jobs() {
       setShowIdentityModal(true);
       return;
     }
-    if (!canAcceptJob()) { setShowPaywall(true); return; }
+    if (!canAcceptJob()) {
+      const tier = profile.plan_tier ?? "free";
+      if (tier === "free") {
+        setPaywallContent({
+          title: "You've reached your free limit",
+          message: "Upgrade to Pro for 5 jobs/week!",
+        });
+      } else if (tier === "pro") {
+        setPaywallContent({
+          title: "Weekly limit reached",
+          message: "Upgrade to Premium for unlimited jobs!",
+        });
+      } else {
+        setPaywallContent({ title: "Limit reached", message: "Upgrade your plan to apply to more jobs." });
+      }
+      setShowPaywall(true);
+      return;
+    }
     setConfirmJob(job);
   };
 
