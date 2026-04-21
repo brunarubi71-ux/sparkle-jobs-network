@@ -201,11 +201,7 @@ export default function PublicProfile() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="text-center">
-          <div
-            className={`w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden ${
-              profile.is_premium ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-primary" : ""
-            }`}
-          >
+          <div className="w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} className="w-full h-full object-cover" alt={profile.full_name || "User"} />
             ) : (
@@ -221,11 +217,6 @@ export default function PublicProfile() {
             <Badge className="bg-primary-foreground/15 text-primary-foreground border-0 text-[10px]">
               {roleLabel}
             </Badge>
-            {profile.is_premium && (
-              <Badge className="bg-amber-400/25 text-amber-100 border-amber-400/30 text-[10px]">
-                <Crown className="w-3 h-3 mr-1" /> {profile.plan_tier === "pro" ? "Pro" : "Premium"}
-              </Badge>
-            )}
             {identityApproved && (
               <Badge className="bg-emerald-500/90 text-white border-0 text-[10px] hover:bg-emerald-500/90">
                 <ShieldCheck className="w-3 h-3 mr-1" /> Verified
