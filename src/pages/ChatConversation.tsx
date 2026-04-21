@@ -118,8 +118,11 @@ export default function ChatConversation() {
     if (conv) {
       const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
       setOtherUserId(otherId);
-      const { data: otherProfile } = await supabase.from("profiles").select("full_name").eq("id", otherId).single();
-      if (otherProfile) setOtherUserName((otherProfile as any).full_name || null);
+      const { data: otherProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
+      if (otherProfile) {
+        setOtherUserName((otherProfile as any).full_name || null);
+        setOtherUserAvatar((otherProfile as any).avatar_url || null);
+      }
     }
     if (conv?.job_id) {
       const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
