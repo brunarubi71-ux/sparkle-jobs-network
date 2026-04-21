@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, jobId, status: "pending" }), {
+    return new Response(JSON.stringify({ success: true, jobId, status: applicationStatus }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
