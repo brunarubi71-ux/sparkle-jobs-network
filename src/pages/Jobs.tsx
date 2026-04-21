@@ -610,7 +610,26 @@ export default function Jobs() {
                   )}
                 </div>
 
-                {job.description && <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>}
+                {job.description && <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>}
+
+                {/* Owner row — clickable to public profile */}
+                {job.owner_name && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/profile/${job.owner_id}`); }}
+                    className="mb-3 flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-accent overflow-hidden flex items-center justify-center text-primary font-bold text-xs">
+                      {job.owner_avatar ? (
+                        <img src={job.owner_avatar} alt={job.owner_name} className="w-full h-full object-cover" />
+                      ) : (
+                        (job.owner_name || "?").charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-foreground hover:text-primary truncate">
+                      {job.owner_name}
+                    </span>
+                  </button>
+                )}
 
                 {profile?.role === "cleaner" && (
                   <Button
