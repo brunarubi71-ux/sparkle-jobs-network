@@ -152,6 +152,8 @@ export default function ChatConversation() {
     setNewMsg("");
     setSending(false);
     setContactWarning(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    broadcastTyping(false);
   };
 
   const penaltyMessage = getPenaltyMessage(violationScore, userRole);
