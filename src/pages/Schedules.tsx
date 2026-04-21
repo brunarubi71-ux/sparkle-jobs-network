@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Home, Clock, DollarSign, Lock, Phone, Mail, User, Pencil, Trash2, Plus } from "lucide-react";
+import { MapPin, Home, Clock, DollarSign, Lock, Phone, Mail, User, Pencil, Trash2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,6 +84,9 @@ export default function Schedules() {
   const myListings = schedules.filter((s) => s.owner_id === user?.id);
   const browseListings = schedules.filter((s) => s.owner_id !== user?.id);
 
+  const isOwner = profile?.role === "owner";
+  const ownerUnlocked = !!(profile as any)?.schedules_unlocked;
+
   const getContactLimit = () => {
     const tier = profile?.plan_tier || "free";
     if (tier === "premium") return Infinity;
@@ -96,6 +99,10 @@ export default function Schedules() {
     const limit = getContactLimit();
     if (limit === Infinity) return true;
     return profile.free_contacts_used < limit;
+  };
+
+  const handleOwnerUnlockClick = () => {
+    toast.info("Payment coming soon! You'll be notified when this feature is live.");
   };
 
   const unlockContact = async (scheduleId: string) => {
@@ -117,8 +124,10 @@ export default function Schedules() {
     await refreshProfile();
   };
 
-  const isUnlocked = (id: string) =>
-    profile?.plan_tier === "premium" || unlockedIds.has(id);
+  const isUnlocked = (id: string) => {
+    if (isOwner) return ownerUnlocked;
+    return profile?.plan_tier === "premium" || unlockedIds.has(id);
+  };
 
   const openEdit = (s: Schedule) => {
     setEditing(s);
