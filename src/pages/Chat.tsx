@@ -9,6 +9,12 @@ import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { detectContactInfo } from "@/lib/contactFilter";
+
+const sanitizePreview = (text: string | null) => {
+  if (!text) return null;
+  return detectContactInfo(text).detected ? "⚠️ Message blocked" : text;
+};
 
 interface Conversation {
   id: string;
@@ -210,17 +216,15 @@ export default function Chat() {
                     <p className={`text-sm truncate text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
                       {conv.otherUser?.full_name || t("chat.conversation")}
                     </p>
-                    {conv.lastMessageAt && (
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                        {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                      {formatDistanceToNow(new Date(conv.lastMessageAt || conv.created_at), { addSuffix: true })}
+                    </span>
                   </div>
                   {conv.jobTitle && (
                     <p className="text-xs text-primary truncate">{conv.jobTitle}</p>
                   )}
                   <p className="text-xs text-muted-foreground truncate">
-                    {conv.lastMessage || t("chat.no_messages_yet") || "No messages yet"}
+                    {sanitizePreview(conv.lastMessage) || "No messages yet"}
                   </p>
                 </div>
                 {isUnread && (
