@@ -103,10 +103,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the job exists and is still open (do NOT hire the cleaner — just submit an application)
+    // Verify the job exists and is still open
     const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .select("id, owner_id, status, hired_cleaner_id, urgency")
+      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required")
       .eq("id", jobId)
       .maybeSingle();
 
