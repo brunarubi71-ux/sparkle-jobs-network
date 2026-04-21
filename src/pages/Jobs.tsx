@@ -193,30 +193,73 @@ export default function Jobs() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
+      // Fetch jobs that are still accepting workers:
+      // - "open" jobs (no one accepted yet)
+      // - "applied" jobs (partially filled team jobs — helpers may still be needed)
       const { data, error } = await supabase
         .from("jobs")
         .select("*")
-        .eq("status", "open")
-        .is("hired_cleaner_id", null)
+        .in("status", ["open", "applied"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       let rawJobs = (data as Job[]) || [];
 
-      // Visibility by worker_type:
-      // - Helpers (no car) see jobs where helpers_required >= 1 (regardless of cleaners_required)
-      // - Cleaners (with car) see jobs where cleaners_required >= 1
+      // Count accepted applications per job to know how many spots remain
+      const jobIds = rawJobs.map(j => j.id);
+      const filledByJob = new Map<string, { cleaners: number; helpers: number }>();
+      if (jobIds.length > 0) {
+        const { data: apps } = await supabase
+          .from("job_applications")
+          .select("job_id, cleaner_id, status")
+          .in("job_id", jobIds)
+          .eq("status", "accepted");
+        const workerIds = Array.from(new Set((apps || []).map((a: any) => a.cleaner_id)));
+        const workerTypeMap = new Map<string, "cleaner" | "helper">();
+        if (workerIds.length > 0) {
+          const { data: workerProfiles } = await supabase
+            .from("profiles")
+            .select("id, worker_type")
+            .in("id", workerIds);
+          (workerProfiles || []).forEach((p: any) =>
+            workerTypeMap.set(p.id, p.worker_type === "helper" ? "helper" : "cleaner")
+          );
+        }
+        (apps || []).forEach((a: any) => {
+          const cur = filledByJob.get(a.job_id) || { cleaners: 0, helpers: 0 };
+          const wt = workerTypeMap.get(a.cleaner_id) || "cleaner";
+          if (wt === "helper") cur.helpers += 1; else cur.cleaners += 1;
+          filledByJob.set(a.job_id, cur);
+        });
+      }
+
+      // Visibility by worker_type — keep jobs that still need this user's role
       if (profile?.worker_type === "helper") {
-        rawJobs = rawJobs.filter(j => (j.helpers_required ?? 0) >= 1);
+        rawJobs = rawJobs.filter(j => {
+          const helpersReq = j.helpers_required ?? 0;
+          if (helpersReq < 1) return false;
+          const filled = filledByJob.get(j.id)?.helpers ?? 0;
+          return filled < helpersReq;
+        });
       } else if (profile?.worker_type === "cleaner") {
-        rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1);
+        rawJobs = rawJobs.filter(j => {
+          const cleanersReq = j.cleaners_required ?? 1;
+          if (cleanersReq < 1) return false;
+          const filled = filledByJob.get(j.id)?.cleaners ?? 0;
+          // For solo cleaner jobs, also respect hired_cleaner_id
+          if (cleanersReq === 1 && (j.helpers_required ?? 0) === 0 && j.hired_cleaner_id) return false;
+          return filled < cleanersReq;
+        });
+      } else {
+        // Unknown worker type → fall back to "open + unhired" jobs only
+        rawJobs = rawJobs.filter(j => j.status === "open" && !j.hired_cleaner_id);
       }
 
       console.log("[Jobs] Fetched jobs", {
         worker_type: profile?.worker_type,
         plan_tier: profile?.plan_tier,
-        total_open: (data as Job[])?.length ?? 0,
+        total_open_or_applied: (data as Job[])?.length ?? 0,
         visible_to_user: rawJobs.length,
-        helpers_required_breakdown: (data as Job[])?.map(j => ({ id: j.id, title: j.title, cleaners_required: j.cleaners_required, helpers_required: j.helpers_required })),
+        breakdown: rawJobs.map(j => ({ id: j.id, title: j.title, status: j.status, cleaners_required: j.cleaners_required, helpers_required: j.helpers_required, filled: filledByJob.get(j.id) })),
       });
 
       // Fetch owner profile info (name, avatar, verification)
