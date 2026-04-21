@@ -253,7 +253,7 @@ export default function MyJobs() {
           const cleanersReq = job.cleaners_required ?? 0;
           const helpersReq = job.helpers_required ?? 0;
           const acceptedApps = job.applicants.filter(a => a.status === "accepted" || a.status === "hired");
-          const cleanersFilled = acceptedApps.filter(a => (a.worker_type ?? "cleaner") === "cleaner").length;
+          const cleanersFilled = acceptedApps.filter(a => a.worker_type === "cleaner").length;
           const helpersFilled = acceptedApps.filter(a => a.worker_type === "helper").length;
           const cleanersPct = cleanersReq > 0 ? Math.min(100, (cleanersFilled / cleanersReq) * 100) : 100;
           const helpersPct = helpersReq > 0 ? Math.min(100, (helpersFilled / helpersReq) * 100) : 100;
@@ -301,7 +301,7 @@ export default function MyJobs() {
         {/* Applicants for active jobs */}
         {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (() => {
           const isTeam = (job.team_size_required ?? 1) >= 2;
-          const cleanerApps = job.applicants.filter(a => (a.worker_type ?? "cleaner") === "cleaner");
+          const cleanerApps = job.applicants.filter(a => a.worker_type === "cleaner");
           const helperApps = job.applicants.filter(a => a.worker_type === "helper");
 
           const renderApp = (app: typeof job.applicants[number]) => (
