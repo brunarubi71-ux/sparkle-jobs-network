@@ -194,20 +194,23 @@ export default function Jobs() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("jobs")
         .select("*")
         .eq("status", "open")
-        .is("hired_cleaner_id", null);
-
-      // Helpers can only see jobs that require a team (>= 2 people)
-      if (profile?.worker_type === "helper") {
-        query = query.gte("team_size_required", 2);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
+        .is("hired_cleaner_id", null)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const rawJobs = (data as Job[]) || [];
+      let rawJobs = (data as Job[]) || [];
+
+      // Visibility by worker_type:
+      // - Helpers (no car) see jobs where helpers_required >= 1
+      // - Cleaners (with car) see jobs where cleaners_required >= 1, OR helpers-only jobs
+      if (profile?.worker_type === "helper") {
+        rawJobs = rawJobs.filter(j => (j.helpers_required ?? 0) >= 1);
+      } else if (profile?.worker_type === "cleaner") {
+        rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1 || (j.helpers_required ?? 0) >= 1);
+      }
 
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
