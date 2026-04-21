@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export type NotificationType =
   | "new_job"
   | "job_accepted"
+  | "application_accepted"
   | "new_message"
   | "new_application"
   | "job_completed";
