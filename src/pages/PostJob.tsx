@@ -179,7 +179,7 @@ export default function PostJob() {
   };
 
   const handlePayCard = () => {
-    toast.info("Payment coming soon");
+    submitJob("card");
   };
 
   const handlePayWallet = () => {
