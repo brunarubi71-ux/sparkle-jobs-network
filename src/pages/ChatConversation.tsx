@@ -35,26 +35,71 @@ export default function ChatConversation() {
   const [userRole, setUserRole] = useState<"cleaner" | "owner">("cleaner");
   const [violationScore, setViolationScore] = useState(0);
   const [warningCount, setWarningCount] = useState(0);
+  const [otherTyping, setOtherTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isPreAcceptance = PRE_ACCEPTANCE_STATUSES.includes(jobStatus);
   const isPostAcceptance = POST_ACCEPTANCE_STATUSES.includes(jobStatus);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !user) return;
     fetchMessages();
     checkJobStatus();
     fetchUserProfile();
-    const channel = supabase
-      .channel(`messages-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as Message]);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [id]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+    const channel = supabase
+      .channel(`messages-${id}`, { config: { presence: { key: user.id } } })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
+        (payload) => {
+          setMessages((prev) => {
+            const next = payload.new as Message;
+            if (prev.some((m) => m.id === next.id)) return prev;
+            return [...prev, next];
+          });
+        }
+      )
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, Array<{ typing?: boolean; user_id?: string }>>;
+        const someoneElseTyping = Object.entries(state).some(([key, metas]) =>
+          key !== user.id && metas.some((m) => m.typing === true)
+        );
+        setOtherTyping(someoneElseTyping);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: user.id, typing: false });
+        }
+      });
+
+    channelRef.current = channel;
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, otherTyping]);
+
+  const broadcastTyping = (typing: boolean) => {
+    const channel = channelRef.current;
+    if (!channel || !user) return;
+    channel.track({ user_id: user.id, typing });
+  };
+
+  const handleInputChange = (value: string) => {
+    setNewMsg(value);
+    broadcastTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => broadcastTyping(false), 1500);
+  };
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -107,6 +152,8 @@ export default function ChatConversation() {
     setNewMsg("");
     setSending(false);
     setContactWarning(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    broadcastTyping(false);
   };
 
   const penaltyMessage = getPenaltyMessage(violationScore, userRole);
@@ -163,6 +210,15 @@ export default function ChatConversation() {
             </div>
           );
         })}
+        {otherTyping && (
+          <div className="flex justify-start">
+            <div className="bg-card shadow-card rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" />
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -177,7 +233,7 @@ export default function ChatConversation() {
       )}
 
       <div className="bg-card border-t border-border px-4 py-3 flex gap-2">
-        <Input value={newMsg} onChange={(e) => setNewMsg(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        <Input value={newMsg} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder={isPreAcceptance ? t("chat.limited_placeholder") : t("chat.type_message")}
           className="rounded-full h-10 bg-accent border-0" />
         <button onClick={sendMessage} disabled={sending || !newMsg.trim()}
