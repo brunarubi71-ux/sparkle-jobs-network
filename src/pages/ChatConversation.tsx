@@ -37,6 +37,7 @@ export default function ChatConversation() {
   const [warningCount, setWarningCount] = useState(0);
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherUserName, setOtherUserName] = useState<string | null>(null);
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
