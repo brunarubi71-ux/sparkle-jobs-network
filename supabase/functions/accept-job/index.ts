@@ -103,10 +103,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the job exists and is still open (do NOT hire the cleaner — just submit an application)
+    // Verify the job exists and is still open
     const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .select("id, owner_id, status, hired_cleaner_id, urgency")
+      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required")
       .eq("id", jobId)
       .maybeSingle();
 
@@ -121,11 +121,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
-      return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const teamSize = Math.max(1, jobRow.team_size_required ?? 1);
+    const isTeamJob = teamSize >= 2;
+    const workerType = (profile as any).worker_type === "helper" ? "helper" : "cleaner";
+
+    // Solo jobs: must be open and not yet filled. Helpers cannot apply to solo jobs.
+    if (!isTeamJob) {
+      if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
+        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (workerType === "helper") {
+        return new Response(JSON.stringify({ success: false, error: "This job is for a single Cleaner only." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // Team jobs: still accept while status is open OR applied (partially filled).
+      if (!["open", "applied"].includes(jobRow.status)) {
+        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Cleaner spot already filled?
+      if (workerType === "cleaner" && jobRow.hired_cleaner_id && jobRow.hired_cleaner_id !== user.id) {
+        return new Response(JSON.stringify({ success: false, error: "The Cleaner spot for this team job is already filled." }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Free plan users cannot accept urgent jobs
@@ -136,7 +164,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create or update the cleaner's application as PENDING (awaiting owner approval)
+    // For solo jobs the application is PENDING (owner approves).
+    // For team jobs the application is auto-ACCEPTED so a spot is reserved.
+    const applicationStatus = isTeamJob ? "accepted" : "pending";
+
+    // Create or update the cleaner's application
     const { data: existingApplication } = await admin
       .from("job_applications")
       .select("id, status")
@@ -151,7 +183,7 @@ Deno.serve(async (req) => {
     if (existingApplication) {
       const { error: updateApplicationError } = await admin
         .from("job_applications")
-        .update({ status: "pending" })
+        .update({ status: applicationStatus })
         .eq("id", existingApplication.id);
 
       if (updateApplicationError) {
@@ -160,16 +192,40 @@ Deno.serve(async (req) => {
     } else {
       const { error: insertApplicationError } = await admin
         .from("job_applications")
-        .insert({ job_id: jobId, cleaner_id: user.id, status: "pending" });
+        .insert({ job_id: jobId, cleaner_id: user.id, status: applicationStatus });
 
       if (insertApplicationError) {
         throw new Error(`Could not create application: ${insertApplicationError.message}`);
       }
     }
 
-    // Mark the job as having applicants so the owner sees it in the active queue
-    if (jobRow.status === "open") {
-      await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
+    if (isTeamJob) {
+      // Reserve the Cleaner spot on the job (status stays 'open' so Helpers can still apply)
+      if (workerType === "cleaner" && !jobRow.hired_cleaner_id) {
+        await admin.from("jobs").update({ hired_cleaner_id: user.id }).eq("id", jobId);
+      }
+
+      // Count filled spots = accepted applications for this job
+      const { count: filledCount } = await admin
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", jobId)
+        .eq("status", "accepted");
+
+      const filled = filledCount ?? 0;
+
+      if (filled >= teamSize) {
+        // Team is complete — flip job to 'accepted'
+        await admin.from("jobs").update({ status: "accepted" }).eq("id", jobId);
+      } else if (jobRow.status === "open") {
+        // Mark as 'applied' so the owner sees activity
+        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
+      }
+    } else {
+      // Solo job: mark as having applicants so the owner sees it in the active queue
+      if (jobRow.status === "open") {
+        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
+      }
     }
 
     if (isNewAcceptance) {
@@ -183,7 +239,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Open a conversation between cleaner and owner so they can chat before hire
+    // Open a conversation between worker and owner so they can chat
     const { data: existingConversation } = await admin
       .from("conversations")
       .select("id")
@@ -201,7 +257,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, jobId, status: "pending" }), {
+    return new Response(JSON.stringify({ success: true, jobId, status: applicationStatus }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -26,6 +26,7 @@ export default function JobDetails() {
   const [ownerVerified, setOwnerVerified] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper" }[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -82,6 +83,35 @@ export default function JobDetails() {
         if (cp) setHiredCleaner({ id: (cp as any).id, full_name: (cp as any).full_name, avatar_url: (cp as any).avatar_url, avg_rating: avg });
       } else {
         setHiredCleaner(null);
+      }
+
+      // Fetch team members (accepted job_applications) for team jobs
+      const teamSize = (data as any).team_size_required ?? 1;
+      if (teamSize >= 2) {
+        const { data: apps } = await supabase
+          .from("job_applications")
+          .select("cleaner_id, status")
+          .eq("job_id", (data as any).id)
+          .eq("status", "accepted");
+        const ids = (apps || []).map((a: any) => a.cleaner_id);
+        if (ids.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url, worker_type")
+            .in("id", ids);
+          setTeamMembers(
+            (profs || []).map((p: any) => ({
+              id: p.id,
+              full_name: p.full_name,
+              avatar_url: p.avatar_url,
+              worker_type: p.worker_type === "helper" ? "helper" : "cleaner",
+            }))
+          );
+        } else {
+          setTeamMembers([]);
+        }
+      } else {
+        setTeamMembers([]);
       }
     }
     setLoading(false);
@@ -356,6 +386,81 @@ export default function JobDetails() {
             </button>
           </motion.div>
         )}
+
+        {/* Team job: requirements + roster */}
+        {(job.team_size_required ?? 1) >= 2 && (() => {
+          const required = job.team_size_required;
+          const helpersNeeded = required - 1;
+          const filled = teamMembers.length;
+          const cleaners = teamMembers.filter(m => m.worker_type === "cleaner");
+          const helpers = teamMembers.filter(m => m.worker_type === "helper");
+          const pct = Math.min(100, (filled / required) * 100);
+          const complete = filled >= required;
+
+          const renderMember = (m: typeof teamMembers[number], badge: string) => (
+            <button
+              key={m.id}
+              onClick={() => navigate(`/profile/${m.id}`)}
+              className="flex items-center gap-2 w-full text-left bg-accent/40 hover:bg-accent rounded-xl px-3 py-2 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-full bg-accent overflow-hidden flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                {m.avatar_url ? (
+                  <img src={m.avatar_url} alt={m.full_name || ""} className="w-full h-full object-cover" />
+                ) : (
+                  (m.full_name || "?").charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{m.full_name || "Worker"}</p>
+                <p className="text-[10px] text-muted-foreground">{badge}</p>
+              </div>
+            </button>
+          );
+
+          return (
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.035 }}
+              className="bg-card rounded-2xl shadow-card p-5"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Team Job
+                </h3>
+                <Badge className={`border-0 text-[10px] font-bold ${complete ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"}`}>
+                  {filled}/{required} filled
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Needs <span className="font-semibold text-foreground">1 Cleaner</span> + <span className="font-semibold text-foreground">{helpersNeeded} Helper{helpersNeeded > 1 ? "s" : ""}</span>
+              </p>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
+                <div
+                  className={`h-full transition-all ${complete ? "bg-emerald-500" : "bg-primary"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Cleaner</p>
+                  {cleaners.length > 0
+                    ? <div className="space-y-1.5">{cleaners.map(m => renderMember(m, "Cleaner"))}</div>
+                    : <p className="text-xs text-muted-foreground italic px-1">Spot still open</p>}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Helpers ({helpers.length}/{helpersNeeded})
+                  </p>
+                  {helpers.length > 0
+                    ? <div className="space-y-1.5">{helpers.map(m => renderMember(m, "Helper"))}</div>
+                    : <p className="text-xs text-muted-foreground italic px-1">Spots still open</p>}
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* Owner: Hired cleaner card */}
         {isOwner && hiredCleaner && (

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -33,12 +33,13 @@ interface JobWithApplicants {
   platform_fee: number;
   cleaner_earnings: number;
   hired_cleaner_id: string | null;
+  team_size_required: number;
   created_at: string;
   completion_photos: string[] | null;
   completion_notes: string | null;
   escrow_status: string;
   pending_review_at: string | null;
-  applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
+  applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string; worker_type?: "cleaner" | "helper"; avatar_url?: string | null }[];
 }
 
 const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
@@ -78,10 +79,15 @@ export default function MyJobs() {
         for (const app of apps || []) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name")
+            .select("full_name, worker_type, avatar_url")
             .eq("id", app.cleaner_id)
             .single();
-          applicants.push({ ...app, cleaner_name: profile?.full_name || "Cleaner" });
+          applicants.push({
+            ...app,
+            cleaner_name: profile?.full_name || "Cleaner",
+            worker_type: ((profile as any)?.worker_type === "helper" ? "helper" : "cleaner") as "cleaner" | "helper",
+            avatar_url: (profile as any)?.avatar_url ?? null,
+          });
         }
         jobsWithApplicants.push({ ...job, applicants } as JobWithApplicants);
       }
@@ -200,31 +206,97 @@ export default function MyJobs() {
           <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span className="font-medium">${job.total_amount || job.price}</span></div>
         </div>
 
-        {/* Applicants for active jobs */}
-        {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (
-          <div className="mb-3">
-            <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
-              <Users className="w-3 h-3" /> {t("myjobs.applicants")} ({job.applicants.length})
-            </p>
-            {job.applicants.map(app => (
-              <div key={app.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <button
-                  onClick={() => navigate(`/profile/${app.cleaner_id}`)}
-                  className="text-sm text-foreground font-medium hover:text-primary text-left"
-                >
-                  {app.cleaner_name}
-                </button>
-                {["open", "applied"].includes(job.status) && app.status !== "hired" && (
-                  <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
-                    className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
-                    {t("myjobs.hire")}
-                  </Button>
-                )}
-                {app.status === "hired" && <Badge className="bg-primary/10 text-primary border-0 text-[10px]">{t("myjobs.hired")}</Badge>}
+        {/* Team progress for team jobs */}
+        {(job.team_size_required ?? 1) >= 2 && ACTIVE_STATUSES.includes(job.status) && (() => {
+          const filled = job.applicants.filter(a => a.status === "accepted" || a.status === "hired").length;
+          const required = job.team_size_required;
+          const helpersNeeded = required - 1;
+          const pct = Math.min(100, (filled / required) * 100);
+          return (
+            <div className="mb-3 bg-primary/5 border border-primary/15 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-primary" /> Team job — needs 1 Cleaner + {helpersNeeded} Helper{helpersNeeded > 1 ? "s" : ""}
+                </p>
+                <span className={`text-xs font-bold ${filled >= required ? "text-emerald-600" : "text-primary"}`}>
+                  {filled}/{required} filled
+                </span>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full transition-all ${filled >= required ? "bg-emerald-500" : "bg-primary"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Applicants for active jobs */}
+        {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (() => {
+          const isTeam = (job.team_size_required ?? 1) >= 2;
+          const cleanerApps = job.applicants.filter(a => (a.worker_type ?? "cleaner") === "cleaner");
+          const helperApps = job.applicants.filter(a => a.worker_type === "helper");
+
+          const renderApp = (app: typeof job.applicants[number]) => (
+            <div key={app.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <button
+                onClick={() => navigate(`/profile/${app.cleaner_id}`)}
+                className="flex items-center gap-2 text-sm text-foreground font-medium hover:text-primary text-left flex-1 min-w-0"
+              >
+                <div className="w-7 h-7 rounded-full bg-accent overflow-hidden flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+                  {app.avatar_url ? (
+                    <img src={app.avatar_url} alt={app.cleaner_name} className="w-full h-full object-cover" />
+                  ) : (
+                    (app.cleaner_name || "?").charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span className="truncate">{app.cleaner_name}</span>
+              </button>
+              {!isTeam && ["open", "applied"].includes(job.status) && app.status !== "hired" && app.status !== "accepted" && (
+                <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
+                  className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
+                  {t("myjobs.hire")}
+                </Button>
+              )}
+              {(app.status === "hired" || (isTeam && app.status === "accepted")) && (
+                <Badge className="bg-primary/10 text-primary border-0 text-[10px]">{t("myjobs.hired")}</Badge>
+              )}
+            </div>
+          );
+
+          if (!isTeam) {
+            return (
+              <div className="mb-3">
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+                  <Users className="w-3 h-3" /> {t("myjobs.applicants")} ({job.applicants.length})
+                </p>
+                {job.applicants.map(renderApp)}
+              </div>
+            );
+          }
+
+          return (
+            <div className="mb-3 space-y-3">
+              <div>
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-primary" /> Cleaner ({cleanerApps.length})
+                </p>
+                {cleanerApps.length > 0
+                  ? cleanerApps.map(renderApp)
+                  : <p className="text-xs text-muted-foreground italic">No Cleaner yet</p>}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+                  <Users className="w-3 h-3 text-primary" /> Helpers ({helperApps.length})
+                </p>
+                {helperApps.length > 0
+                  ? helperApps.map(renderApp)
+                  : <p className="text-xs text-muted-foreground italic">No Helpers yet</p>}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Escrow status badge */}
         {job.escrow_status && job.escrow_status !== "pending" && (
