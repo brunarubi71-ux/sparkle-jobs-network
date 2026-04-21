@@ -34,6 +34,8 @@ interface JobWithApplicants {
   cleaner_earnings: number;
   hired_cleaner_id: string | null;
   team_size_required: number;
+  cleaners_required: number;
+  helpers_required: number;
   created_at: string;
   completion_photos: string[] | null;
   completion_notes: string | null;
@@ -206,28 +208,52 @@ export default function MyJobs() {
           <div className="flex justify-between"><span className="text-muted-foreground">{t("myjobs.total")}</span><span className="font-medium">${job.total_amount || job.price}</span></div>
         </div>
 
-        {/* Team progress for team jobs */}
-        {(job.team_size_required ?? 1) >= 2 && ACTIVE_STATUSES.includes(job.status) && (() => {
-          const filled = job.applicants.filter(a => a.status === "accepted" || a.status === "hired").length;
-          const required = job.team_size_required;
-          const helpersNeeded = required - 1;
-          const pct = Math.min(100, (filled / required) * 100);
+        {/* Team progress for team jobs (separate Cleaners/Helpers) */}
+        {((job.cleaners_required ?? 0) + (job.helpers_required ?? 0)) >= 2 && ACTIVE_STATUSES.includes(job.status) && (() => {
+          const cleanersReq = job.cleaners_required ?? 0;
+          const helpersReq = job.helpers_required ?? 0;
+          const acceptedApps = job.applicants.filter(a => a.status === "accepted" || a.status === "hired");
+          const cleanersFilled = acceptedApps.filter(a => (a.worker_type ?? "cleaner") === "cleaner").length;
+          const helpersFilled = acceptedApps.filter(a => a.worker_type === "helper").length;
+          const cleanersPct = cleanersReq > 0 ? Math.min(100, (cleanersFilled / cleanersReq) * 100) : 100;
+          const helpersPct = helpersReq > 0 ? Math.min(100, (helpersFilled / helpersReq) * 100) : 100;
           return (
-            <div className="mb-3 bg-primary/5 border border-primary/15 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-primary" /> Team job — needs 1 Cleaner + {helpersNeeded} Helper{helpersNeeded > 1 ? "s" : ""}
-                </p>
-                <span className={`text-xs font-bold ${filled >= required ? "text-emerald-600" : "text-primary"}`}>
-                  {filled}/{required} filled
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full transition-all ${filled >= required ? "bg-emerald-500" : "bg-primary"}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+            <div className="mb-3 bg-primary/5 border border-primary/15 rounded-xl p-3 space-y-2.5">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-primary" /> Team job composition
+              </p>
+              {cleanersReq > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-medium text-foreground">🚗 Cleaners: {cleanersFilled}/{cleanersReq} filled</span>
+                    <span className={`text-[11px] font-bold ${cleansFilledFull(cleanersFilled, cleanersReq) ? "text-emerald-600" : "text-primary"}`}>
+                      {Math.round(cleanersPct)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${cleansFilledFull(cleanersFilled, cleanersReq) ? "bg-emerald-500" : "bg-primary"}`}
+                      style={{ width: `${cleanersPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {helpersReq > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-medium text-foreground">🤝 Helpers: {helpersFilled}/{helpersReq} filled</span>
+                    <span className={`text-[11px] font-bold ${cleansFilledFull(helpersFilled, helpersReq) ? "text-emerald-600" : "text-primary"}`}>
+                      {Math.round(helpersPct)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${cleansFilledFull(helpersFilled, helpersReq) ? "bg-emerald-500" : "bg-primary"}`}
+                      style={{ width: `${helpersPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
