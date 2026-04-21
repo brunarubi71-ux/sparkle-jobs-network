@@ -189,14 +189,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Free plan users cannot accept urgent jobs
-    if (tier === "free" && (jobRow.urgency === "urgent" || jobRow.urgency === "asap")) {
-      return new Response(JSON.stringify({ success: false, error: "Urgent jobs are available on Pro and Premium plans only." }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // For solo jobs the application is PENDING (owner approves).
     // For team jobs the application is auto-ACCEPTED so a spot is reserved.
     const applicationStatus = isTeamJob ? "accepted" : "pending";
