@@ -108,6 +108,16 @@ export default function MyJobs() {
     fetchJobs();
   };
 
+  const activateJob = async (jobId: string) => {
+    const { error } = await supabase.from("jobs").update({ status: "open" }).eq("id", jobId);
+    if (error) {
+      toast.error("Failed to activate job");
+      return;
+    }
+    toast.success("Job activated (test mode)");
+    fetchJobs();
+  };
+
   const approveJob = async (jobId: string) => {
     const job = jobs.find((j) => j.id === jobId);
     await supabase.from("jobs").update({
