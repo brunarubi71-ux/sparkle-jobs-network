@@ -40,21 +40,10 @@ export default function JobConfirmationModal({ open, onClose, onConfirm, loading
             </p>
 
             <div className="bg-accent rounded-xl p-4 space-y-2">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">{t("confirm.earnings_breakdown")}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{t("confirm.job_price")}</span>
-                <span className="text-foreground">${jobPrice.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{t("confirm.platform_fee")} ({Math.round(currentFeeRate * 100)}%)</span>
-                <span className="text-destructive">-${currentFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-border pt-2">
-                <span className="font-semibold text-foreground">{t("confirm.earnings")}</span>
-                <span className="font-bold text-primary">${currentEarnings.toFixed(2)}</span>
+                <span className="text-sm font-semibold text-foreground">You will receive</span>
+                <span className="ml-auto text-lg font-bold text-primary">${currentEarnings.toFixed(2)}</span>
               </div>
             </div>
 
