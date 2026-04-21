@@ -168,9 +168,7 @@ export default function Jobs() {
         // Cleaners (with car) only see jobs needing cleaners (>=1)
         if (profile?.worker_type === "helper" && helpersReq < 1) return;
         if (profile?.worker_type === "cleaner" && cleanersReq < 1) return;
-        // Free users don't get urgent job notifications
-        const tierLimits = getPlanLimits(profile?.plan_tier);
-        if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
+        // Plan limits never hide jobs — only the APPLY action is restricted.
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
           const tier = profile?.plan_tier || "free";
           const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
