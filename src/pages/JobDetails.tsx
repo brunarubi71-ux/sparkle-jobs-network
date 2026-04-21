@@ -23,6 +23,7 @@ export default function JobDetails() {
   const { t } = useLanguage();
   const [job, setJob] = useState<any>(null);
   const [ownerVerified, setOwnerVerified] = useState(false);
+  const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -57,6 +58,22 @@ export default function JobDetails() {
         .eq("id", (data as any).owner_id)
         .maybeSingle();
       setOwnerVerified((ownerProfile as any)?.identity_status === "approved");
+
+      // Fetch hired cleaner profile + avg rating
+      const cleanerId = (data as any).hired_cleaner_id;
+      if (cleanerId) {
+        const [{ data: cp }, { data: revs }] = await Promise.all([
+          supabase.from("profiles").select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
+          supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId),
+        ]);
+        const ratings = (revs || []).map((r: any) => r.rating);
+        const avg = ratings.length
+          ? Math.round((ratings.reduce((s: number, n: number) => s + n, 0) / ratings.length) * 10) / 10
+          : null;
+        if (cp) setHiredCleaner({ id: (cp as any).id, full_name: (cp as any).full_name, avatar_url: (cp as any).avatar_url, avg_rating: avg });
+      } else {
+        setHiredCleaner(null);
+      }
     }
     setLoading(false);
   };
