@@ -26,7 +26,7 @@ interface CleanerJob {
   date_time: string | null;
 }
 
-const ACTIVE_STATUSES = ["pending", "accepted", "hired", "in_progress", "pending_review"];
+const ACTIVE_STATUSES = ["accepted", "hired", "in_progress", "pending_review"];
 
 export default function CleanerMyJobs() {
   const { user, profile } = useAuth();
