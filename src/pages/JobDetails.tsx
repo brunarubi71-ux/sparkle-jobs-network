@@ -230,20 +230,79 @@ export default function JobDetails() {
   const confirmCompletion = async () => {
     if (!id || !job) return;
     await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
-    const { data: cleanerProfile } = await supabase.from("profiles").select("jobs_completed, total_earnings, worker_type").eq("id", job.hired_cleaner_id).single();
-    if (cleanerProfile) {
-      const newJobs = (cleanerProfile.jobs_completed || 0) + 1;
-      const newEarnings = Number(cleanerProfile.total_earnings || 0) + Number(job.cleaner_earnings || 0);
-      await supabase.from("profiles").update({
-        jobs_completed: newJobs,
-        total_earnings: newEarnings,
-      }).eq("id", job.hired_cleaner_id);
 
-      const workerType = ((cleanerProfile as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
-      const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", job.hired_cleaner_id);
-      const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
-      await syncBadges(job.hired_cleaner_id, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
+    // ----- Payment split: 10% platform fee, 90% split equally among ALL hired workers -----
+    const total = Number(job.total_amount || job.price || 0);
+    const platformFee = Math.round(total * 0.10 * 100) / 100;
+    const workerPool = Math.round((total - platformFee) * 100) / 100;
+
+    // Collect all hired workers: lead cleaner + accepted team members (deduped)
+    const hiredIds = new Set<string>();
+    if (job.hired_cleaner_id) hiredIds.add(job.hired_cleaner_id);
+    try {
+      const { data: acceptedApps } = await supabase
+        .from("job_applications")
+        .select("cleaner_id")
+        .eq("job_id", id)
+        .eq("status", "accepted");
+      (acceptedApps || []).forEach((a: any) => { if (a.cleaner_id) hiredIds.add(a.cleaner_id); });
+    } catch {}
+
+    const workerIds = Array.from(hiredIds);
+    const perWorker = workerIds.length > 0
+      ? Math.round((workerPool / workerIds.length) * 100) / 100
+      : 0;
+
+    // Update each worker's profile + insert wallet transaction
+    for (const workerId of workerIds) {
+      try {
+        const { data: wp } = await supabase
+          .from("profiles")
+          .select("jobs_completed, total_earnings, worker_type, wallet_balance")
+          .eq("id", workerId)
+          .single();
+        if (!wp) continue;
+        const newJobs = (wp.jobs_completed || 0) + 1;
+        const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
+        const newWallet = Math.round((Number((wp as any).wallet_balance || 0) + perWorker) * 100) / 100;
+        await supabase.from("profiles").update({
+          jobs_completed: newJobs,
+          total_earnings: newEarnings,
+          wallet_balance: newWallet,
+        } as any).eq("id", workerId);
+
+        await supabase.from("wallet_transactions" as any).insert({
+          user_id: workerId,
+          amount: perWorker,
+          type: "credit",
+          description: `Earnings from "${job.title}"`,
+          job_id: id,
+        });
+
+        const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
+        const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId);
+        const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
+        await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
+      } catch (e) {
+        console.error("[JobDetails] payout error for worker", workerId, e);
+      }
     }
+
+    // Record platform fee transaction (against owner)
+    if (platformFee > 0 && job.owner_id) {
+      try {
+        await supabase.from("wallet_transactions" as any).insert({
+          user_id: job.owner_id,
+          amount: platformFee,
+          type: "platform_fee",
+          description: `Platform fee (10%) for "${job.title}"`,
+          job_id: id,
+        });
+      } catch (e) {
+        console.error("[JobDetails] platform fee record failed", e);
+      }
+    }
+
     setShowPaymentSuccess(true);
     setTimeout(() => setShowPaymentSuccess(false), 3000);
     toast.success(t("job.completion_confirmed"));
