@@ -345,6 +345,64 @@ export default function PostJob() {
         </Button>
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Confirm payment</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Review your job details before posting.
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const priceNum = parseFloat(form.price) || 0;
+            const fee = Math.round(priceNum * 0.1 * 100) / 100;
+            const cleaner = Math.round((priceNum - fee) * 100) / 100;
+            return (
+              <div className="space-y-4">
+                <div className="bg-accent rounded-xl p-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Job</span>
+                    <span className="font-medium text-foreground text-right truncate max-w-[60%]">{form.title || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Job price</span>
+                    <span className="font-medium text-foreground">${priceNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Platform fee (10%)</span>
+                    <span className="text-destructive">${fee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cleaner earns</span>
+                    <span className="font-semibold text-primary">${cleaner.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2">
+                    <span className="font-semibold text-foreground">Total charged</span>
+                    <span className="font-bold text-foreground">${priceNum.toFixed(2)}</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={confirmAndPay}
+                  disabled={loading || uploadingPhotos}
+                  className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
+                >
+                  Confirm & Pay — ${priceNum.toFixed(2)}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
