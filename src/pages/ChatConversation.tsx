@@ -36,6 +36,7 @@ export default function ChatConversation() {
   const [violationScore, setViolationScore] = useState(0);
   const [warningCount, setWarningCount] = useState(0);
   const [otherTyping, setOtherTyping] = useState(false);
+  const [otherUserName, setOtherUserName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
