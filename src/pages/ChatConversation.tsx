@@ -35,7 +35,10 @@ export default function ChatConversation() {
   const [userRole, setUserRole] = useState<"cleaner" | "owner">("cleaner");
   const [violationScore, setViolationScore] = useState(0);
   const [warningCount, setWarningCount] = useState(0);
+  const [otherTyping, setOtherTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isPreAcceptance = PRE_ACCEPTANCE_STATUSES.includes(jobStatus);
   const isPostAcceptance = POST_ACCEPTANCE_STATUSES.includes(jobStatus);
