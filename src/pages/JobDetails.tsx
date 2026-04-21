@@ -92,26 +92,51 @@ export default function JobDetails() {
     setStartingJob(false);
   };
 
-  const uploadCompletionPhoto = async (file: File) => {
-    if (!user || !id) return;
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const uploadCompletionPhotos = async (files: File[]) => {
+    if (!user || !id || files.length === 0) return;
     setUploading(true);
-    const ext = file.name.split(".").pop() || "jpg";
-    const nextIndex = completionPhotos.length + 1;
-    const path = `${id}/completion/foto_${nextIndex}_${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("property-photos").upload(path, file);
-    if (error) {
-      console.error("[JobDetails] photo upload failed:", error);
-      toast.error(t("job.upload_failed"));
-      setUploading(false);
-      return;
+    setUploadProgress({ done: 0, total: files.length });
+    const baseIndex = completionPhotos.length;
+    const newUrls: string[] = [];
+    let failed = 0;
+    let completed = 0;
+
+    const uploadOne = async (file: File, offset: number) => {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${id}/completion/foto_${baseIndex + offset + 1}_${Date.now()}_${offset}.${ext}`;
+      const { error } = await supabase.storage.from("property-photos").upload(path, file);
+      completed += 1;
+      setUploadProgress({ done: completed, total: files.length });
+      if (error) {
+        console.error("[JobDetails] photo upload failed:", error);
+        failed += 1;
+        return null;
+      }
+      const { data: { publicUrl } } = supabase.storage.from("property-photos").getPublicUrl(path);
+      return publicUrl;
+    };
+
+    const results = await Promise.all(files.map((f, i) => uploadOne(f, i)));
+    for (const url of results) if (url) newUrls.push(url);
+
+    if (newUrls.length > 0) {
+      const updated = [...completionPhotos, ...newUrls];
+      await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+      setCompletionPhotos(updated);
+      toast.success(
+        newUrls.length === 1
+          ? t("job.photo_uploaded")
+          : `${newUrls.length} photos uploaded`
+      );
     }
-    const { data: { publicUrl } } = supabase.storage.from("property-photos").getPublicUrl(path);
-    const updated = [...completionPhotos, publicUrl];
-    await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
-    setCompletionPhotos(updated);
+    if (failed > 0) toast.error(t("job.upload_failed"));
     setUploading(false);
-    toast.success(t("job.photo_uploaded"));
+    setUploadProgress(null);
   };
+
+  const uploadCompletionPhoto = (file: File) => uploadCompletionPhotos([file]);
 
   const removeCompletionPhoto = async (url: string) => {
     if (!id) return;
@@ -486,8 +511,18 @@ export default function JobDetails() {
                 </h3>
                 <label className="text-xs text-primary cursor-pointer font-semibold flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
                   <ImagePlus className="w-3.5 h-3.5" /> {t("job.add_photo")}
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading}
-                    onChange={(e) => e.target.files?.[0] && uploadCompletionPhoto(e.target.files[0])} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const files = e.target.files ? Array.from(e.target.files) : [];
+                      if (files.length > 0) uploadCompletionPhotos(files);
+                      e.target.value = "";
+                    }}
+                  />
                 </label>
               </div>
 
@@ -564,9 +599,23 @@ export default function JobDetails() {
               )}
 
               {uploading && (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs text-muted-foreground">{t("job.uploading")}</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs text-muted-foreground">
+                      {uploadProgress && uploadProgress.total > 1
+                        ? `${t("job.uploading")} ${uploadProgress.done}/${uploadProgress.total}`
+                        : t("job.uploading")}
+                    </span>
+                  </div>
+                  {uploadProgress && uploadProgress.total > 1 && (
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
