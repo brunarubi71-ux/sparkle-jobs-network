@@ -161,6 +161,7 @@ export type Database = {
           bedrooms: number
           city: string | null
           cleaner_earnings: number | null
+          cleaners_required: number
           cleaning_type: string
           completion_notes: string | null
           completion_photos: string[] | null
@@ -172,6 +173,7 @@ export type Database = {
           escrow_status: string
           gate_code: string | null
           guest_stay_length: number | null
+          helpers_required: number
           hired_cleaner_id: string | null
           id: string
           latitude: number | null
@@ -202,6 +204,7 @@ export type Database = {
           bedrooms?: number
           city?: string | null
           cleaner_earnings?: number | null
+          cleaners_required?: number
           cleaning_type?: string
           completion_notes?: string | null
           completion_photos?: string[] | null
@@ -213,6 +216,7 @@ export type Database = {
           escrow_status?: string
           gate_code?: string | null
           guest_stay_length?: number | null
+          helpers_required?: number
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
@@ -243,6 +247,7 @@ export type Database = {
           bedrooms?: number
           city?: string | null
           cleaner_earnings?: number | null
+          cleaners_required?: number
           cleaning_type?: string
           completion_notes?: string | null
           completion_photos?: string[] | null
@@ -254,6 +259,7 @@ export type Database = {
           escrow_status?: string
           gate_code?: string | null
           guest_stay_length?: number | null
+          helpers_required?: number
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null

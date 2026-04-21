@@ -47,6 +47,9 @@ interface Job {
   hired_cleaner_id: string | null;
   latitude: number | null;
   longitude: number | null;
+  cleaners_required?: number;
+  helpers_required?: number;
+  team_size_required?: number;
   owner_verified?: boolean;
   owner_name?: string | null;
   owner_avatar?: string | null;
@@ -157,9 +160,14 @@ export default function Jobs() {
     const channel = supabase
       .channel("new-jobs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "jobs" }, (payload) => {
-        const newJob = payload.new as Job & { team_size_required?: number };
-        // Helpers only see team jobs in realtime too
-        if (profile?.worker_type === "helper" && (newJob.team_size_required ?? 1) < 2) return;
+        const newJob = payload.new as Job;
+        const cleanersReq = newJob.cleaners_required ?? 1;
+        const helpersReq = newJob.helpers_required ?? 0;
+        // Visibility:
+        // Helpers (no car) only see jobs needing helpers
+        // Cleaners (with car) see jobs needing cleaners OR jobs that only need helpers (they can still help)
+        if (profile?.worker_type === "helper" && helpersReq < 1) return;
+        if (profile?.worker_type === "cleaner" && cleanersReq < 1 && helpersReq < 1) return;
         // Free users don't get urgent job notifications
         const tierLimits = getPlanLimits(profile?.plan_tier);
         if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
@@ -186,20 +194,23 @@ export default function Jobs() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("jobs")
         .select("*")
         .eq("status", "open")
-        .is("hired_cleaner_id", null);
-
-      // Helpers can only see jobs that require a team (>= 2 people)
-      if (profile?.worker_type === "helper") {
-        query = query.gte("team_size_required", 2);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
+        .is("hired_cleaner_id", null)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const rawJobs = (data as Job[]) || [];
+      let rawJobs = (data as Job[]) || [];
+
+      // Visibility by worker_type:
+      // - Helpers (no car) see jobs where helpers_required >= 1
+      // - Cleaners (with car) see jobs where cleaners_required >= 1, OR helpers-only jobs
+      if (profile?.worker_type === "helper") {
+        rawJobs = rawJobs.filter(j => (j.helpers_required ?? 0) >= 1);
+      } else if (profile?.worker_type === "cleaner") {
+        rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1 || (j.helpers_required ?? 0) >= 1);
+      }
 
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
@@ -593,6 +604,23 @@ export default function Jobs() {
                     </Badge>
                   )}
                 </div>
+
+                {/* Team composition needed */}
+                {(() => {
+                  const c = job.cleaners_required ?? 1;
+                  const h = job.helpers_required ?? 0;
+                  if (c + h <= 1 && c === 1 && h === 0) return null;
+                  const parts: string[] = [];
+                  if (c > 0) parts.push(`🚗 ${c} Cleaner${c > 1 ? "s" : ""}`);
+                  if (h > 0) parts.push(`🤝 ${h} Helper${h > 1 ? "s" : ""}`);
+                  return (
+                    <div className="mb-2">
+                      <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-semibold">
+                        {parts.join(" + ")} needed
+                      </Badge>
+                    </div>
+                  );
+                })()}
 
                 {/* Distance + ETA row */}
                 <div className="mb-2 flex items-center gap-3 text-xs text-muted-foreground">

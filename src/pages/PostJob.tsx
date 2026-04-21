@@ -37,7 +37,7 @@ export default function PostJob() {
   const [form, setForm] = useState({
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
-    urgency: "scheduled", description: "", team_size: "1",
+    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
     door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
     alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
@@ -98,6 +98,11 @@ export default function PostJob() {
       toast.error(t("post.price"));
       return;
     }
+    const totalWorkers = (parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0);
+    if (totalWorkers < 1) {
+      toast.error("Please request at least 1 Cleaner or Helper.");
+      return;
+    }
     // Show payment confirmation modal before saving
     setConfirmOpen(true);
   };
@@ -123,13 +128,19 @@ export default function PostJob() {
 
       const status = paymentMethod === "wallet" ? "open" : "pending_payment";
 
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null, urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
-        team_size_required: parseInt(form.team_size) || 1,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq,
+        helpers_required: helpersReq,
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
         status,
@@ -262,16 +273,34 @@ export default function PostJob() {
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
           <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
-          <div>
-            <p className="text-sm font-medium text-foreground mb-2">{t("post.cleaners_needed")}</p>
-            <Select value={form.team_size} onValueChange={(v) => update("team_size", v)}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">{t("post.solo")}</SelectItem>
-                <SelectItem value="2">{t("post.team2")}</SelectItem>
-                <SelectItem value="3">{t("post.team3")}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
+              <Select value={form.cleaners_required} onValueChange={(v) => update("cleaners_required", v)}>
+                <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">🤝 Helpers needed (no car)</p>
+              <Select value={form.helpers_required} onValueChange={(v) => update("helpers_required", v)}>
+                <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
+              <p className="text-xs text-destructive">At least 1 worker (Cleaner or Helper) is required.</p>
+            )}
           </div>
         </div>
 

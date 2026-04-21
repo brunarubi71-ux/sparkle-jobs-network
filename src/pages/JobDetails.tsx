@@ -86,8 +86,10 @@ export default function JobDetails() {
       }
 
       // Fetch team members (accepted job_applications) for team jobs
-      const teamSize = (data as any).team_size_required ?? 1;
-      if (teamSize >= 2) {
+      const cleanersReq = (data as any).cleaners_required ?? 1;
+      const helpersReq = (data as any).helpers_required ?? 0;
+      const totalReq = cleanersReq + helpersReq;
+      if (totalReq >= 2) {
         const { data: apps } = await supabase
           .from("job_applications")
           .select("cleaner_id, status")
@@ -118,7 +120,10 @@ export default function JobDetails() {
   };
 
   const isOwner = job?.owner_id === user?.id;
-  const isCleaner = job?.hired_cleaner_id === user?.id;
+  const isHiredLead = job?.hired_cleaner_id === user?.id;
+  const isTeamMember = !!user && teamMembers.some(m => m.id === user.id);
+  // Any hired team member (lead cleaner or accepted helper/cleaner) can act as the worker
+  const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
 
   const startJob = async () => {
@@ -388,12 +393,13 @@ export default function JobDetails() {
         )}
 
         {/* Team job: requirements + roster */}
-        {(job.team_size_required ?? 1) >= 2 && (() => {
-          const required = job.team_size_required;
-          const helpersNeeded = required - 1;
-          const filled = teamMembers.length;
+        {((job.cleaners_required ?? 1) + (job.helpers_required ?? 0) >= 2) && (() => {
+          const cleanersReq = job.cleaners_required ?? 1;
+          const helpersReq = job.helpers_required ?? 0;
+          const required = cleanersReq + helpersReq;
           const cleaners = teamMembers.filter(m => m.worker_type === "cleaner");
           const helpers = teamMembers.filter(m => m.worker_type === "helper");
+          const filled = teamMembers.length;
           const pct = Math.min(100, (filled / required) * 100);
           const complete = filled >= required;
 
@@ -417,6 +423,10 @@ export default function JobDetails() {
             </button>
           );
 
+          const parts: string[] = [];
+          if (cleanersReq > 0) parts.push(`${cleanersReq} Cleaner${cleanersReq > 1 ? "s" : ""}`);
+          if (helpersReq > 0) parts.push(`${helpersReq} Helper${helpersReq > 1 ? "s" : ""}`);
+
           return (
             <motion.div
               initial={{ y: 10, opacity: 0 }}
@@ -433,7 +443,7 @@ export default function JobDetails() {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Needs <span className="font-semibold text-foreground">1 Cleaner</span> + <span className="font-semibold text-foreground">{helpersNeeded} Helper{helpersNeeded > 1 ? "s" : ""}</span>
+                Needs <span className="font-semibold text-foreground">{parts.join(" + ")}</span>
               </p>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-4">
                 <div
@@ -443,20 +453,26 @@ export default function JobDetails() {
               </div>
 
               <div className="space-y-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Cleaner</p>
-                  {cleaners.length > 0
-                    ? <div className="space-y-1.5">{cleaners.map(m => renderMember(m, "Cleaner"))}</div>
-                    : <p className="text-xs text-muted-foreground italic px-1">Spot still open</p>}
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                    Helpers ({helpers.length}/{helpersNeeded})
-                  </p>
-                  {helpers.length > 0
-                    ? <div className="space-y-1.5">{helpers.map(m => renderMember(m, "Helper"))}</div>
-                    : <p className="text-xs text-muted-foreground italic px-1">Spots still open</p>}
-                </div>
+                {cleanersReq > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      🚗 Cleaners ({cleaners.length}/{cleanersReq})
+                    </p>
+                    {cleaners.length > 0
+                      ? <div className="space-y-1.5">{cleaners.map(m => renderMember(m, "Cleaner"))}</div>
+                      : <p className="text-xs text-muted-foreground italic px-1">Spot still open</p>}
+                  </div>
+                )}
+                {helpersReq > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      🤝 Helpers ({helpers.length}/{helpersReq})
+                    </p>
+                    {helpers.length > 0
+                      ? <div className="space-y-1.5">{helpers.map(m => renderMember(m, "Helper"))}</div>
+                      : <p className="text-xs text-muted-foreground italic px-1">Spots still open</p>}
+                  </div>
+                )}
               </div>
             </motion.div>
           );
