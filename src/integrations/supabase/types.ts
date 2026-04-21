@@ -426,6 +426,7 @@ export type Database = {
           premium_status: string | null
           regions: string[] | null
           role: Database["public"]["Enums"]["app_role"]
+          schedules_unlocked: boolean
           specialties: string[] | null
           supplies: boolean | null
           suspension_until: string | null
@@ -473,6 +474,7 @@ export type Database = {
           premium_status?: string | null
           regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
+          schedules_unlocked?: boolean
           specialties?: string[] | null
           supplies?: boolean | null
           suspension_until?: string | null
@@ -520,6 +522,7 @@ export type Database = {
           premium_status?: string | null
           regions?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
+          schedules_unlocked?: boolean
           specialties?: string[] | null
           supplies?: boolean | null
           suspension_until?: string | null

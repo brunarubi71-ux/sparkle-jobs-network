@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Home, Clock, DollarSign, Lock, Phone, Mail, User, Pencil, Trash2, Plus } from "lucide-react";
+import { MapPin, Home, Clock, DollarSign, Lock, Phone, Mail, User, Pencil, Trash2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,6 +84,9 @@ export default function Schedules() {
   const myListings = schedules.filter((s) => s.owner_id === user?.id);
   const browseListings = schedules.filter((s) => s.owner_id !== user?.id);
 
+  const isOwner = profile?.role === "owner";
+  const ownerUnlocked = !!(profile as any)?.schedules_unlocked;
+
   const getContactLimit = () => {
     const tier = profile?.plan_tier || "free";
     if (tier === "premium") return Infinity;
@@ -96,6 +99,10 @@ export default function Schedules() {
     const limit = getContactLimit();
     if (limit === Infinity) return true;
     return profile.free_contacts_used < limit;
+  };
+
+  const handleOwnerUnlockClick = () => {
+    toast.info("Payment coming soon! You'll be notified when this feature is live.");
   };
 
   const unlockContact = async (scheduleId: string) => {
@@ -117,8 +124,10 @@ export default function Schedules() {
     await refreshProfile();
   };
 
-  const isUnlocked = (id: string) =>
-    profile?.plan_tier === "premium" || unlockedIds.has(id);
+  const isUnlocked = (id: string) => {
+    if (isOwner) return ownerUnlocked;
+    return profile?.plan_tier === "premium" || unlockedIds.has(id);
+  };
 
   const openEdit = (s: Schedule) => {
     setEditing(s);
@@ -222,6 +231,25 @@ export default function Schedules() {
             </div>
           )}
         </div>
+      ) : isOwner ? (
+        <div className="relative bg-accent rounded-xl p-3 space-y-1 overflow-hidden">
+          <div className="space-y-1 blur-sm select-none pointer-events-none">
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <User className="w-3.5 h-3.5 text-primary" /> ████████████
+            </div>
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <Phone className="w-3.5 h-3.5 text-primary" /> ███████████
+            </div>
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <Mail className="w-3.5 h-3.5 text-primary" /> ██████████████
+            </div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center bg-background/40">
+            <div className="bg-card/90 rounded-full p-2 shadow-card">
+              <Lock className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+        </div>
       ) : (
         <Button
           onClick={() => unlockContact(s.id)}
@@ -305,6 +333,34 @@ export default function Schedules() {
         </TabsList>
 
         <TabsContent value="browse" className="space-y-3 mt-4">
+          {isOwner && !ownerUnlocked && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl p-4 gradient-primary text-primary-foreground shadow-card"
+            >
+              <div className="flex items-start gap-3">
+                <div className="bg-primary-foreground/20 rounded-full p-2 shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm mb-1">
+                    Unlock all schedules for a one-time $2.99 payment
+                  </p>
+                  <p className="text-xs opacity-90 mb-3">
+                    Get full contact details for every listing — forever.
+                  </p>
+                  <Button
+                    onClick={handleOwnerUnlockClick}
+                    className="h-9 rounded-xl bg-primary-foreground text-primary font-semibold hover:bg-primary-foreground/90"
+                  >
+                    <Lock className="w-3.5 h-3.5 mr-2" />
+                    Unlock Now — $2.99
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => <ShimmerCard key={i} />)
           ) : browseListings.length === 0 ? (
