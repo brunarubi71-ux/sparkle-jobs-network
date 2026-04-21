@@ -168,7 +168,7 @@ export default function ChatConversation() {
     <div className="flex flex-col h-screen bg-background">
       <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate("/chat")} className="text-foreground"><ArrowLeft className="w-5 h-5" /></button>
-        <h2 className="font-semibold text-foreground flex-1">{t("chat.conversation")}</h2>
+        <h2 className="font-semibold text-foreground flex-1 truncate">{otherUserName || t("chat.conversation")}</h2>
         {isPreAcceptance && (
           <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
             <Lock className="w-2.5 h-2.5" /> {t("chat.contacts_locked")}
