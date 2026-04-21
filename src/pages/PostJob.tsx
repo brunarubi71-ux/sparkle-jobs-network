@@ -37,7 +37,7 @@ export default function PostJob() {
   const [form, setForm] = useState({
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
-    urgency: "scheduled", description: "", team_size: "1",
+    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
     door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
     alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
