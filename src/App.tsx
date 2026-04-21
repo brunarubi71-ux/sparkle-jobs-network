@@ -58,13 +58,22 @@ function RoleHome() {
   return <Jobs />;
 }
 
+const SPLASH_KEY = "shinely_splash_shown";
+
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(SPLASH_KEY) !== "1";
+  });
 
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 1600);
+    if (!showSplash) return;
+    const t = setTimeout(() => {
+      setShowSplash(false);
+      try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
+    }, 2000);
     return () => clearTimeout(t);
-  }, []);
+  }, [showSplash]);
 
   return (
   <QueryClientProvider client={queryClient}>
