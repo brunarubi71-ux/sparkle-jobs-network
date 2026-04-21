@@ -98,6 +98,11 @@ export default function PostJob() {
       toast.error(t("post.price"));
       return;
     }
+    const totalWorkers = (parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0);
+    if (totalWorkers < 1) {
+      toast.error("Please request at least 1 Cleaner or Helper.");
+      return;
+    }
     // Show payment confirmation modal before saving
     setConfirmOpen(true);
   };
