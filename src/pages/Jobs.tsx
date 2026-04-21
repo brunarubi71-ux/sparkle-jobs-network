@@ -533,6 +533,7 @@ export default function Jobs() {
             description="Check back soon — new jobs are posted every day!"
           />
         ) : (
+          filtered.map((job, index) => {
             const fomo = getFomoBadge(job);
             const isRecent = Date.now() - new Date(job.created_at).getTime() < 600000;
             const isSelected = selectedJob?.id === job.id;
