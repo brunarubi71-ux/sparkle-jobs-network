@@ -24,6 +24,7 @@ export default function JobDetails() {
   const { t } = useLanguage();
   const [job, setJob] = useState<any>(null);
   const [ownerVerified, setOwnerVerified] = useState(false);
+  const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
@@ -52,13 +53,20 @@ export default function JobDetails() {
       setJob(data);
       setCompletionPhotos((data as any).completion_photos || []);
       setCompletionNotes((data as any).completion_notes || "");
-      // Fetch owner verification status
-      const { data: ownerProfile } = await supabase
+      // Fetch owner profile + verification status
+      const { data: ownerData } = await supabase
         .from("profiles")
-        .select("identity_status")
+        .select("id, full_name, avatar_url, identity_status")
         .eq("id", (data as any).owner_id)
         .maybeSingle();
-      setOwnerVerified((ownerProfile as any)?.identity_status === "approved");
+      setOwnerVerified((ownerData as any)?.identity_status === "approved");
+      if (ownerData) {
+        setOwnerProfile({
+          id: (ownerData as any).id,
+          full_name: (ownerData as any).full_name,
+          avatar_url: (ownerData as any).avatar_url,
+        });
+      }
 
       // Fetch hired cleaner profile + avg rating
       const cleanerId = (data as any).hired_cleaner_id;
