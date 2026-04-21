@@ -35,6 +35,7 @@ export default function CleanerMyJobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<CleanerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabCounts, setTabCounts] = useState({ active: 0, completed: 0, cancelled: 0 });
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "active");
 
   const profileJobsCompleted = (profile as any)?.jobs_completed ?? 0;
@@ -57,8 +58,37 @@ export default function CleanerMyJobs() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (user) fetchJobs();
+    if (user) {
+      fetchJobs();
+      fetchTabCounts();
+    }
   }, [user]);
+
+  const fetchTabCounts = async () => {
+    if (!user) return;
+    const [activeRes, completedRes, cancelledRes] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("hired_cleaner_id", user.id)
+        .in("status", ["accepted", "in_progress"]),
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("hired_cleaner_id", user.id)
+        .eq("status", "completed"),
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("hired_cleaner_id", user.id)
+        .eq("status", "cancelled"),
+    ]);
+    setTabCounts({
+      active: activeRes.count ?? 0,
+      completed: completedRes.count ?? 0,
+      cancelled: cancelledRes.count ?? 0,
+    });
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -189,13 +219,13 @@ export default function CleanerMyJobs() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="mb-4 grid w-full grid-cols-3 rounded-2xl bg-accent p-1">
             <TabsTrigger value="active" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              {t("cleaner_jobs.active")} ({activeJobs.length})
+              {t("cleaner_jobs.active")} ({tabCounts.active})
             </TabsTrigger>
             <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              {t("cleaner_jobs.completed")} ({profileJobsCompleted})
+              {t("cleaner_jobs.completed")} ({tabCounts.completed})
             </TabsTrigger>
             <TabsTrigger value="cancelled" className="rounded-xl text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              {t("cleaner_jobs.cancelled")} ({cancelledJobs.length})
+              {t("cleaner_jobs.cancelled")} ({tabCounts.cancelled})
             </TabsTrigger>
           </TabsList>
 
