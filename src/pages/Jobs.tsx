@@ -605,6 +605,23 @@ export default function Jobs() {
                   )}
                 </div>
 
+                {/* Team composition needed */}
+                {(() => {
+                  const c = job.cleaners_required ?? 1;
+                  const h = job.helpers_required ?? 0;
+                  if (c + h <= 1 && c === 1 && h === 0) return null;
+                  const parts: string[] = [];
+                  if (c > 0) parts.push(`🚗 ${c} Cleaner${c > 1 ? "s" : ""}`);
+                  if (h > 0) parts.push(`🤝 ${h} Helper${h > 1 ? "s" : ""}`);
+                  return (
+                    <div className="mb-2">
+                      <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-semibold">
+                        {parts.join(" + ")} needed
+                      </Badge>
+                    </div>
+                  );
+                })()}
+
                 {/* Distance + ETA row */}
                 <div className="mb-2 flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {getTimeSince(job.created_at, t)}</span>
