@@ -694,7 +694,13 @@ export default function Jobs() {
         )}
       </div>
 
-      <PremiumModal open={showPaywall} onClose={() => setShowPaywall(false)} trigger="job_limit" />
+      <PremiumModal
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="job_limit"
+        title={paywallContent.title || undefined}
+        message={paywallContent.message || undefined}
+      />
 
       {confirmJob && (
         <JobConfirmationModal
