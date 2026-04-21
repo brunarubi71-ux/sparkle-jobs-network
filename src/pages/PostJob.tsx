@@ -456,6 +456,9 @@ export default function PostJob() {
                 >
                   Pay with Card — ${total.toFixed(2)}
                 </Button>
+                <p className="text-[11px] text-muted-foreground -mt-1 px-1">
+                  * Card payment will be processed when Stripe is activated
+                </p>
                 <Button
                   type="button"
                   variant="outline"
