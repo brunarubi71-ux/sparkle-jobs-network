@@ -208,7 +208,12 @@ export default function MyJobs() {
             </p>
             {job.applicants.map(app => (
               <div key={app.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <span className="text-sm text-foreground">{app.cleaner_name}</span>
+                <button
+                  onClick={() => navigate(`/profile/${app.cleaner_id}`)}
+                  className="text-sm text-foreground font-medium hover:text-primary text-left"
+                >
+                  {app.cleaner_name}
+                </button>
                 {["open", "applied"].includes(job.status) && app.status !== "hired" && (
                   <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
                     className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
