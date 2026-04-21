@@ -77,7 +77,7 @@ export default function PostJob() {
     return data.publicUrl;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (ownerNeedsVerification) {
@@ -92,6 +92,18 @@ export default function PostJob() {
       toast.error(t("post.main_photo_required"));
       return;
     }
+    const priceNum = parseFloat(form.price) || 0;
+    if (priceNum <= 0) {
+      toast.error(t("post.price"));
+      return;
+    }
+    // Show payment confirmation modal before saving
+    setConfirmOpen(true);
+  };
+
+  const confirmAndPay = async () => {
+    if (!user || !mainPhotoFile) return;
+    setConfirmOpen(false);
     setLoading(true);
     setUploadingPhotos(true);
     try {
@@ -115,6 +127,7 @@ export default function PostJob() {
         team_size_required: parseInt(form.team_size) || 1,
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        status: "pending_payment",
         door_code: form.door_code || null,
         supply_code: form.supply_code || null,
         lockbox_code: form.lockbox_code || null,
@@ -128,7 +141,7 @@ export default function PostJob() {
       if (error) throw error;
       // Award owner points for posting a job
       try { await awardPoints(user.id, "job_posted"); } catch {}
-      toast.success(t("post.success"));
+      toast.success("Job posted! Payment will be activated when Stripe is ready.");
       navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
   };
