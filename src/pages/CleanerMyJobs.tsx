@@ -89,7 +89,8 @@ export default function CleanerMyJobs() {
         .eq("status", "pending"),
     ]);
     setTabCounts({
-      active: (activeRes.count ?? 0) + (pendingAppsRes.count ?? 0),
+      active: activeRes.count ?? 0,
+      applied: pendingAppsRes.count ?? 0,
       completed: completedRes.count ?? 0,
       cancelled: cancelledRes.count ?? 0,
     });
