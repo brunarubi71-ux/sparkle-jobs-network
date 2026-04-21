@@ -422,11 +422,20 @@ export default function PostJob() {
                 </div>
                 <Button
                   type="button"
-                  onClick={confirmAndPay}
+                  onClick={handlePayCard}
                   disabled={loading || uploadingPhotos}
                   className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
                 >
-                  Confirm & Pay — ${total.toFixed(2)}
+                  Pay with Card — ${total.toFixed(2)}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePayWallet}
+                  disabled={loading || uploadingPhotos}
+                  className="w-full h-12 rounded-xl font-semibold"
+                >
+                  Pay with Wallet (${walletBalance.toFixed(2)})
                 </Button>
                 <button
                   type="button"
