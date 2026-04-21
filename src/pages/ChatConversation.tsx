@@ -183,9 +183,20 @@ export default function ChatConversation() {
         <button
           onClick={() => otherUserId && navigate(`/profile/${otherUserId}`)}
           disabled={!otherUserId}
-          className="font-semibold text-foreground flex-1 truncate text-sm text-left hover:text-primary disabled:hover:text-foreground"
+          className="flex items-center gap-2 flex-1 min-w-0 text-left disabled:cursor-default"
         >
-          {otherUserName || t("chat.conversation")}
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+            {otherUserAvatar ? (
+              <img src={otherUserAvatar} alt={otherUserName || "User"} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-primary-foreground text-sm font-semibold">
+                {(otherUserName || "?").charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <span className="font-semibold text-foreground flex-1 truncate text-sm hover:text-primary">
+            {otherUserName || t("chat.conversation")}
+          </span>
         </button>
         {isPreAcceptance && (
           <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
