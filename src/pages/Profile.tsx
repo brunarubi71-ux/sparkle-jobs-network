@@ -38,6 +38,7 @@ export default function Profile() {
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
+  const [reviewCountReceived, setReviewCountReceived] = useState(0);
   // Owner now uses avgRatingReceived (rating cleaners gave to owner). avgRatingGiven kept for backward compat but unused.
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
@@ -59,14 +60,15 @@ export default function Profile() {
           .eq("status", "completed"),
       ]);
       const ratings = (reviewsRes.data || []).map((r: any) => r.rating);
+      const reviewCount = ratings.length;
       const avgRating =
-        ratings.length > 0
-          ? Math.round((ratings.reduce((s, n) => s + n, 0) / ratings.length) * 10) / 10
+        reviewCount > 0
+          ? Math.round((ratings.reduce((s, n) => s + n, 0) / reviewCount) * 10) / 10
           : null;
       const jobsCompleted =
         (profileRes.data?.jobs_completed as number | null) ?? jobsCountRes.count ?? 0;
       const totalEarnings = Number(profileRes.data?.total_earnings ?? 0);
-      return { avgRating, jobsCompleted, totalEarnings };
+      return { avgRating, reviewCount, jobsCompleted, totalEarnings };
     },
   });
 
@@ -119,8 +121,9 @@ export default function Profile() {
       .eq("reviewed_id", user.id)
       .order("created_at", { ascending: false });
     const list = received || [];
+    setReviewCountReceived(list.length);
     setAvgRatingReceived(
-      list.length
+      list.length > 0
         ? Math.round((list.reduce((s, r: any) => s + r.rating, 0) / list.length) * 10) / 10
         : 0
     );
@@ -304,14 +307,14 @@ export default function Profile() {
               <StatCard
                 icon={<Star className="w-4 h-4" />}
                 value={
-                  avgRatingReceived > 0 ? (
+                  reviewCountReceived > 0 ? (
                     avgRatingReceived.toFixed(1)
                   ) : (
                     <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
                   )
                 }
                 label="My Rating"
-                small={avgRatingReceived === 0}
+                small={reviewCountReceived === 0}
               />
               <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
             </>
@@ -322,14 +325,14 @@ export default function Profile() {
                 value={
                   workerStatsLoading ? (
                     <Skeleton className="h-6 w-12" />
-                  ) : workerStats?.avgRating != null ? (
+                  ) : (workerStats?.reviewCount ?? 0) > 0 && workerStats?.avgRating != null ? (
                     workerStats.avgRating.toFixed(1)
                   ) : (
                     <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
                   )
                 }
                 label="Avg Rating"
-                small={workerStats?.avgRating == null && !workerStatsLoading}
+                small={(workerStats?.reviewCount ?? 0) === 0 && !workerStatsLoading}
               />
               <StatCard
                 icon={<Briefcase className="w-4 h-4" />}
