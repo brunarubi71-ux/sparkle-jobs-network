@@ -40,7 +40,7 @@ interface JobWithApplicants {
   applicants: { id: string; cleaner_id: string; status: string; cleaner_name?: string }[];
 }
 
-const ACTIVE_STATUSES = ["open", "applied", "hired", "accepted"];
+const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
 const IN_PROGRESS_STATUSES = ["in_progress"];
 const APPROVAL_STATUSES = ["pending_review"];
 
@@ -136,6 +136,7 @@ export default function MyJobs() {
   const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
 
   const statusConfig: Record<string, { color: string; label: string }> = {
+    pending_payment: { color: "bg-yellow-100 text-yellow-800", label: "Pending Payment" },
     open: { color: "bg-emerald-100 text-emerald-700", label: t("status.open") },
     applied: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval" },
     pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval" },

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ export default function PostJob() {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
@@ -75,7 +77,7 @@ export default function PostJob() {
     return data.publicUrl;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (ownerNeedsVerification) {
@@ -90,6 +92,18 @@ export default function PostJob() {
       toast.error(t("post.main_photo_required"));
       return;
     }
+    const priceNum = parseFloat(form.price) || 0;
+    if (priceNum <= 0) {
+      toast.error(t("post.price"));
+      return;
+    }
+    // Show payment confirmation modal before saving
+    setConfirmOpen(true);
+  };
+
+  const confirmAndPay = async () => {
+    if (!user || !mainPhotoFile) return;
+    setConfirmOpen(false);
     setLoading(true);
     setUploadingPhotos(true);
     try {
@@ -113,6 +127,7 @@ export default function PostJob() {
         team_size_required: parseInt(form.team_size) || 1,
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        status: "pending_payment",
         door_code: form.door_code || null,
         supply_code: form.supply_code || null,
         lockbox_code: form.lockbox_code || null,
@@ -126,7 +141,7 @@ export default function PostJob() {
       if (error) throw error;
       // Award owner points for posting a job
       try { await awardPoints(user.id, "job_posted"); } catch {}
-      toast.success(t("post.success"));
+      toast.success("Job posted! Payment will be activated when Stripe is ready.");
       navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
   };
@@ -330,6 +345,64 @@ export default function PostJob() {
         </Button>
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Confirm payment</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Review your job details before posting.
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const priceNum = parseFloat(form.price) || 0;
+            const fee = Math.round(priceNum * 0.1 * 100) / 100;
+            const cleaner = Math.round((priceNum - fee) * 100) / 100;
+            return (
+              <div className="space-y-4">
+                <div className="bg-accent rounded-xl p-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Job</span>
+                    <span className="font-medium text-foreground text-right truncate max-w-[60%]">{form.title || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Job price</span>
+                    <span className="font-medium text-foreground">${priceNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Platform fee (10%)</span>
+                    <span className="text-destructive">${fee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cleaner earns</span>
+                    <span className="font-semibold text-primary">${cleaner.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2">
+                    <span className="font-semibold text-foreground">Total charged</span>
+                    <span className="font-bold text-foreground">${priceNum.toFixed(2)}</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={confirmAndPay}
+                  disabled={loading || uploadingPhotos}
+                  className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
+                >
+                  Confirm & Pay — ${priceNum.toFixed(2)}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
