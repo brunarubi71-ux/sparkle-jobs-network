@@ -129,6 +129,7 @@ export default function Jobs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallContent, setPaywallContent] = useState<{ title: string; message: string }>({ title: "", message: "" });
   const [accepting, setAccepting] = useState<string | null>(null);
   const [confirmJob, setConfirmJob] = useState<Job | null>(null);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
@@ -168,9 +169,7 @@ export default function Jobs() {
         // Cleaners (with car) only see jobs needing cleaners (>=1)
         if (profile?.worker_type === "helper" && helpersReq < 1) return;
         if (profile?.worker_type === "cleaner" && cleanersReq < 1) return;
-        // Free users don't get urgent job notifications
-        const tierLimits = getPlanLimits(profile?.plan_tier);
-        if (!tierLimits.canSeeUrgentJobs && (newJob.urgency === "urgent" || newJob.urgency === "asap")) return;
+        // Plan limits never hide jobs — only the APPLY action is restricted.
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
           const tier = profile?.plan_tier || "free";
           const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
@@ -211,6 +210,14 @@ export default function Jobs() {
       } else if (profile?.worker_type === "cleaner") {
         rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1);
       }
+
+      console.log("[Jobs] Fetched jobs", {
+        worker_type: profile?.worker_type,
+        plan_tier: profile?.plan_tier,
+        total_open: (data as Job[])?.length ?? 0,
+        visible_to_user: rawJobs.length,
+        helpers_required_breakdown: (data as Job[])?.map(j => ({ id: j.id, title: j.title, cleaners_required: j.cleaners_required, helpers_required: j.helpers_required })),
+      });
 
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
@@ -283,11 +290,7 @@ export default function Jobs() {
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
-    // Free plan users cannot see urgent jobs
-    const tierLimits = getPlanLimits(profile?.plan_tier);
-    if (!tierLimits.canSeeUrgentJobs) {
-      result = result.filter(j => j.urgency !== "urgent" && j.urgency !== "asap");
-    }
+    // Note: plan limits never hide jobs from the list. They only restrict APPLY action.
 
     // Apply filter
     switch (activeFilter) {
@@ -343,7 +346,24 @@ export default function Jobs() {
       setShowIdentityModal(true);
       return;
     }
-    if (!canAcceptJob()) { setShowPaywall(true); return; }
+    if (!canAcceptJob()) {
+      const tier = profile.plan_tier ?? "free";
+      if (tier === "free") {
+        setPaywallContent({
+          title: "You've reached your free limit",
+          message: "Upgrade to Pro for 5 jobs/week!",
+        });
+      } else if (tier === "pro") {
+        setPaywallContent({
+          title: "Weekly limit reached",
+          message: "Upgrade to Premium for unlimited jobs!",
+        });
+      } else {
+        setPaywallContent({ title: "Limit reached", message: "Upgrade your plan to apply to more jobs." });
+      }
+      setShowPaywall(true);
+      return;
+    }
     setConfirmJob(job);
   };
 
@@ -674,7 +694,13 @@ export default function Jobs() {
         )}
       </div>
 
-      <PremiumModal open={showPaywall} onClose={() => setShowPaywall(false)} trigger="job_limit" />
+      <PremiumModal
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="job_limit"
+        title={paywallContent.title || undefined}
+        message={paywallContent.message || undefined}
+      />
 
       {confirmJob && (
         <JobConfirmationModal

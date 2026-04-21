@@ -45,7 +45,14 @@ export default function PremiumModal({ open, onClose, title, message, trigger = 
         </div>
         <Button onClick={() => { onClose(); navigate("/premium"); }}
           className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
-          <Sparkles className="w-4 h-4 mr-2" /> {t("premium.view_plans")}
+          <Sparkles className="w-4 h-4 mr-2" /> See Plans
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={onClose}
+          className="w-full h-11 rounded-xl mt-2 text-muted-foreground hover:text-foreground"
+        >
+          Maybe Later
         </Button>
       </DialogContent>
     </Dialog>
