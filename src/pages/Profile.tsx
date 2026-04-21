@@ -66,7 +66,7 @@ export default function Profile() {
           ? Math.round((ratings.reduce((s, n) => s + n, 0) / reviewCount) * 10) / 10
           : null;
       const jobsCompleted =
-        (profileRes.data?.jobs_completed as number | null) ?? jobsCountRes.count ?? 0;
+        jobsCountRes.count ?? (profileRes.data?.jobs_completed as number | null) ?? 0;
       const totalEarnings = Number(profileRes.data?.total_earnings ?? 0);
       return { avgRating, reviewCount, jobsCompleted, totalEarnings };
     },
