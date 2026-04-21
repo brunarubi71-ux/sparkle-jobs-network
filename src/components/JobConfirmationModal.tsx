@@ -19,13 +19,10 @@ export default function JobConfirmationModal({ open, onClose, onConfirm, loading
   const [wantsUpgrade, setWantsUpgrade] = useState(false);
   const { t } = useLanguage();
 
-  const currentFeeRate = currentTier === "pro" ? 0.05 : 0.10;
-  const proFeeRate = 0.05;
-  const currentFee = Math.round(jobPrice * currentFeeRate * 100) / 100;
-  const currentEarnings = Math.round((jobPrice - currentFee) * 100) / 100;
-  const proFee = Math.round(jobPrice * proFeeRate * 100) / 100;
-  const proEarnings = Math.round((jobPrice - proFee) * 100) / 100;
-  const extraEarnings = Math.round((proEarnings - currentEarnings) * 100) / 100;
+  // Cleaner receives the full posted price. Platform fee is paid by the Owner on top.
+  const currentEarnings = Math.round(jobPrice * 100) / 100;
+  const proEarnings = currentEarnings;
+  const extraEarnings = 0;
   const showUpgrade = currentTier !== "pro";
 
   return (
