@@ -212,6 +212,14 @@ export default function Jobs() {
         rawJobs = rawJobs.filter(j => (j.cleaners_required ?? 1) >= 1);
       }
 
+      console.log("[Jobs] Fetched jobs", {
+        worker_type: profile?.worker_type,
+        plan_tier: profile?.plan_tier,
+        total_open: (data as Job[])?.length ?? 0,
+        visible_to_user: rawJobs.length,
+        helpers_required_breakdown: (data as Job[])?.map(j => ({ id: j.id, title: j.title, cleaners_required: j.cleaners_required, helpers_required: j.helpers_required })),
+      });
+
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
       const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();
