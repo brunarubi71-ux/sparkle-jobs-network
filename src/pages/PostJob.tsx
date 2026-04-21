@@ -123,13 +123,19 @@ export default function PostJob() {
 
       const status = paymentMethod === "wallet" ? "open" : "pending_payment";
 
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null, urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
-        team_size_required: parseInt(form.team_size) || 1,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq,
+        helpers_required: helpersReq,
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
         status,
