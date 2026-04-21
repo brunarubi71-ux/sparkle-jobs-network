@@ -86,8 +86,10 @@ export default function JobDetails() {
       }
 
       // Fetch team members (accepted job_applications) for team jobs
-      const teamSize = (data as any).team_size_required ?? 1;
-      if (teamSize >= 2) {
+      const cleanersReq = (data as any).cleaners_required ?? 1;
+      const helpersReq = (data as any).helpers_required ?? 0;
+      const totalReq = cleanersReq + helpersReq;
+      if (totalReq >= 2) {
         const { data: apps } = await supabase
           .from("job_applications")
           .select("cleaner_id, status")
