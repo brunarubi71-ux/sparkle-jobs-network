@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShimmerCard from "@/components/ShimmerCard";
+import EmptyState from "@/components/EmptyState";
 import PremiumModal from "@/components/PremiumModal";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";

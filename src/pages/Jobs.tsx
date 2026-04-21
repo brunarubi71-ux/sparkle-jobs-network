@@ -529,8 +529,8 @@ export default function Jobs() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Sparkles}
-            title={t("jobs.no_jobs")}
-            description={t("jobs.check_back")}
+            title="No jobs available near you yet ✨"
+            description="Check back soon — new jobs are posted every day!"
           />
         ) : (
           filtered.map((job, index) => {

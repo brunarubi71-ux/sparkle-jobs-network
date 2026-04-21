@@ -201,10 +201,14 @@ export default function ChatConversation() {
           const isMine = msg.sender_id === user?.id;
           const displayText = isPreAcceptance ? maskContactInfo(msg.message_text) : msg.message_text;
           return (
-            <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
-                isMine ? "gradient-primary text-primary-foreground rounded-br-md" : "bg-card shadow-card text-foreground rounded-bl-md"
-              }`}>
+            <div key={msg.id} className={`flex my-1 ${isMine ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm break-words ${
+                  isMine
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-lavender-100 text-foreground rounded-bl-md"
+                }`}
+              >
                 {displayText}
               </div>
             </div>

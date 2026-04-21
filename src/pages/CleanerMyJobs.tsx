@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Eye, Calendar } from "lucide-react";
+import { MapPin, Bed, Bath, Eye, Calendar, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ShimmerCard from "@/components/ShimmerCard";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import { format } from "date-fns";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -202,10 +203,11 @@ export default function CleanerMyJobs() {
             {loading ? (
               Array.from({ length: 3 }).map((_, index) => <ShimmerCard key={index} />)
             ) : activeJobs.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-muted-foreground">{t("cleaner_jobs.no_active")}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{t("cleaner_jobs.no_active_hint")}</p>
-              </div>
+              <EmptyState
+                icon={Briefcase}
+                title="No jobs yet 💪"
+                description="Start applying to jobs near you to grow your earnings!"
+              />
             ) : (
               activeJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
             )}
@@ -215,9 +217,11 @@ export default function CleanerMyJobs() {
             {loading ? (
               Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
             ) : completedJobs.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-muted-foreground">{t("cleaner_jobs.no_completed")}</p>
-              </div>
+              <EmptyState
+                icon={Briefcase}
+                title="No completed jobs yet ✨"
+                description="Your completed jobs will appear here."
+              />
             ) : (
               completedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
             )}
@@ -227,9 +231,11 @@ export default function CleanerMyJobs() {
             {loading ? (
               Array.from({ length: 2 }).map((_, index) => <ShimmerCard key={index} />)
             ) : cancelledJobs.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-muted-foreground">{t("cleaner_jobs.no_cancelled")}</p>
-              </div>
+              <EmptyState
+                icon={Briefcase}
+                title="No cancelled jobs"
+                description="Cancelled jobs will show up here."
+              />
             ) : (
               cancelledJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
             )}
