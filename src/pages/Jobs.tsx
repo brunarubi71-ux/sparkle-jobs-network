@@ -517,9 +517,12 @@ export default function Jobs() {
       </div>
 
       {/* ── HEADER ── */}
-      <div className="px-4 pb-2">
-        <h1 className="text-2xl font-bold text-foreground">{t("jobs.nearby")}</h1>
-        <p className="text-sm text-muted-foreground">{t("jobs.subtitle")}</p>
+      <div className="px-4 pb-2 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">{t("jobs.nearby")}</h1>
+          <p className="text-sm text-muted-foreground">{t("jobs.subtitle")}</p>
+        </div>
+        <NotificationBell />
       </div>
 
       {/* ── JOB CARDS ── */}

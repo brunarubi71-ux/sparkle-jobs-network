@@ -327,9 +327,12 @@ export default function MyJobs() {
   return (
     <PullToRefresh onRefresh={fetchJobs}>
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">{t("myjobs.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("myjobs.subtitle")}</p>
+      <div className="px-4 pt-6 pb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">{t("myjobs.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("myjobs.subtitle")}</p>
+        </div>
+        <NotificationBell />
       </div>
 
       <div className="px-4">
