@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { getPlanLimits, getJobsUsedThisWeek } from "@/lib/planLimits";
+import NotificationBell from "@/components/NotificationBell";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];

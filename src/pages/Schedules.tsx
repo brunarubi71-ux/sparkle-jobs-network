@@ -32,6 +32,7 @@ import PremiumModal from "@/components/PremiumModal";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import NotificationBell from "@/components/NotificationBell";
 
 interface Schedule {
   id: string;

@@ -17,6 +17,7 @@ import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
+import NotificationBell from "@/components/NotificationBell";
 
 interface JobWithApplicants {
   id: string;
