@@ -169,10 +169,8 @@ export default function PostJob() {
           job_id: insertedJob?.id || null,
         });
         await refreshProfile();
-        toast.success("Job posted and paid from wallet!");
-      } else {
-        toast.success("Job posted! Payment will be activated when Stripe is ready.");
       }
+      toast.success("Job posted successfully! 🎉");
 
       // Award owner points for posting a job
       try { await awardPoints(user.id, "job_posted"); } catch {}
