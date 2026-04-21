@@ -175,7 +175,18 @@ export default function MyJobs() {
             <p className="font-semibold text-foreground truncate">{job.title}</p>
             <p className="text-xl font-bold text-primary">${job.price}</p>
           </div>
-          <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+            {import.meta.env.DEV && job.status === "pending_payment" && (
+              <Button
+                size="sm"
+                onClick={() => activateJob(job.id)}
+                className="h-6 px-2 text-[10px] gradient-primary text-primary-foreground rounded-lg"
+              >
+                [TEST] Activate Job
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
