@@ -529,11 +529,10 @@ export default function Jobs() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Sparkles}
-            title={t("jobs.no_jobs")}
-            description={t("jobs.check_back")}
+            title="No jobs available near you yet ✨"
+            description="Check back soon — new jobs are posted every day!"
           />
         ) : (
-          filtered.map((job, index) => {
             const fomo = getFomoBadge(job);
             const isRecent = Date.now() - new Date(job.created_at).getTime() < 600000;
             const isSelected = selectedJob?.id === job.id;

@@ -290,7 +290,11 @@ export default function MyJobs() {
   };
 
   const renderEmpty = (message: string) => (
-    <EmptyState icon={Briefcase} title={message} description={t("myjobs.subtitle")} />
+    <EmptyState
+      icon={Briefcase}
+      title="No jobs posted yet 🏠"
+      description="Post your first job and find a trusted cleaner today!"
+    />
   );
 
   const renderList = (list: JobWithApplicants[], emptyMsg: string) =>
