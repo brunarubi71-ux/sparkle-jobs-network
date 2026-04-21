@@ -102,10 +102,10 @@ export default function Chat() {
 
       const profileMap = new Map((profiles || []).map((p: any) => [p.id, p as ProfileLite]));
       const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.title as string]));
-      const lastMsgMap = new Map<string, { text: string; at: string }>();
+      const lastMsgMap = new Map<string, { text: string; at: string; sender: string }>();
       (messages || []).forEach((m: any) => {
         if (!lastMsgMap.has(m.conversation_id)) {
-          lastMsgMap.set(m.conversation_id, { text: m.message_text, at: m.created_at });
+          lastMsgMap.set(m.conversation_id, { text: m.message_text, at: m.created_at, sender: m.sender_id });
         }
       });
 
@@ -118,6 +118,7 @@ export default function Chat() {
           jobTitle: c.job_id ? jobMap.get(c.job_id) || null : null,
           lastMessage: last?.text || null,
           lastMessageAt: last?.at || null,
+          lastMessageSenderId: last?.sender || null,
         };
       });
 
