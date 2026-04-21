@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Star, Crown, ShieldCheck, MessageCircle,
-  Home, CalendarDays, Briefcase, Car, CarFront, Languages, Image as ImageIcon,
+  Home, CalendarDays, Briefcase, Car, CarFront, Languages, Image as ImageIcon, Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,13 @@ export default function PublicProfile() {
   const [avgRating, setAvgRating] = useState(0);
   const [jobsCompletedCount, setJobsCompletedCount] = useState(0);
   const [portfolio, setPortfolio] = useState<PortfolioPhoto[]>([]);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setViewerRole(null); return; }
+    supabase.from("profiles").select("role").eq("id", user.id).single()
+      .then(({ data }) => setViewerRole((data as any)?.role || null));
+  }, [user?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -230,14 +237,25 @@ export default function PublicProfile() {
 
       {/* Body */}
       <div className="px-4 -mt-12 relative z-10 space-y-3">
-        {/* Message button */}
+        {/* Action buttons */}
         {showMessageBtn && (
-          <Button
-            onClick={startConversation}
-            className="w-full h-12 rounded-xl gradient-primary text-primary-foreground shadow-card"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" /> Message
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={startConversation}
+              className="w-full h-12 rounded-xl gradient-primary text-primary-foreground shadow-card"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" /> Message
+            </Button>
+            {viewerRole === "owner" && isWorker && (
+              <Button
+                onClick={() => navigate("/post-job")}
+                variant="outline"
+                className="w-full h-12 rounded-xl border-primary/30 text-primary"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Hire for a Job
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Key stats row */}
