@@ -165,8 +165,8 @@ export default function Jobs() {
         const cleanersReq = newJob.cleaners_required ?? 1;
         const helpersReq = newJob.helpers_required ?? 0;
         // Visibility:
-        // Helpers (no car) only see jobs needing helpers (>=1)
-        // Cleaners (with car) only see jobs needing cleaners (>=1)
+        // Helpers only see jobs needing helpers (>=1)
+        // Cleaners only see jobs needing cleaners (>=1)
         if (profile?.worker_type === "helper" && helpersReq < 1) return;
         if (profile?.worker_type === "cleaner" && cleanersReq < 1) return;
         // Plan limits never hide jobs — only the APPLY action is restricted.
@@ -185,6 +185,15 @@ export default function Jobs() {
             });
           }, delay);
         }
+      })
+      // When a job is updated (e.g. cleaner accepted on a team job → status flips to "applied"),
+      // re-fetch so helpers still see the team job until all helper spots are filled.
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "jobs" }, () => {
+        fetchJobs();
+      })
+      // When applications change (accepted/cancelled), re-evaluate visibility for team jobs.
+      .on("postgres_changes", { event: "*", schema: "public", table: "job_applications" }, () => {
+        fetchJobs();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
