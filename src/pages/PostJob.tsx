@@ -242,8 +242,8 @@ export default function PostJob() {
               <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="scheduled">{t("post.scheduled")}</SelectItem>
-                <SelectItem value="asap">{t("jobs.asap")}</SelectItem>
-                <SelectItem value="urgent">{t("jobs.urgent")}</SelectItem>
+                <SelectItem value="asap">{t("post.asap")}</SelectItem>
+                <SelectItem value="urgent">{t("post.urgent")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
