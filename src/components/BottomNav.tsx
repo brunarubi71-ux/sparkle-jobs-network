@@ -11,6 +11,7 @@ export default function BottomNav() {
   const { profile, user } = useAuth();
   const { t } = useLanguage();
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (!user || profile?.role !== "owner") {
@@ -43,11 +44,77 @@ export default function BottomNav() {
     };
   }, [user, profile?.role]);
 
+  // Unread messages badge
+  useEffect(() => {
+    if (!user) {
+      setUnreadMessages(0);
+      return;
+    }
+
+    const lastVisitedKey = `chat_last_visited_${user.id}`;
+
+    const computeUnread = async () => {
+      const lastVisited = localStorage.getItem(lastVisitedKey) || new Date(0).toISOString();
+
+      // Get conversations the user participates in
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`cleaner_id.eq.${user.id},owner_id.eq.${user.id}`);
+
+      const convIds = (convs || []).map((c) => c.id);
+      if (convIds.length === 0) {
+        setUnreadMessages(0);
+        return;
+      }
+
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("conversation_id", convIds)
+        .neq("sender_id", user.id)
+        .gt("created_at", lastVisited);
+
+      setUnreadMessages(count || 0);
+    };
+
+    computeUnread();
+
+    // Clear badge as soon as the user lands on /chat
+    if (location.pathname === "/chat" || location.pathname.startsWith("/chat/")) {
+      localStorage.setItem(lastVisitedKey, new Date().toISOString());
+      setUnreadMessages(0);
+    }
+
+    const channel = supabase
+      .channel(`bottomnav-messages-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new as { sender_id: string };
+          if (msg.sender_id === user.id) return;
+          // If currently on chat, don't increment — just update last-visited
+          if (location.pathname === "/chat" || location.pathname.startsWith("/chat/")) {
+            localStorage.setItem(lastVisitedKey, new Date().toISOString());
+            return;
+          }
+          // Re-compute to ensure conversation membership is respected
+          computeUnread();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, location.pathname]);
+
   const cleanerTabs = [
     { path: "/", label: t("nav.jobs"), icon: Briefcase, badge: 0 },
     { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList, badge: 0 },
     { path: "/earnings", label: t("nav.earnings"), icon: DollarSign, badge: 0 },
-    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: 0 },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
     { path: "/premium", label: t("nav.premium"), icon: Crown, badge: 0 },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
@@ -56,7 +123,7 @@ export default function BottomNav() {
     { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle, badge: 0 },
     { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount },
     { path: "/sell-schedule", label: t("nav.sell"), icon: ShoppingBag, badge: 0 },
-    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: 0 },
+    { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
 
