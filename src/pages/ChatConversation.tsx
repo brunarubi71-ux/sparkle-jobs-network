@@ -44,20 +44,62 @@ export default function ChatConversation() {
   const isPostAcceptance = POST_ACCEPTANCE_STATUSES.includes(jobStatus);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !user) return;
     fetchMessages();
     checkJobStatus();
     fetchUserProfile();
-    const channel = supabase
-      .channel(`messages-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as Message]);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [id]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+    const channel = supabase
+      .channel(`messages-${id}`, { config: { presence: { key: user.id } } })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
+        (payload) => {
+          setMessages((prev) => {
+            const next = payload.new as Message;
+            if (prev.some((m) => m.id === next.id)) return prev;
+            return [...prev, next];
+          });
+        }
+      )
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, Array<{ typing?: boolean; user_id?: string }>>;
+        const someoneElseTyping = Object.entries(state).some(([key, metas]) =>
+          key !== user.id && metas.some((m) => m.typing === true)
+        );
+        setOtherTyping(someoneElseTyping);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: user.id, typing: false });
+        }
+      });
+
+    channelRef.current = channel;
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, otherTyping]);
+
+  const broadcastTyping = (typing: boolean) => {
+    const channel = channelRef.current;
+    if (!channel || !user) return;
+    channel.track({ user_id: user.id, typing });
+  };
+
+  const handleInputChange = (value: string) => {
+    setNewMsg(value);
+    broadcastTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => broadcastTyping(false), 1500);
+  };
 
   const fetchUserProfile = async () => {
     if (!user) return;
