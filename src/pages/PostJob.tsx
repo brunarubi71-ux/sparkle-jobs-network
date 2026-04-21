@@ -23,6 +23,7 @@ export default function PostJob() {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
