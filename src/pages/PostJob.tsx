@@ -268,16 +268,34 @@ export default function PostJob() {
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
           <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
-          <div>
-            <p className="text-sm font-medium text-foreground mb-2">{t("post.cleaners_needed")}</p>
-            <Select value={form.team_size} onValueChange={(v) => update("team_size", v)}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">{t("post.solo")}</SelectItem>
-                <SelectItem value="2">{t("post.team2")}</SelectItem>
-                <SelectItem value="3">{t("post.team3")}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
+              <Select value={form.cleaners_required} onValueChange={(v) => update("cleaners_required", v)}>
+                <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">🤝 Helpers needed (no car)</p>
+              <Select value={form.helpers_required} onValueChange={(v) => update("helpers_required", v)}>
+                <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
+              <p className="text-xs text-destructive">At least 1 worker (Cleaner or Helper) is required.</p>
+            )}
           </div>
         </div>
 
