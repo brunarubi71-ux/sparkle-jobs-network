@@ -44,7 +44,7 @@ export default function CleanerMyJobs() {
 
   // Real status → badge config (color + label + icon)
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval", icon: "⏳" },
+    pending: { color: "bg-amber-100 text-amber-700", label: "Waiting for Owner approval", icon: "⏳" },
     accepted: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
     hired: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
     in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress", icon: "🔧" },
@@ -66,7 +66,7 @@ export default function CleanerMyJobs() {
 
   const fetchTabCounts = async () => {
     if (!user) return;
-    const [activeRes, completedRes, cancelledRes] = await Promise.all([
+    const [activeRes, completedRes, cancelledRes, pendingAppsRes] = await Promise.all([
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
@@ -82,9 +82,14 @@ export default function CleanerMyJobs() {
         .select("id", { count: "exact", head: true })
         .eq("hired_cleaner_id", user.id)
         .eq("status", "cancelled"),
+      supabase
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("cleaner_id", user.id)
+        .eq("status", "pending"),
     ]);
     setTabCounts({
-      active: activeRes.count ?? 0,
+      active: (activeRes.count ?? 0) + (pendingAppsRes.count ?? 0),
       completed: completedRes.count ?? 0,
       cancelled: cancelledRes.count ?? 0,
     });
