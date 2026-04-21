@@ -150,6 +150,7 @@ export default function CleanerMyJobs() {
     });
 
   const activeJobs = useMemo(() => sortJobs(jobs.filter((job) => ACTIVE_STATUSES.includes(job.status))), [jobs, highlightJobId]);
+  const appliedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "pending")), [jobs, highlightJobId]);
   const completedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "completed")), [jobs, highlightJobId]);
   const cancelledJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "cancelled")), [jobs, highlightJobId]);
 
