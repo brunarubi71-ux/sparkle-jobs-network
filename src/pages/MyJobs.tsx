@@ -301,7 +301,7 @@ export default function MyJobs() {
         {/* Applicants for active jobs */}
         {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (() => {
           const isTeam = (job.team_size_required ?? 1) >= 2;
-          const cleanerApps = job.applicants.filter(a => (a.worker_type ?? "cleaner") === "cleaner");
+          const cleanerApps = job.applicants.filter(a => a.worker_type === "cleaner");
           const helperApps = job.applicants.filter(a => a.worker_type === "helper");
 
           const renderApp = (app: typeof job.applicants[number]) => (
