@@ -37,6 +37,7 @@ export default function ChatConversation() {
   const [warningCount, setWarningCount] = useState(0);
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherUserName, setOtherUserName] = useState<string | null>(null);
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -117,8 +118,11 @@ export default function ChatConversation() {
     if (conv) {
       const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
       setOtherUserId(otherId);
-      const { data: otherProfile } = await supabase.from("profiles").select("full_name").eq("id", otherId).single();
-      if (otherProfile) setOtherUserName((otherProfile as any).full_name || null);
+      const { data: otherProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
+      if (otherProfile) {
+        setOtherUserName((otherProfile as any).full_name || null);
+        setOtherUserAvatar((otherProfile as any).avatar_url || null);
+      }
     }
     if (conv?.job_id) {
       const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
@@ -179,9 +183,20 @@ export default function ChatConversation() {
         <button
           onClick={() => otherUserId && navigate(`/profile/${otherUserId}`)}
           disabled={!otherUserId}
-          className="font-semibold text-foreground flex-1 truncate text-sm text-left hover:text-primary disabled:hover:text-foreground"
+          className="flex items-center gap-2 flex-1 min-w-0 text-left disabled:cursor-default"
         >
-          {otherUserName || t("chat.conversation")}
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+            {otherUserAvatar ? (
+              <img src={otherUserAvatar} alt={otherUserName || "User"} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-primary-foreground text-sm font-semibold">
+                {(otherUserName || "?").charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <span className="font-semibold text-foreground flex-1 truncate text-sm hover:text-primary">
+            {otherUserName || t("chat.conversation")}
+          </span>
         </button>
         {isPreAcceptance && (
           <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
