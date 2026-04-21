@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Percent, Rocket, Shield, Clock, Lock, Flame } from "lucide-react";
+import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Rocket, Shield, Lock, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
