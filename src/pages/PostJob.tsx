@@ -23,7 +23,9 @@ export default function PostJob() {
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
+  // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
+  const showOwnerVerifyBanner = profile?.role === "owner" && (ownerIdentityStatus === "unverified" || ownerIdentityStatus === "rejected");
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
@@ -139,7 +141,7 @@ export default function PostJob() {
       </div>
 
       <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="px-4 mt-4 space-y-4">
-        {ownerNeedsVerification && (
+        {showOwnerVerifyBanner && (
           <button
             type="button"
             onClick={() => setIdentityOpen(true)}
@@ -150,19 +152,15 @@ export default function PostJob() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-amber-900">
-                {ownerIdentityStatus === "pending" ? "Identity under review" : "Verify your identity to post jobs"}
+                Verify your identity to post jobs
               </p>
               <p className="text-xs text-amber-700">
-                {ownerIdentityStatus === "pending"
-                  ? "We'll notify you within 24 hours."
-                  : "Required before posting your first job. Earn +30 points!"}
+                Required before posting your first job. Earn +30 points!
               </p>
             </div>
-            {ownerIdentityStatus !== "pending" && (
-              <span className="text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-card shadow-sm">
-                Verify
-              </span>
-            )}
+            <span className="text-xs font-semibold text-primary px-3 py-1.5 rounded-lg bg-card shadow-sm">
+              Verify
+            </span>
           </button>
         )}
         {/* Basic Info */}
