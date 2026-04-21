@@ -95,7 +95,7 @@ export default function Chat() {
           : Promise.resolve({ data: [] as { id: string; title: string }[] }),
         supabase
           .from("messages")
-          .select("conversation_id, message_text, created_at")
+          .select("conversation_id, message_text, created_at, sender_id")
           .in("conversation_id", conversationIds)
           .order("created_at", { ascending: false }),
       ]);
