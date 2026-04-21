@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Percent, Rocket, Shield, Clock, Lock, Flame } from "lucide-react";
+import { Crown, Sparkles, Zap, Star, Check, TrendingUp, Users, Eye, Rocket, Shield, Lock, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
@@ -26,10 +26,9 @@ export default function Premium() {
       features: [
         { icon: Zap, text: t("plan.1_job_weekly") },
         { icon: Lock, text: t("plan.0_contacts") },
-        { icon: Percent, text: t("plan.10_percent_fee") },
         { icon: Flame, text: t("plan.no_urgent_jobs") },
       ],
-      cta: t("premium.start_free"),
+      cta: "Get Pro",
       urgency: t("premium.free_urgency"),
       highlighted: false,
       badge: null,
@@ -43,11 +42,11 @@ export default function Premium() {
       features: [
         { icon: Zap, text: t("plan.5_jobs_weekly") },
         { icon: Users, text: t("plan.1_contact_lifetime") },
-        { icon: Percent, text: t("plan.10_percent_fee") },
         { icon: Flame, text: t("plan.urgent_access") },
         { icon: Shield, text: t("plan.pro_badge") },
+        { icon: TrendingUp, text: "Medium priority in Owner searches" },
       ],
-      cta: t("premium.get_more_jobs"),
+      cta: "Upgrade to Premium",
       urgency: t("premium.pro_urgency"),
       highlighted: true,
       badge: t("premium.most_popular"),
@@ -61,12 +60,12 @@ export default function Premium() {
       features: [
         { icon: Rocket, text: t("plan.unlimited_jobs") },
         { icon: Users, text: t("plan.unlimited_contacts") },
-        { icon: Percent, text: t("plan.5_percent_fee") },
+        { icon: Crown, text: "Badge \"Premium Verified ✦\" on profile" },
+        { icon: Eye, text: "Appears FIRST in Owner searches" },
         { icon: Flame, text: t("plan.all_jobs_access") },
-        { icon: Eye, text: t("plan.appear_first_owners") },
-        { icon: Crown, text: t("plan.premium_badge") },
+        { icon: Shield, text: "Verified identity seal" },
       ],
-      cta: t("premium.earn_more_now"),
+      cta: "You're all set ✦",
       urgency: t("premium.premium_urgency"),
       highlighted: true,
       badge: t("premium.best_value"),

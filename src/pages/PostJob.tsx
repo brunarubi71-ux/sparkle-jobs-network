@@ -107,9 +107,11 @@ export default function PostJob() {
     setLoading(true);
     setUploadingPhotos(true);
     try {
+      // Model B: Owner types what cleaner receives, platform adds 10% on top
       const price = parseFloat(form.price) || 0;
       const platformFee = Math.round(price * 0.1 * 100) / 100;
-      const cleanerEarnings = Math.round((price - platformFee) * 100) / 100;
+      const cleanerEarnings = price;
+      const totalCharged = Math.round((price + platformFee) * 100) / 100;
 
       const mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
       const additionalUrls: string[] = [];
@@ -122,7 +124,7 @@ export default function PostJob() {
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null, urgency: form.urgency,
-        description: form.description || null, total_amount: price,
+        description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: parseInt(form.team_size) || 1,
         main_property_photo: mainPhotoUrl,
@@ -200,13 +202,18 @@ export default function PostJob() {
             </Select>
           </div>
           <Input placeholder={t("post.price")} type="number" value={form.price} onChange={(e) => update("price", e.target.value)} required className="rounded-xl h-12" />
-          {form.price && parseFloat(form.price) > 0 && (
-            <div className="bg-accent rounded-xl p-3 text-xs space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">{t("post.total")}</span><span className="font-medium text-foreground">${parseFloat(form.price).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">{t("post.platform_fee")}</span><span className="text-destructive">-${(parseFloat(form.price) * 0.1).toFixed(2)}</span></div>
-              <div className="flex justify-between border-t border-border pt-1"><span className="text-muted-foreground">{t("post.cleaner_receives")}</span><span className="font-bold text-primary">${(parseFloat(form.price) * 0.9).toFixed(2)}</span></div>
-            </div>
-          )}
+          {form.price && parseFloat(form.price) > 0 && (() => {
+            const p = parseFloat(form.price);
+            const fee = p * 0.1;
+            const total = p + fee;
+            return (
+              <div className="bg-accent rounded-xl p-3 text-xs space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Cleaner receives</span><span className="font-bold text-primary">${p.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Platform fee (10%)</span><span className="text-foreground">+${fee.toFixed(2)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1"><span className="font-semibold text-foreground">Total you pay</span><span className="font-bold text-foreground">${total.toFixed(2)}</span></div>
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-foreground">{t("post.bedrooms")}</Label>
@@ -357,7 +364,7 @@ export default function PostJob() {
           {(() => {
             const priceNum = parseFloat(form.price) || 0;
             const fee = Math.round(priceNum * 0.1 * 100) / 100;
-            const cleaner = Math.round((priceNum - fee) * 100) / 100;
+            const total = Math.round((priceNum + fee) * 100) / 100;
             return (
               <div className="space-y-4">
                 <div className="bg-accent rounded-xl p-3 space-y-2 text-sm">
@@ -366,20 +373,16 @@ export default function PostJob() {
                     <span className="font-medium text-foreground text-right truncate max-w-[60%]">{form.title || "—"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Job price</span>
-                    <span className="font-medium text-foreground">${priceNum.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Cleaner receives</span>
+                    <span className="font-semibold text-primary">${priceNum.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Platform fee (10%)</span>
-                    <span className="text-destructive">${fee.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cleaner earns</span>
-                    <span className="font-semibold text-primary">${cleaner.toFixed(2)}</span>
+                    <span className="text-foreground">+${fee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between border-t border-border pt-2">
-                    <span className="font-semibold text-foreground">Total charged</span>
-                    <span className="font-bold text-foreground">${priceNum.toFixed(2)}</span>
+                    <span className="font-semibold text-foreground">Total you pay</span>
+                    <span className="font-bold text-foreground">${total.toFixed(2)}</span>
                   </div>
                 </div>
                 <Button
@@ -388,7 +391,7 @@ export default function PostJob() {
                   disabled={loading || uploadingPhotos}
                   className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
                 >
-                  Confirm & Pay — ${priceNum.toFixed(2)}
+                  Confirm & Pay — ${total.toFixed(2)}
                 </Button>
                 <button
                   type="button"
