@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { awardPoints } from "@/lib/points";
+import NotificationBell from "@/components/NotificationBell";
 
 function formatMemberSince(iso?: string) {
   if (!iso) return "—";
