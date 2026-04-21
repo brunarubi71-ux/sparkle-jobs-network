@@ -169,48 +169,69 @@ export default function Chat() {
             description="Accept a job to start chatting with cleaners and owners!"
           />
         ) : (
-          conversations.map((conv, i) => (
-            <motion.button
-              key={conv.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => navigate(`/chat/${conv.id}`)}
-              className="w-full bg-card rounded-2xl p-4 shadow-card flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
-            >
-              {conv.otherUser?.avatar_url ? (
-                <img
-                  src={conv.otherUser.avatar_url}
-                  alt={conv.otherUser.full_name || "User"}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary-foreground">
-                    {getInitials(conv.otherUser?.full_name || null)}
-                  </span>
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {conv.otherUser?.full_name || t("chat.conversation")}
-                  </p>
-                  {conv.lastMessageAt && (
-                    <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                      {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
+          conversations.map((conv, i) => {
+            const lastReadStr = typeof window !== "undefined" ? localStorage.getItem(readKey(conv.id)) : null;
+            const lastReadAt = lastReadStr ? new Date(lastReadStr).getTime() : 0;
+            const lastMsgAt = conv.lastMessageAt ? new Date(conv.lastMessageAt).getTime() : 0;
+            const isUnread =
+              !!conv.lastMessageSenderId &&
+              conv.lastMessageSenderId !== user?.id &&
+              lastMsgAt > lastReadAt;
+            // readTick referenced to recompute on mark-read
+            void readTick;
+            return (
+              <motion.button
+                key={conv.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => {
+                  localStorage.setItem(readKey(conv.id), new Date().toISOString());
+                  setReadTick((t) => t + 1);
+                  navigate(`/chat/${conv.id}`);
+                }}
+                className="w-full bg-card rounded-2xl p-4 shadow-card flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
+              >
+                {conv.otherUser?.avatar_url ? (
+                  <img
+                    src={conv.otherUser.avatar_url}
+                    alt={conv.otherUser.full_name || "User"}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-semibold text-primary-foreground">
+                      {getInitials(conv.otherUser?.full_name || null)}
                     </span>
-                  )}
-                </div>
-                {conv.jobTitle && (
-                  <p className="text-xs text-primary truncate">{conv.jobTitle}</p>
+                  </div>
                 )}
-                <p className="text-xs text-muted-foreground truncate">
-                  {conv.lastMessage || t("chat.no_messages_yet") || "No messages yet"}
-                </p>
-              </div>
-            </motion.button>
-          ))
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-sm truncate text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
+                      {conv.otherUser?.full_name || t("chat.conversation")}
+                    </p>
+                    {conv.lastMessageAt && (
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                        {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  {conv.jobTitle && (
+                    <p className="text-xs text-primary truncate">{conv.jobTitle}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground truncate">
+                    {conv.lastMessage || t("chat.no_messages_yet") || "No messages yet"}
+                  </p>
+                </div>
+                {isUnread && (
+                  <span
+                    aria-label="Unread"
+                    className="w-2 h-2 rounded-full bg-primary flex-shrink-0"
+                  />
+                )}
+              </motion.button>
+            );
+          })
         )}
       </div>
 
