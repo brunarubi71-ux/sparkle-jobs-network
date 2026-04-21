@@ -84,6 +84,35 @@ export default function JobDetails() {
       } else {
         setHiredCleaner(null);
       }
+
+      // Fetch team members (accepted job_applications) for team jobs
+      const teamSize = (data as any).team_size_required ?? 1;
+      if (teamSize >= 2) {
+        const { data: apps } = await supabase
+          .from("job_applications")
+          .select("cleaner_id, status")
+          .eq("job_id", (data as any).id)
+          .eq("status", "accepted");
+        const ids = (apps || []).map((a: any) => a.cleaner_id);
+        if (ids.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, full_name, avatar_url, worker_type")
+            .in("id", ids);
+          setTeamMembers(
+            (profs || []).map((p: any) => ({
+              id: p.id,
+              full_name: p.full_name,
+              avatar_url: p.avatar_url,
+              worker_type: p.worker_type === "helper" ? "helper" : "cleaner",
+            }))
+          );
+        } else {
+          setTeamMembers([]);
+        }
+      } else {
+        setTeamMembers([]);
+      }
     }
     setLoading(false);
   };
