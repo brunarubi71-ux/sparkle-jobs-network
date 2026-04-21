@@ -36,6 +36,7 @@ export default function ChatConversation() {
   const [violationScore, setViolationScore] = useState(0);
   const [warningCount, setWarningCount] = useState(0);
   const [otherTyping, setOtherTyping] = useState(false);
+  const [otherUserName, setOtherUserName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,7 +112,12 @@ export default function ChatConversation() {
   };
 
   const checkJobStatus = async () => {
-    const { data: conv } = await supabase.from("conversations").select("job_id").eq("id", id!).single();
+    const { data: conv } = await supabase.from("conversations").select("job_id, cleaner_id, owner_id").eq("id", id!).single();
+    if (conv) {
+      const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
+      const { data: otherProfile } = await supabase.from("profiles").select("full_name").eq("id", otherId).single();
+      if (otherProfile) setOtherUserName((otherProfile as any).full_name || null);
+    }
     if (conv?.job_id) {
       const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
       if (job) setJobStatus(job.status as JobStatus);
@@ -162,7 +168,7 @@ export default function ChatConversation() {
     <div className="flex flex-col h-screen bg-background">
       <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate("/chat")} className="text-foreground"><ArrowLeft className="w-5 h-5" /></button>
-        <h2 className="font-semibold text-foreground flex-1">{t("chat.conversation")}</h2>
+        <h2 className="font-semibold text-foreground flex-1 truncate">{otherUserName || t("chat.conversation")}</h2>
         {isPreAcceptance && (
           <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
             <Lock className="w-2.5 h-2.5" /> {t("chat.contacts_locked")}
