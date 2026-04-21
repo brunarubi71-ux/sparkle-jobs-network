@@ -112,7 +112,12 @@ export default function ChatConversation() {
   };
 
   const checkJobStatus = async () => {
-    const { data: conv } = await supabase.from("conversations").select("job_id").eq("id", id!).single();
+    const { data: conv } = await supabase.from("conversations").select("job_id, cleaner_id, owner_id").eq("id", id!).single();
+    if (conv) {
+      const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
+      const { data: otherProfile } = await supabase.from("profiles").select("full_name").eq("id", otherId).single();
+      if (otherProfile) setOtherUserName((otherProfile as any).full_name || null);
+    }
     if (conv?.job_id) {
       const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
       if (job) setJobStatus(job.status as JobStatus);
