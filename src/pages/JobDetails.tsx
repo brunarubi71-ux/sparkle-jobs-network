@@ -231,6 +231,32 @@ export default function JobDetails() {
     if (!id || !job) return;
     await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
 
+    // ----- "Job Approved 🎉" notifications for ALL hired workers -----
+    try {
+      const approvedIds = new Set<string>();
+      if (job.hired_cleaner_id) approvedIds.add(job.hired_cleaner_id);
+      const { data: approvedApps } = await supabase
+        .from("job_applications")
+        .select("cleaner_id")
+        .eq("job_id", id)
+        .eq("status", "accepted");
+      (approvedApps || []).forEach((a: any) => { if (a.cleaner_id) approvedIds.add(a.cleaner_id); });
+
+      if (approvedIds.size > 0) {
+        const approvedRows = Array.from(approvedIds).map((uid) => ({
+          user_id: uid,
+          title: "Job Approved 🎉",
+          message: `Your work on "${job.title}" has been approved! Payment is being processed.`,
+          type: "job_approved",
+          related_id: id,
+          link: `/job/${id}`,
+        }));
+        await supabase.from("notifications").insert(approvedRows);
+      }
+    } catch (e) {
+      console.error("[JobDetails] job_approved notification failed", e);
+    }
+
     // ----- Payment split: 10% platform fee, 90% split equally among ALL hired workers -----
     const total = Number(job.total_amount || job.price || 0);
     const platformFee = Math.round(total * 0.10 * 100) / 100;
@@ -278,6 +304,20 @@ export default function JobDetails() {
           description: `Earnings from "${job.title}"`,
           job_id: id,
         });
+
+        // Payment Received notification for this worker
+        try {
+          await supabase.from("notifications").insert({
+            user_id: workerId,
+            title: "Payment Received 💰",
+            message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
+            type: "payment_received",
+            related_id: id,
+            link: "/wallet",
+          });
+        } catch (e) {
+          console.error("[JobDetails] payment notification failed", e);
+        }
 
         const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
         const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId);

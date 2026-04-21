@@ -33,6 +33,31 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         review_text: text || null,
       });
 
+      // Lookup reviewer name + reviewed person's role for points + notification
+      let reviewerName = "Someone";
+      try {
+        const { data: reviewerProfile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        reviewerName = (reviewerProfile as any)?.full_name || "Someone";
+      } catch {}
+
+      // Notify the reviewed user about the new review
+      try {
+        await supabase.from("notifications").insert({
+          user_id: reviewedId,
+          title: "New Review ⭐",
+          message: `${reviewerName} left you a ${rating}-star review!`,
+          type: "new_review",
+          related_id: jobId,
+          link: `/profile/${reviewedId}`,
+        });
+      } catch (e) {
+        console.error("[ReviewModal] new review notification failed", e);
+      }
+
       // Award points to the reviewer (depends on the role of the person being reviewed)
       try {
         const { data: reviewedProfile } = await supabase

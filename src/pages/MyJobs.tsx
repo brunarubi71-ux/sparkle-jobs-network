@@ -112,7 +112,47 @@ export default function MyJobs() {
   };
 
   const cancelJob = async (jobId: string) => {
+    // Find affected workers (pending or accepted applicants + lead hired cleaner)
+    const affected = new Set<string>();
+    let jobTitle = "";
+    try {
+      const { data: jobRow } = await supabase
+        .from("jobs")
+        .select("title, hired_cleaner_id")
+        .eq("id", jobId)
+        .maybeSingle();
+      jobTitle = (jobRow as any)?.title ?? "";
+      if ((jobRow as any)?.hired_cleaner_id) affected.add((jobRow as any).hired_cleaner_id);
+
+      const { data: apps } = await supabase
+        .from("job_applications")
+        .select("cleaner_id, status")
+        .eq("job_id", jobId)
+        .in("status", ["pending", "accepted"]);
+      (apps || []).forEach((a: any) => { if (a.cleaner_id) affected.add(a.cleaner_id); });
+    } catch (e) {
+      console.error("[MyJobs] cancel: failed to load affected workers", e);
+    }
+
     await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+
+    // Notify all affected workers
+    if (affected.size > 0) {
+      const rows = Array.from(affected).map((uid) => ({
+        user_id: uid,
+        title: "Job Cancelled",
+        message: `The job "${jobTitle || "this job"}" has been cancelled by the owner.`,
+        type: "job_cancelled",
+        related_id: jobId,
+        link: `/job/${jobId}`,
+      }));
+      try {
+        await supabase.from("notifications").insert(rows);
+      } catch (e) {
+        console.error("[MyJobs] cancel notification failed", e);
+      }
+    }
+
     toast.success(t("myjobs.job_cancelled"));
     fetchJobs();
   };

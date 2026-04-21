@@ -93,6 +93,32 @@ export default function AdminDashboard() {
     };
     const { error } = await supabase.from("profiles").update(update).eq("id", userId);
     if (error) { toast.error(`Failed to ${decision === "approved" ? "approve" : "reject"} identity`); return; }
+
+    // Notify the user about the identity decision
+    try {
+      if (decision === "approved") {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          title: "Identity Verified ✅",
+          message: "Your identity has been verified! You can now apply for jobs.",
+          type: "identity_approved",
+          link: "/profile",
+        });
+      } else {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          title: "Identity Rejected ❌",
+          message: reason
+            ? `Your identity verification was rejected: ${reason}. Please resubmit your documents in your profile.`
+            : "Your identity verification was rejected. Please resubmit your documents in your profile.",
+          type: "identity_rejected",
+          link: "/profile",
+        });
+      }
+    } catch (e) {
+      console.error("[AdminDashboard] identity notification failed", e);
+    }
+
     if (decision === "approved") {
       try { await awardPoints(userId, "identity_verified"); } catch {}
       toast.success("✅ Identity approved successfully");
