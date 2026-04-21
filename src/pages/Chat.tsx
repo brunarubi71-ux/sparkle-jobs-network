@@ -216,17 +216,15 @@ export default function Chat() {
                     <p className={`text-sm truncate text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
                       {conv.otherUser?.full_name || t("chat.conversation")}
                     </p>
-                    {conv.lastMessageAt && (
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                        {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                      {formatDistanceToNow(new Date(conv.lastMessageAt || conv.created_at), { addSuffix: true })}
+                    </span>
                   </div>
                   {conv.jobTitle && (
                     <p className="text-xs text-primary truncate">{conv.jobTitle}</p>
                   )}
                   <p className="text-xs text-muted-foreground truncate">
-                    {conv.lastMessage || t("chat.no_messages_yet") || "No messages yet"}
+                    {sanitizePreview(conv.lastMessage) || "No messages yet"}
                   </p>
                 </div>
                 {isUnread && (
