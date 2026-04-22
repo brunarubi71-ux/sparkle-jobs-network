@@ -452,6 +452,16 @@ export default function MyJobs() {
               <Star className="w-3 h-3 mr-1" /> {t("myjobs.review")}
             </Button>
           )}
+          {["pending_payment", "open"].includes(job.status) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/post-job?edit=${job.id}`)}
+              className="h-9 text-xs rounded-xl"
+            >
+              <Pencil className="w-3 h-3 mr-1" /> Edit
+            </Button>
+          )}
           {!["completed", "cancelled", "pending_review"].includes(job.status) && (
             <Button size="sm" variant="outline" onClick={() => cancelJob(job.id)}
               className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
