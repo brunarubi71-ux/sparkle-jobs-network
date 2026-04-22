@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Sparkles, Zap, TrendingUp } from "lucide-react";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { Crown, Sparkles, Zap } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -12,48 +11,93 @@ interface Props {
   trigger?: "job_limit" | "schedule_limit" | "general";
 }
 
-export default function PremiumModal({ open, onClose, title, message, trigger = "general" }: Props) {
+export default function PremiumModal({ open, onClose, title, message }: Props) {
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
-  const displayTitle = title || t("premium.daily_limit");
-
-  const defaultMessages: Record<string, string> = {
-    job_limit: t("premium.job_limit_msg"),
-    schedule_limit: t("premium.schedule_limit_msg"),
-    general: t("premium.general_msg"),
+  const goToPlan = (plan: "pro" | "premium") => {
+    onClose();
+    navigate(`/premium?plan=${plan}`);
   };
-
-  const displayMessage = message || defaultMessages[trigger];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="rounded-2xl max-w-sm mx-auto">
-        <DialogHeader>
-          <div className="flex justify-center mb-3">
-            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center">
-              <Crown className="w-8 h-8 text-primary-foreground" />
+      <DialogContent
+        className="rounded-3xl max-w-md mx-auto bg-card border-0 shadow-elevated p-6 z-[1000]"
+        // Override the overlay's z-index so Leaflet maps (z-index up to 800) never sit above it.
+        // Radix renders the overlay as the previous sibling of DialogContent inside the same portal.
+        onOpenAutoFocus={(e) => {
+          const overlay = document.querySelector<HTMLElement>("[data-radix-dialog-overlay]");
+          if (overlay) overlay.style.zIndex = "999";
+          e.preventDefault();
+        }}
+      >
+        <DialogHeader className="space-y-2">
+          <div className="flex justify-center mb-1">
+            <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-card">
+              <Crown className="w-7 h-7 text-primary-foreground" />
             </div>
           </div>
-          <DialogTitle className="text-center text-xl">{displayTitle}</DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold text-foreground">
+            {title || "Unlock More Jobs"}
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            {message || "Choose your plan to keep applying"}
+          </DialogDescription>
         </DialogHeader>
-        <p className="text-center text-muted-foreground text-sm mb-4">{displayMessage}</p>
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-sm text-foreground"><Zap className="w-4 h-4 text-primary" /> <span>{t("premium.unlock_jobs")}</span></div>
-          <div className="flex items-center gap-2 text-sm text-foreground"><TrendingUp className="w-4 h-4 text-primary" /> <span>{t("premium.earn_more")}</span></div>
-          <div className="flex items-center gap-2 text-sm text-foreground"><Crown className="w-4 h-4 text-primary" /> <span>{t("premium.priority_access")}</span></div>
+
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          {/* Pro plan */}
+          <div className="rounded-2xl border border-border bg-background p-4 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap className="w-4 h-4 text-primary" />
+              <p className="font-bold text-foreground">Pro</p>
+            </div>
+            <p className="text-lg font-extrabold text-foreground leading-tight">
+              $9.99
+              <span className="text-xs font-medium text-muted-foreground">/mo</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-2 mb-4 leading-snug flex-1">
+              5 jobs/week, priority access, earn more
+            </p>
+            <Button
+              onClick={() => goToPlan("pro")}
+              className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
+            >
+              Choose Plan
+            </Button>
+          </div>
+
+          {/* Premium plan */}
+          <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative">
+            <div className="absolute -top-2 right-3 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full">
+              BEST
+            </div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <p className="font-bold text-foreground">Premium</p>
+            </div>
+            <p className="text-lg font-extrabold text-foreground leading-tight">
+              $19.99
+              <span className="text-xs font-medium text-muted-foreground">/mo</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-2 mb-4 leading-snug flex-1">
+              Unlimited jobs, top listing, badge ⭐
+            </p>
+            <Button
+              onClick={() => goToPlan("premium")}
+              className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
+            >
+              Choose Plan
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => { onClose(); navigate("/premium"); }}
-          className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
-          <Sparkles className="w-4 h-4 mr-2" /> See Plans
-        </Button>
-        <Button
-          variant="ghost"
+
+        <button
           onClick={onClose}
-          className="w-full h-11 rounded-xl mt-2 text-muted-foreground hover:text-foreground"
+          className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Maybe Later
-        </Button>
+        </button>
       </DialogContent>
     </Dialog>
   );
