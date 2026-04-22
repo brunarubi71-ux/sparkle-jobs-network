@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.auto-approve-jobs]
 verify_jwt = false
+
+[functions.create-job-checkout]
+verify_jwt = false

@@ -52,12 +52,28 @@ serve(async (req) => {
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   console.log("Checkout completed:", session.id, "mode:", session.mode);
   const userId = session.metadata?.userId;
+  const jobId = session.metadata?.jobId;
+  const purpose = session.metadata?.purpose;
+
+  // Job payment: activate the job once payment succeeds
+  if (purpose === "job_payment" && jobId) {
+    const { error } = await supabase
+      .from("jobs")
+      .update({
+        status: "open",
+        escrow_status: "held",
+        payment_intent_id: session.payment_intent || null,
+      })
+      .eq("id", jobId);
+    if (error) console.error("Failed to activate job:", error);
+    else console.log(`Job ${jobId} activated after payment`);
+    return;
+  }
+
   if (!userId) return;
 
   // For subscription mode, the subscription.created event handles DB updates.
-  // Here we update the user's profile to reflect the plan upgrade.
   if (session.mode === "subscription" && session.subscription) {
-    // The plan tier will be set when subscription.created fires
     console.log("Subscription checkout completed, waiting for subscription.created event");
   }
 }
