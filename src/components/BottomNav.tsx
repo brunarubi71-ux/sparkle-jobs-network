@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList, DollarSign, Wallet } from "lucide-react";
+import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
