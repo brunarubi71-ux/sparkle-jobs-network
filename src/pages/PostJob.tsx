@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
+import { JobStripeCheckout } from "@/components/JobStripeCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { toast } from "sonner";
 import { PlusCircle, Camera, X, Upload, Star, ShieldAlert } from "lucide-react";
 import { awardPoints } from "@/lib/points";
@@ -24,6 +26,8 @@ export default function PostJob() {
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [pendingJob, setPendingJob] = useState<{ id: string; amountCents: number; title: string } | null>(null);
   const walletBalance = Number((profile as any)?.wallet_balance || 0);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
@@ -126,8 +130,8 @@ export default function PostJob() {
       }
       setUploadingPhotos(false);
 
-      // Both card and wallet save as 'open' for now (Stripe to be connected later)
-      const status = "open";
+      // Card → create as pending_payment until Stripe confirms; Wallet → open immediately.
+      const status = paymentMethod === "card" ? "pending_payment" : "open";
 
       const cleanersReq = parseInt(form.cleaners_required) || 0;
       const helpersReq = parseInt(form.helpers_required) || 0;
@@ -169,12 +173,20 @@ export default function PostJob() {
           job_id: insertedJob?.id || null,
         });
         await refreshProfile();
+        toast.success("Job posted successfully! 🎉");
+        try { await awardPoints(user.id, "job_posted"); } catch {}
+        navigate("/my-jobs");
+        return;
       }
-      toast.success("Job posted successfully! 🎉");
 
-      // Award owner points for posting a job
+      // Card path → open Stripe Embedded Checkout
+      setPendingJob({
+        id: insertedJob!.id,
+        amountCents: Math.round(totalCharged * 100),
+        title: form.title,
+      });
+      setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-      navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
   };
 
@@ -197,6 +209,7 @@ export default function PostJob() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">{t("post.title")}</h1>
         <p className="text-primary-foreground/70 text-sm">{t("post.subtitle")}</p>
@@ -456,9 +469,6 @@ export default function PostJob() {
                 >
                   Pay with Card — ${total.toFixed(2)}
                 </Button>
-                <p className="text-[11px] text-muted-foreground -mt-1 px-1">
-                  * Card payment will be processed when Stripe is activated
-                </p>
                 <Button
                   type="button"
                   variant="outline"
@@ -478,6 +488,27 @@ export default function PostJob() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={checkoutOpen} onOpenChange={(open) => { if (!open) { setCheckoutOpen(false); setPendingJob(null); } }}>
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Complete payment</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Pay securely with Stripe to publish your job.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingJob && (
+            <JobStripeCheckout
+              amountInCents={pendingJob.amountCents}
+              jobId={pendingJob.id}
+              jobTitle={pendingJob.title}
+              customerEmail={profile?.email || undefined}
+              userId={user?.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&job_id=${pendingJob.id}`}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
