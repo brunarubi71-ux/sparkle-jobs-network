@@ -28,7 +28,7 @@ interface WalletTransaction {
   created_at: string;
 }
 
-const PRESET_AMOUNTS = [10, 25, 50, 100];
+const PRESET_AMOUNTS = [100, 200, 300, 500];
 
 export default function Wallet() {
   const { user } = useAuth();
@@ -37,7 +37,7 @@ export default function Wallet() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [amountInput, setAmountInput] = useState<string>("25");
+  const [amountInput, setAmountInput] = useState<string>("0");
   const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
 
   useEffect(() => {

@@ -18,6 +18,8 @@ import DisputeModal from "@/components/DisputeModal";
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 import NotificationBell from "@/components/NotificationBell";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { JobStripeCheckout } from "@/components/JobStripeCheckout";
 
 interface JobWithApplicants {
   id: string;
@@ -57,6 +59,7 @@ export default function MyJobs() {
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
   const [disputeJob, setDisputeJob] = useState<{ jobId: string; reportedId: string } | null>(null);
   const [activeTab, setActiveTab] = useState("active");
+  const [paymentJob, setPaymentJob] = useState<{ jobId: string; amountInCents: number; title: string } | null>(null);
 
   useEffect(() => { if (user) fetchJobs(); }, [user]);
 
@@ -225,7 +228,23 @@ export default function MyJobs() {
             <p className="text-xl font-bold text-primary">${job.price}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+            {job.status === "pending_payment" ? (
+              <Button
+                size="sm"
+                onClick={() =>
+                  setPaymentJob({
+                    jobId: job.id,
+                    amountInCents: Math.round(Number(job.total_amount || job.price) * 100),
+                    title: job.title,
+                  })
+                }
+                className="h-7 px-3 text-[11px] font-bold gradient-primary text-primary-foreground rounded-lg hover:opacity-90"
+              >
+                Complete Payment
+              </Button>
+            ) : (
+              <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+            )}
             {import.meta.env.DEV && job.status === "pending_payment" && (
               <Button
                 size="sm"
@@ -523,6 +542,31 @@ export default function MyJobs() {
       {disputeJob && (
         <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
       )}
+
+      <Dialog open={!!paymentJob} onOpenChange={(o) => { if (!o) { setPaymentJob(null); fetchJobs(); } }} modal={false}>
+        <DialogContent
+          className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Complete payment</DialogTitle>
+            <DialogDescription>
+              {paymentJob ? `Pay $${(paymentJob.amountInCents / 100).toFixed(2)} to activate "${paymentJob.title}".` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {paymentJob && user && (
+            <JobStripeCheckout
+              jobId={paymentJob.jobId}
+              amountInCents={paymentJob.amountInCents}
+              jobTitle={paymentJob.title}
+              customerEmail={user.email || undefined}
+              userId={user.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <BackToTop />
       <BottomNav />
     </div>
