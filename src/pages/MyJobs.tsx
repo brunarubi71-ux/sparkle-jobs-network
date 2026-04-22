@@ -542,6 +542,31 @@ export default function MyJobs() {
       {disputeJob && (
         <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
       )}
+
+      <Dialog open={!!paymentJob} onOpenChange={(o) => { if (!o) { setPaymentJob(null); fetchJobs(); } }} modal={false}>
+        <DialogContent
+          className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Complete payment</DialogTitle>
+            <DialogDescription>
+              {paymentJob ? `Pay $${(paymentJob.amountInCents / 100).toFixed(2)} to activate "${paymentJob.title}".` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {paymentJob && user && (
+            <JobStripeCheckout
+              jobId={paymentJob.jobId}
+              amountInCents={paymentJob.amountInCents}
+              jobTitle={paymentJob.title}
+              customerEmail={user.email || undefined}
+              userId={user.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <BackToTop />
       <BottomNav />
     </div>
