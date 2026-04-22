@@ -4,8 +4,19 @@ import { Wallet as WalletIcon, Plus, ArrowDownLeft, ArrowUpRight } from "lucide-
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import BottomNav from "@/components/BottomNav";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { WalletStripeCheckout } from "@/components/WalletStripeCheckout";
 import { toast } from "sonner";
 
 interface WalletTransaction {
@@ -17,11 +28,17 @@ interface WalletTransaction {
   created_at: string;
 }
 
+const PRESET_AMOUNTS = [10, 25, 50, 100];
+
 export default function Wallet() {
   const { user } = useAuth();
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [amountInput, setAmountInput] = useState<string>("25");
+  const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
@@ -41,12 +58,21 @@ export default function Wallet() {
     load();
   }, [user]);
 
-  const handleAddFunds = () => {
-    toast.info("Coming soon when Stripe is ready");
+  const handleProceed = () => {
+    const parsed = parseFloat(amountInput);
+    if (!parsed || parsed < 1) {
+      toast.error("Minimum top-up is $1.00");
+      return;
+    }
+    const cents = Math.round(parsed * 100);
+    setCheckoutAmountCents(cents);
+    setAddOpen(false);
+    setCheckoutOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">Wallet</h1>
         <p className="text-primary-foreground/70 text-sm">Manage your balance and transactions</p>
@@ -68,7 +94,7 @@ export default function Wallet() {
             </div>
           </div>
           <Button
-            onClick={handleAddFunds}
+            onClick={() => setAddOpen(true)}
             className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 mt-4"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -126,6 +152,71 @@ export default function Wallet() {
           )}
         </motion.div>
       </div>
+
+      {/* Amount picker dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Add funds</DialogTitle>
+            <DialogDescription>Choose how much you'd like to add to your wallet.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-4 gap-2">
+              {PRESET_AMOUNTS.map((amt) => (
+                <Button
+                  key={amt}
+                  type="button"
+                  variant={amountInput === String(amt) ? "default" : "outline"}
+                  className="rounded-xl"
+                  onClick={() => setAmountInput(String(amt))}
+                >
+                  ${amt}
+                </Button>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="custom-amount">Custom amount (USD)</Label>
+              <Input
+                id="custom-amount"
+                type="number"
+                inputMode="decimal"
+                min="1"
+                step="0.01"
+                value={amountInput}
+                onChange={(e) => setAmountInput(e.target.value)}
+                className="rounded-xl h-11"
+              />
+            </div>
+            <Button
+              onClick={handleProceed}
+              className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
+            >
+              Continue to payment
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stripe checkout dialog */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen} modal={false}>
+        <DialogContent
+          className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Add ${(checkoutAmountCents / 100).toFixed(2)} to wallet</DialogTitle>
+            <DialogDescription>Complete your payment to top up your balance.</DialogDescription>
+          </DialogHeader>
+          {user && checkoutAmountCents > 0 && (
+            <WalletStripeCheckout
+              amountInCents={checkoutAmountCents}
+              customerEmail={user.email || undefined}
+              userId={user.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>

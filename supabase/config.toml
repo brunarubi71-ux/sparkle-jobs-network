@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.create-job-checkout]
 verify_jwt = false
+
+[functions.create-wallet-checkout]
+verify_jwt = false
