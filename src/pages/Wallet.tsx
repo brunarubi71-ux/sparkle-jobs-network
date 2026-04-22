@@ -28,7 +28,7 @@ interface WalletTransaction {
   created_at: string;
 }
 
-const PRESET_AMOUNTS = [10, 25, 50, 100];
+const PRESET_AMOUNTS = [100, 200, 300, 500];
 
 export default function Wallet() {
   const { user } = useAuth();
