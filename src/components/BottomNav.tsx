@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Calendar, MessageCircle, Crown, User, PlusCircle, List, ShoppingBag, ClipboardList, DollarSign, Wallet } from "lucide-react";
+import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,7 +162,6 @@ export default function BottomNav() {
     { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle, badge: 0 },
     { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount + pendingApplicantsCount },
     { path: "/wallet", label: "Wallet", icon: Wallet, badge: 0 },
-    { path: "/schedules", label: t("nav.sell"), icon: ShoppingBag, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];

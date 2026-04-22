@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +11,9 @@ export default function CheckoutReturn() {
   const sessionId = searchParams.get("session_id");
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, profile } = useAuth();
+
+  const destination = profile?.role === "owner" ? "/my-jobs" : "/jobs";
 
   useEffect(() => {
     // Refresh profile to pick up plan changes from webhook
@@ -43,10 +45,10 @@ export default function CheckoutReturn() {
           </>
         )}
         <Button
-          onClick={() => navigate("/premium")}
+          onClick={() => navigate(destination)}
           className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" /> {t("checkout.back_to_plans")}
+          {profile?.role === "owner" ? "Go to My Jobs" : "Browse Jobs"} <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </motion.div>
     </div>
