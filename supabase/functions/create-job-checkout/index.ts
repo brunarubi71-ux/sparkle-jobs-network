@@ -3,8 +3,11 @@ import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,18 +15,28 @@ serve(async (req) => {
   }
 
   try {
-    const { amountInCents, jobId, jobTitle, customerEmail, userId, returnUrl, environment } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: jsonHeaders,
+      });
+    }
+
+    const { amountInCents, jobId, jobTitle, customerEmail, userId, returnUrl, environment } = body || {};
 
     if (!amountInCents || typeof amountInCents !== "number" || amountInCents < 50) {
       return new Response(JSON.stringify({ error: "Amount must be at least 50 cents" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: jsonHeaders,
       });
     }
     if (!jobId || typeof jobId !== "string") {
       return new Response(JSON.stringify({ error: "Missing jobId" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: jsonHeaders,
       });
     }
 
@@ -59,13 +72,23 @@ serve(async (req) => {
       },
     });
 
+    if (!session.client_secret) {
+      console.error("[create-job-checkout] Stripe returned no client_secret", session.id);
+      return new Response(JSON.stringify({ error: "Stripe did not return a client secret" }), {
+        status: 502,
+        headers: jsonHeaders,
+      });
+    }
+
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+      headers: jsonHeaders,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[create-job-checkout] error:", error);
+    return new Response(
+      JSON.stringify({ error: (error as Error).message || "Internal error" }),
+      { status: 500, headers: jsonHeaders },
+    );
   }
 });
