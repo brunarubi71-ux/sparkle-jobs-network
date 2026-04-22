@@ -209,6 +209,7 @@ export default function PostJob() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">{t("post.title")}</h1>
         <p className="text-primary-foreground/70 text-sm">{t("post.subtitle")}</p>
@@ -468,9 +469,6 @@ export default function PostJob() {
                 >
                   Pay with Card — ${total.toFixed(2)}
                 </Button>
-                <p className="text-[11px] text-muted-foreground -mt-1 px-1">
-                  * Card payment will be processed when Stripe is activated
-                </p>
                 <Button
                   type="button"
                   variant="outline"
@@ -493,7 +491,26 @@ export default function PostJob() {
         </DialogContent>
       </Dialog>
 
-      <BottomNav />
+      <Dialog open={checkoutOpen} onOpenChange={(open) => { if (!open) { setCheckoutOpen(false); setPendingJob(null); } }}>
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Complete payment</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Pay securely with Stripe to publish your job.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingJob && (
+            <JobStripeCheckout
+              amountInCents={pendingJob.amountCents}
+              jobId={pendingJob.id}
+              jobTitle={pendingJob.title}
+              customerEmail={profile?.email || undefined}
+              userId={user?.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&job_id=${pendingJob.id}`}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
