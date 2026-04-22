@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
+import { JobStripeCheckout } from "@/components/JobStripeCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { toast } from "sonner";
 import { PlusCircle, Camera, X, Upload, Star, ShieldAlert } from "lucide-react";
 import { awardPoints } from "@/lib/points";
