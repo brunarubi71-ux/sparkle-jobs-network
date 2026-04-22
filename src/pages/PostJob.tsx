@@ -462,10 +462,22 @@ export default function PostJob() {
           </div>
           <p className="text-xs text-muted-foreground">{t("post.additional_photos_hint")}</p>
 
-          {photoPreviews.length > 0 && (
+          {(existingPhotos.length > 0 || photoPreviews.length > 0) && (
             <div className="grid grid-cols-3 gap-2">
+              {existingPhotos.map((src, i) => (
+                <div key={`existing-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setExistingPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
               {photoPreviews.map((src, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border">
                   <img src={src} alt="" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => removePhoto(i)} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
                     <X className="w-3.5 h-3.5" />
