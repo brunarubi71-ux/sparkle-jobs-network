@@ -119,6 +119,12 @@ const createPriceIcon = (price: number, active: boolean) =>
     iconAnchor: [38, 20],
   });
 
+/** Worker's estimated earnings: 90% of job price split equally between all workers. */
+const getWorkerEarnings = (job: Pick<Job, "price" | "cleaners_required" | "helpers_required">) => {
+  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
+  return (Number(job.price || 0) * 0.9) / workers;
+};
+
 /* ── component ── */
 export default function Jobs() {
   const { user, profile, refreshProfile } = useAuth();
