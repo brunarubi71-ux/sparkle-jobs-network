@@ -245,15 +245,6 @@ export default function MyJobs() {
             ) : (
               <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
             )}
-            {import.meta.env.DEV && job.status === "pending_payment" && (
-              <Button
-                size="sm"
-                onClick={() => activateJob(job.id)}
-                className="h-6 px-2 text-[10px] gradient-primary text-primary-foreground rounded-lg"
-              >
-                [TEST] Activate Job
-              </Button>
-            )}
           </div>
         </div>
 
