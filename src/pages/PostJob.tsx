@@ -142,7 +142,7 @@ export default function PostJob() {
       toast.error(t("security.contact_blocked"));
       return;
     }
-    if (!mainPhotoFile) {
+    if (!mainPhotoFile && !existingMainPhoto) {
       toast.error(t("post.main_photo_required"));
       return;
     }
@@ -156,8 +156,62 @@ export default function PostJob() {
       toast.error("Please request at least 1 Cleaner or Helper.");
       return;
     }
-    // Show payment confirmation modal before saving
+    if (isEditMode) {
+      saveEdits();
+      return;
+    }
     setConfirmOpen(true);
+  };
+
+  const saveEdits = async () => {
+    if (!user || !editJobId) return;
+    setLoading(true);
+    setUploadingPhotos(true);
+    try {
+      const price = parseFloat(form.price) || 0;
+      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const cleanerEarnings = price;
+      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+
+      let mainPhotoUrl = existingMainPhoto;
+      if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
+      const newAdditional: string[] = [];
+      for (const f of photoFiles) newAdditional.push(await uploadFile(f, "additional"));
+      const allAdditional = [...existingPhotos, ...newAdditional];
+      setUploadingPhotos(false);
+
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
+      const { error } = await supabase.from("jobs").update({
+        title: form.title, cleaning_type: form.cleaning_type, price,
+        bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
+        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        description: form.description || null, total_amount: totalCharged,
+        platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq, helpers_required: helpersReq,
+        main_property_photo: mainPhotoUrl,
+        property_photos: allAdditional.length > 0 ? allAdditional : null,
+        door_code: form.door_code || null, supply_code: form.supply_code || null,
+        lockbox_code: form.lockbox_code || null, gate_code: form.gate_code || null,
+        alarm_instructions: form.alarm_instructions || null,
+        parking_instructions: form.parking_instructions || null,
+        door_access_info: form.door_access_info || null,
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+      } as any).eq("id", editJobId).eq("owner_id", user.id);
+      if (error) throw error;
+      toast.success("Job updated");
+      navigate("/my-jobs");
+    } catch (err) {
+      console.error("[PostJob] saveEdits error:", err);
+      toast.error(t("post.error"));
+    } finally {
+      setLoading(false);
+      setUploadingPhotos(false);
+    }
   };
 
   const submitJob = async (paymentMethod: "card" | "wallet") => {
