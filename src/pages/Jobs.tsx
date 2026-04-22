@@ -119,6 +119,12 @@ const createPriceIcon = (price: number, active: boolean) =>
     iconAnchor: [38, 20],
   });
 
+/** Worker's estimated earnings: 90% of job price split equally between all workers. */
+const getWorkerEarnings = (job: Pick<Job, "price" | "cleaners_required" | "helpers_required">) => {
+  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
+  return (Number(job.price || 0) * 0.9) / workers;
+};
+
 /* ── component ── */
 export default function Jobs() {
   const { user, profile, refreshProfile } = useAuth();
@@ -489,7 +495,7 @@ export default function Jobs() {
             <Marker
               key={job.id}
               position={getJobPosition(job, index, mapCenter)}
-              icon={createPriceIcon(job.price, selectedJob?.id === job.id)}
+              icon={createPriceIcon(profile?.role === "cleaner" ? getWorkerEarnings(job) : job.price, selectedJob?.id === job.id)}
               eventHandlers={{ click: () => setSelectedJob(job) }}
             />
           ))}
@@ -569,7 +575,14 @@ export default function Jobs() {
 
                 <div className="mb-3 flex items-start justify-between gap-3 pr-6">
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold text-foreground">${selectedJob.price}</p>
+                    {profile?.role === "cleaner" ? (
+                      <>
+                        <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(selectedJob).toFixed(2)}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">Your earnings</p>
+                      </>
+                    ) : (
+                      <p className="text-2xl font-bold text-foreground">${selectedJob.price}</p>
+                    )}
                     <h2 className="truncate text-base font-semibold text-foreground">{selectedJob.title}</h2>
                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
@@ -654,7 +667,14 @@ export default function Jobs() {
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-2xl font-bold text-foreground">${job.price}</p>
+                    {profile?.role === "cleaner" ? (
+                      <>
+                        <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(job).toFixed(2)}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">Your earnings</p>
+                      </>
+                    ) : (
+                      <p className="text-2xl font-bold text-foreground">${job.price}</p>
+                    )}
                     <p className="text-sm font-semibold text-foreground">{job.title}</p>
                   </div>
                   {fomo && (

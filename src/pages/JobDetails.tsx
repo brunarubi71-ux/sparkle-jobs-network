@@ -17,9 +17,15 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { syncBadges } from "@/lib/badges";
 
+/** Worker's estimated earnings: 90% of job price split equally between all workers. */
+const getWorkerEarnings = (job: { price: number; cleaners_required?: number | null; helpers_required?: number | null }) => {
+  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
+  return (Number(job.price || 0) * 0.9) / workers;
+};
+
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [job, setJob] = useState<any>(null);
@@ -416,9 +422,16 @@ export default function JobDetails() {
 
         {/* Job Summary */}
         <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card rounded-2xl shadow-card p-5">
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-2 gap-3">
             <h1 className="text-xl font-bold text-foreground flex-1">{job.title}</h1>
-            <span className="text-2xl font-bold text-primary">${job.price}</span>
+            {profile?.role === "cleaner" && !isOwner ? (
+              <div className="text-right">
+                <span className="block text-2xl font-bold text-emerald-600">${getWorkerEarnings(job).toFixed(2)}</span>
+                <span className="block text-[11px] font-medium text-muted-foreground">Your earnings</span>
+              </div>
+            ) : (
+              <span className="text-2xl font-bold text-primary">${job.price}</span>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.city || "N/A"}</span>
