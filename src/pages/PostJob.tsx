@@ -511,6 +511,8 @@ export default function PostJob() {
           )}
         </DialogContent>
       </Dialog>
+
+      <BottomNav />
     </div>
   );
 }
