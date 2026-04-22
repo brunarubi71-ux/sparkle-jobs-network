@@ -37,7 +37,7 @@ export default function Wallet() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [amountInput, setAmountInput] = useState<string>("0");
+  const [amountInput, setAmountInput] = useState<string>("");
   const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
 
   useEffect(() => {
