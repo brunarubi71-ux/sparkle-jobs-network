@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -450,6 +450,16 @@ export default function MyJobs() {
             <Button size="sm" variant="outline" onClick={() => job.hired_cleaner_id && setReviewJob({ jobId: job.id, reviewedId: job.hired_cleaner_id })}
               className="flex-1 h-9 text-xs rounded-xl">
               <Star className="w-3 h-3 mr-1" /> {t("myjobs.review")}
+            </Button>
+          )}
+          {["pending_payment", "open"].includes(job.status) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/post-job?edit=${job.id}`)}
+              className="h-9 text-xs rounded-xl"
+            >
+              <Pencil className="w-3 h-3 mr-1" /> Edit
             </Button>
           )}
           {!["completed", "cancelled", "pending_review"].includes(job.status) && (

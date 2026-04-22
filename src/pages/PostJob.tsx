@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { containsContactInfo } from "@/lib/contactFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 export default function PostJob() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editJobId = searchParams.get("edit");
+  const isEditMode = !!editJobId;
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
@@ -35,9 +38,12 @@ export default function PostJob() {
   const showOwnerVerifyBanner = profile?.role === "owner" && (ownerIdentityStatus === "unverified" || ownerIdentityStatus === "rejected");
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
+  const [existingMainPhoto, setExistingMainPhoto] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [editLoading, setEditLoading] = useState(isEditMode);
   const [form, setForm] = useState({
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
@@ -46,6 +52,49 @@ export default function PostJob() {
     alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
   });
+
+  // Load existing job in edit mode
+  useEffect(() => {
+    if (!isEditMode || !user || !editJobId) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", editJobId)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Could not load job to edit.");
+        navigate("/my-jobs");
+        return;
+      }
+      setForm({
+        title: data.title ?? "",
+        cleaning_type: data.cleaning_type ?? "residential",
+        price: data.price != null ? String(data.price) : "",
+        bedrooms: data.bedrooms != null ? String(data.bedrooms) : "1",
+        bathrooms: data.bathrooms != null ? String(data.bathrooms) : "1",
+        address: data.address ?? "",
+        city: data.city ?? "",
+        urgency: data.urgency ?? "scheduled",
+        description: data.description ?? "",
+        cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
+        helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
+        door_code: data.door_code ?? "",
+        supply_code: data.supply_code ?? "",
+        lockbox_code: data.lockbox_code ?? "",
+        gate_code: data.gate_code ?? "",
+        alarm_instructions: data.alarm_instructions ?? "",
+        parking_instructions: data.parking_instructions ?? "",
+        door_access_info: data.door_access_info ?? "",
+        guest_stay_length: data.guest_stay_length != null ? String(data.guest_stay_length) : "",
+        number_of_guests: data.number_of_guests != null ? String(data.number_of_guests) : "",
+      });
+      setExistingMainPhoto(data.main_property_photo ?? "");
+      setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
+      setEditLoading(false);
+    })();
+  }, [isEditMode, editJobId, user, navigate]);
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -93,7 +142,7 @@ export default function PostJob() {
       toast.error(t("security.contact_blocked"));
       return;
     }
-    if (!mainPhotoFile) {
+    if (!mainPhotoFile && !existingMainPhoto) {
       toast.error(t("post.main_photo_required"));
       return;
     }
@@ -107,8 +156,62 @@ export default function PostJob() {
       toast.error("Please request at least 1 Cleaner or Helper.");
       return;
     }
-    // Show payment confirmation modal before saving
+    if (isEditMode) {
+      saveEdits();
+      return;
+    }
     setConfirmOpen(true);
+  };
+
+  const saveEdits = async () => {
+    if (!user || !editJobId) return;
+    setLoading(true);
+    setUploadingPhotos(true);
+    try {
+      const price = parseFloat(form.price) || 0;
+      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const cleanerEarnings = price;
+      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+
+      let mainPhotoUrl = existingMainPhoto;
+      if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
+      const newAdditional: string[] = [];
+      for (const f of photoFiles) newAdditional.push(await uploadFile(f, "additional"));
+      const allAdditional = [...existingPhotos, ...newAdditional];
+      setUploadingPhotos(false);
+
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
+      const { error } = await supabase.from("jobs").update({
+        title: form.title, cleaning_type: form.cleaning_type, price,
+        bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
+        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        description: form.description || null, total_amount: totalCharged,
+        platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq, helpers_required: helpersReq,
+        main_property_photo: mainPhotoUrl,
+        property_photos: allAdditional.length > 0 ? allAdditional : null,
+        door_code: form.door_code || null, supply_code: form.supply_code || null,
+        lockbox_code: form.lockbox_code || null, gate_code: form.gate_code || null,
+        alarm_instructions: form.alarm_instructions || null,
+        parking_instructions: form.parking_instructions || null,
+        door_access_info: form.door_access_info || null,
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+      } as any).eq("id", editJobId).eq("owner_id", user.id);
+      if (error) throw error;
+      toast.success("Job updated");
+      navigate("/my-jobs");
+    } catch (err) {
+      console.error("[PostJob] saveEdits error:", err);
+      toast.error(t("post.error"));
+    } finally {
+      setLoading(false);
+      setUploadingPhotos(false);
+    }
   };
 
   const submitJob = async (paymentMethod: "card" | "wallet") => {
@@ -211,8 +314,8 @@ export default function PostJob() {
     <div className="min-h-screen bg-background pb-20">
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
-        <h1 className="text-xl font-bold text-primary-foreground">{t("post.title")}</h1>
-        <p className="text-primary-foreground/70 text-sm">{t("post.subtitle")}</p>
+        <h1 className="text-xl font-bold text-primary-foreground">{isEditMode ? "Edit job" : t("post.title")}</h1>
+        <p className="text-primary-foreground/70 text-sm">{isEditMode ? "Update your job details" : t("post.subtitle")}</p>
       </div>
 
       <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="px-4 mt-4 space-y-4">
@@ -331,6 +434,17 @@ export default function PostJob() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          ) : existingMainPhoto ? (
+            <div className="space-y-2">
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-border">
+                <img src={existingMainPhoto} alt="" className="w-full h-full object-cover" />
+              </div>
+              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl p-3 cursor-pointer hover:border-primary/50 transition-colors bg-primary/5">
+                <Camera className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium text-primary">Replace main photo</span>
+                <input type="file" accept="image/*" onChange={handleMainPhotoSelect} className="hidden" />
+              </label>
+            </div>
           ) : (
             <label className="flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl p-6 cursor-pointer hover:border-primary/50 transition-colors bg-primary/5">
               <Camera className="w-6 h-6 text-primary" />
@@ -348,10 +462,22 @@ export default function PostJob() {
           </div>
           <p className="text-xs text-muted-foreground">{t("post.additional_photos_hint")}</p>
 
-          {photoPreviews.length > 0 && (
+          {(existingPhotos.length > 0 || photoPreviews.length > 0) && (
             <div className="grid grid-cols-3 gap-2">
+              {existingPhotos.map((src, i) => (
+                <div key={`existing-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setExistingPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
               {photoPreviews.map((src, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border">
                   <img src={src} alt="" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => removePhoto(i)} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
                     <X className="w-3.5 h-3.5" />
@@ -422,9 +548,13 @@ export default function PostJob() {
           </motion.div>
         )}
 
-        <Button type="submit" disabled={loading || uploadingPhotos} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
+        <Button type="submit" disabled={loading || uploadingPhotos || editLoading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
           <PlusCircle className="w-4 h-4 mr-2" />
-          {uploadingPhotos ? t("post.uploading_photos") : loading ? t("post.posting") : t("post.submit")}
+          {uploadingPhotos
+            ? t("post.uploading_photos")
+            : loading
+              ? (isEditMode ? "Saving..." : t("post.posting"))
+              : (isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
