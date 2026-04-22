@@ -18,6 +18,8 @@ import DisputeModal from "@/components/DisputeModal";
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 import NotificationBell from "@/components/NotificationBell";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { JobStripeCheckout } from "@/components/JobStripeCheckout";
 
 interface JobWithApplicants {
   id: string;
