@@ -22,6 +22,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 export default function PostJob() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editJobId = searchParams.get("edit");
+  const isEditMode = !!editJobId;
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
@@ -35,9 +38,12 @@ export default function PostJob() {
   const showOwnerVerifyBanner = profile?.role === "owner" && (ownerIdentityStatus === "unverified" || ownerIdentityStatus === "rejected");
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
+  const [existingMainPhoto, setExistingMainPhoto] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [editLoading, setEditLoading] = useState(isEditMode);
   const [form, setForm] = useState({
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
@@ -46,6 +52,49 @@ export default function PostJob() {
     alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
   });
+
+  // Load existing job in edit mode
+  useEffect(() => {
+    if (!isEditMode || !user || !editJobId) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", editJobId)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error("Could not load job to edit.");
+        navigate("/my-jobs");
+        return;
+      }
+      setForm({
+        title: data.title ?? "",
+        cleaning_type: data.cleaning_type ?? "residential",
+        price: data.price != null ? String(data.price) : "",
+        bedrooms: data.bedrooms != null ? String(data.bedrooms) : "1",
+        bathrooms: data.bathrooms != null ? String(data.bathrooms) : "1",
+        address: data.address ?? "",
+        city: data.city ?? "",
+        urgency: data.urgency ?? "scheduled",
+        description: data.description ?? "",
+        cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
+        helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
+        door_code: data.door_code ?? "",
+        supply_code: data.supply_code ?? "",
+        lockbox_code: data.lockbox_code ?? "",
+        gate_code: data.gate_code ?? "",
+        alarm_instructions: data.alarm_instructions ?? "",
+        parking_instructions: data.parking_instructions ?? "",
+        door_access_info: data.door_access_info ?? "",
+        guest_stay_length: data.guest_stay_length != null ? String(data.guest_stay_length) : "",
+        number_of_guests: data.number_of_guests != null ? String(data.number_of_guests) : "",
+      });
+      setExistingMainPhoto(data.main_property_photo ?? "");
+      setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
+      setEditLoading(false);
+    })();
+  }, [isEditMode, editJobId, user, navigate]);
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
 
