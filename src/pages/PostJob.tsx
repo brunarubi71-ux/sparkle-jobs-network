@@ -314,8 +314,8 @@ export default function PostJob() {
     <div className="min-h-screen bg-background pb-20">
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
-        <h1 className="text-xl font-bold text-primary-foreground">{t("post.title")}</h1>
-        <p className="text-primary-foreground/70 text-sm">{t("post.subtitle")}</p>
+        <h1 className="text-xl font-bold text-primary-foreground">{isEditMode ? "Edit job" : t("post.title")}</h1>
+        <p className="text-primary-foreground/70 text-sm">{isEditMode ? "Update your job details" : t("post.subtitle")}</p>
       </div>
 
       <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="px-4 mt-4 space-y-4">
