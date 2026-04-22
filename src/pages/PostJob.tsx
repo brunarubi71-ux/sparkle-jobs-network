@@ -26,6 +26,8 @@ export default function PostJob() {
   const [loading, setLoading] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [pendingJob, setPendingJob] = useState<{ id: string; amountCents: number; title: string } | null>(null);
   const walletBalance = Number((profile as any)?.wallet_balance || 0);
   const ownerIdentityStatus = (profile as any)?.identity_status || "unverified";
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
