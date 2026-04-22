@@ -491,8 +491,16 @@ export default function PostJob() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={checkoutOpen} onOpenChange={(open) => { if (!open) { setCheckoutOpen(false); setPendingJob(null); } }}>
-        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+      <Dialog
+        open={checkoutOpen}
+        modal={false}
+        onOpenChange={(open) => { if (!open) { setCheckoutOpen(false); setPendingJob(null); } }}
+      >
+        <DialogContent
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">Complete payment</DialogTitle>
             <DialogDescription className="text-muted-foreground">
