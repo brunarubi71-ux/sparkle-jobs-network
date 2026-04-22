@@ -17,6 +17,12 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { syncBadges } from "@/lib/badges";
 
+/** Worker's estimated earnings: 90% of job price split equally between all workers. */
+const getWorkerEarnings = (job: { price: number; cleaners_required?: number | null; helpers_required?: number | null }) => {
+  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
+  return (Number(job.price || 0) * 0.9) / workers;
+};
+
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
