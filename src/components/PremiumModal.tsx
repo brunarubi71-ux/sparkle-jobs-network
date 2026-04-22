@@ -36,7 +36,6 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogPortal>
-        {/* Full-screen dark overlay that fully covers the map and all background */}
         <DialogOverlay className="fixed inset-0 bg-black/60 z-[999]" />
         <DialogContent
           className="rounded-3xl max-w-md mx-auto bg-card border-0 shadow-elevated p-6 z-[1000]"
@@ -58,10 +57,23 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Recommendation banner */}
+          <div className="mt-4 rounded-2xl gradient-primary px-4 py-3 text-center shadow-card">
+            <p className="text-sm font-bold text-primary-foreground">
+              ✨ We recommend Pro for you!
+            </p>
+            <p className="text-[11px] text-primary-foreground/90 mt-0.5">
+              Most cleaners on Pro earn 3x more per week
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mt-4">
-            {/* Pro plan */}
-            <div className="rounded-2xl border border-border bg-background p-4 flex flex-col">
-              <div className="flex items-center gap-1.5 mb-1">
+            {/* Pro plan — RECOMMENDED */}
+            <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative shadow-[0_0_20px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                RECOMMENDED ✓
+              </div>
+              <div className="flex items-center gap-1.5 mb-1 mt-1">
                 <Zap className="w-4 h-4 text-primary" />
                 <p className="font-bold text-foreground">Pro</p>
               </div>
@@ -81,16 +93,13 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                 onClick={() => goToPlan("pro")}
                 className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
               >
-                Choose Plan
+                Start with Pro →
               </Button>
             </div>
 
             {/* Premium plan */}
-            <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative">
-              <div className="absolute -top-2 right-3 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full">
-                BEST
-              </div>
-              <div className="flex items-center gap-1.5 mb-1">
+            <div className="rounded-2xl border border-border bg-background p-4 flex flex-col">
+              <div className="flex items-center gap-1.5 mb-1 mt-1">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <p className="font-bold text-foreground">Premium</p>
               </div>
@@ -108,9 +117,9 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
               </ul>
               <Button
                 onClick={() => goToPlan("premium")}
-                className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
+                className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
               >
-                Choose Plan
+                Go Premium →
               </Button>
             </div>
           </div>
