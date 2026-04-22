@@ -45,10 +45,10 @@ export default function CheckoutReturn() {
           </>
         )}
         <Button
-          onClick={() => navigate("/premium")}
+          onClick={() => navigate(destination)}
           className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" /> {t("checkout.back_to_plans")}
+          {profile?.role === "owner" ? "Go to My Jobs" : "Browse Jobs"} <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </motion.div>
     </div>
