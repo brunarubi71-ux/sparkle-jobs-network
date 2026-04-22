@@ -434,6 +434,17 @@ export default function PostJob() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          ) : existingMainPhoto ? (
+            <div className="space-y-2">
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-border">
+                <img src={existingMainPhoto} alt="" className="w-full h-full object-cover" />
+              </div>
+              <label className="flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl p-3 cursor-pointer hover:border-primary/50 transition-colors bg-primary/5">
+                <Camera className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium text-primary">Replace main photo</span>
+                <input type="file" accept="image/*" onChange={handleMainPhotoSelect} className="hidden" />
+              </label>
+            </div>
           ) : (
             <label className="flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl p-6 cursor-pointer hover:border-primary/50 transition-colors bg-primary/5">
               <Camera className="w-6 h-6 text-primary" />
