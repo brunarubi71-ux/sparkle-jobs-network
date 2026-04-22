@@ -130,8 +130,8 @@ export default function PostJob() {
       }
       setUploadingPhotos(false);
 
-      // Both card and wallet save as 'open' for now (Stripe to be connected later)
-      const status = "open";
+      // Card → create as pending_payment until Stripe confirms; Wallet → open immediately.
+      const status = paymentMethod === "card" ? "pending_payment" : "open";
 
       const cleanersReq = parseInt(form.cleaners_required) || 0;
       const helpersReq = parseInt(form.helpers_required) || 0;
@@ -173,12 +173,20 @@ export default function PostJob() {
           job_id: insertedJob?.id || null,
         });
         await refreshProfile();
+        toast.success("Job posted successfully! 🎉");
+        try { await awardPoints(user.id, "job_posted"); } catch {}
+        navigate("/my-jobs");
+        return;
       }
-      toast.success("Job posted successfully! 🎉");
 
-      // Award owner points for posting a job
+      // Card path → open Stripe Embedded Checkout
+      setPendingJob({
+        id: insertedJob!.id,
+        amountCents: Math.round(totalCharged * 100),
+        title: form.title,
+      });
+      setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-      navigate("/my-jobs");
     } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
   };
 
