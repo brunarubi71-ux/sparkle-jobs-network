@@ -228,7 +228,23 @@ export default function MyJobs() {
             <p className="text-xl font-bold text-primary">${job.price}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+            {job.status === "pending_payment" ? (
+              <Button
+                size="sm"
+                onClick={() =>
+                  setPaymentJob({
+                    jobId: job.id,
+                    amountInCents: Math.round(Number(job.total_amount || job.price) * 100),
+                    title: job.title,
+                  })
+                }
+                className="h-7 px-3 text-[11px] font-bold gradient-primary text-primary-foreground rounded-lg hover:opacity-90"
+              >
+                Complete Payment
+              </Button>
+            ) : (
+              <Badge className={`${status.color} border-0 text-[10px] font-bold`}>{status.label}</Badge>
+            )}
             {import.meta.env.DEV && job.status === "pending_payment" && (
               <Button
                 size="sm"
