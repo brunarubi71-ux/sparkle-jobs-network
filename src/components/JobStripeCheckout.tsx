@@ -109,16 +109,26 @@ function JobStripeCheckoutInner({
           },
         });
 
-        if (invokeError) throw new Error(invokeError.message || "Could not reach payment service.");
-        if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Payment service returned an error.");
-        if (!data?.clientSecret) throw new Error("Payment session could not be created.");
+        if (invokeError) {
+          console.error("[JobStripeCheckout] edge function invoke error:", invokeError);
+          throw new Error(invokeError.message || "Could not reach payment service.");
+        }
+        if (data?.error) {
+          console.error("[JobStripeCheckout] edge function returned error payload:", data);
+          const errMsg = typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+          throw new Error(errMsg);
+        }
+        if (!data?.clientSecret) {
+          console.error("[JobStripeCheckout] no clientSecret in response:", data);
+          throw new Error("Payment session could not be created (no client secret returned).");
+        }
         if (!cancelled) setClientSecret(data.clientSecret as string);
       } catch (e) {
         if (cancelled) return;
         const msg = (e as Error).message || "Failed to start payment.";
         console.error("[JobStripeCheckout] fetchClientSecret failed:", e);
         setError(msg);
-        toast.error(msg);
+        toast.error(`Payment error: ${msg}`, { duration: 8000 });
       }
     })();
     return () => {
