@@ -85,7 +85,15 @@ export default function BottomNav() {
     const lastVisitedKey = `chat_last_visited_${user.id}`;
 
     const computeUnread = async () => {
-      const lastVisited = localStorage.getItem(lastVisitedKey) || new Date(0).toISOString();
+      // First-time visitors should not see old messages as "unread".
+      // If no last-visited timestamp exists, seed it to "now" and show 0.
+      let lastVisited = localStorage.getItem(lastVisitedKey);
+      if (!lastVisited) {
+        lastVisited = new Date().toISOString();
+        try { localStorage.setItem(lastVisitedKey, lastVisited); } catch {}
+        setUnreadMessages(0);
+        return;
+      }
 
       // Get conversations the user participates in
       const { data: convs } = await supabase
