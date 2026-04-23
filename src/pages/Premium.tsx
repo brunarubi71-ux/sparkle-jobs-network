@@ -240,6 +240,43 @@ export default function Premium() {
                 Manage Subscription
               </Button>
             </motion.div>
+
+            {currentTier === "pro" && (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.05 }}
+                className="rounded-2xl gradient-primary p-4 shadow-card"
+              >
+                <p className="text-sm font-bold text-primary-foreground mb-3">
+                  ✨ Unlock even more with Premium
+                </p>
+                <div className="rounded-2xl bg-card/95 p-4">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <p className="font-bold text-foreground">Premium</p>
+                  </div>
+                  <p className="text-lg font-extrabold text-foreground leading-tight">
+                    $19.99
+                    <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                  </p>
+                  <ul className="mt-3 mb-4 space-y-1.5">
+                    {premiumBenefits.map((b) => (
+                      <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
+                        <span className="shrink-0">{b.icon}</span>
+                        <span>{b.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    onClick={() => setCheckoutPriceId("premium_monthly")}
+                    className="w-full h-10 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90"
+                  >
+                    Upgrade to Premium →
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </>
         )}
 
