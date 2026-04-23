@@ -131,20 +131,33 @@ export default function CleanerMyJobs() {
       .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
       .order("created_at", { ascending: false });
 
-    // Jobs where the cleaner has applied but is still awaiting owner approval
+    // Applications by this cleaner that are still awaiting owner approval.
+    // Fetch the application rows first, then load the related jobs in a separate query
+    // so a missing/changed FK relationship can never silently zero the result.
     const { data: pendingApps } = await supabase
       .from("job_applications")
-      .select("job_id, status, jobs:jobs!job_applications_job_id_fkey(id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time)")
+      .select("job_id, status")
       .eq("cleaner_id", user!.id)
       .in("status", ["pending", "applied"]);
 
     const hired = (hiredJobs as CleanerJob[]) || [];
     const hiredIds = new Set(hired.map((j) => j.id));
 
-    const pending: CleanerJob[] = ((pendingApps as any[]) || [])
-      .map((row) => row.jobs)
-      .filter((j) => j && !hiredIds.has(j.id))
-      .map((j) => ({ ...(j as CleanerJob), status: "pending" }));
+    const pendingJobIds = Array.from(
+      new Set(((pendingApps as { job_id: string }[]) || []).map((a) => a.job_id))
+    ).filter((id) => !hiredIds.has(id));
+
+    let pending: CleanerJob[] = [];
+    if (pendingJobIds.length > 0) {
+      const { data: pendingJobsData } = await supabase
+        .from("jobs")
+        .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
+        .in("id", pendingJobIds);
+      pending = ((pendingJobsData as CleanerJob[]) || []).map((j) => ({
+        ...j,
+        status: "pending",
+      }));
+    }
 
     setJobs([...pending, ...hired]);
     setLoading(false);

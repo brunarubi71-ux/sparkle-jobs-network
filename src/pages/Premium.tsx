@@ -37,7 +37,7 @@ const planLabel: Record<string, string> = { free: "Free", pro: "Pro", premium: "
 const planPrice: Record<string, string> = { free: "$0", pro: "$9.99/mo", premium: "$19.99/mo" };
 
 export default function Premium() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [history, setHistory] = useState<BillingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
@@ -51,6 +51,11 @@ export default function Premium() {
         setLoading(false);
         return;
       }
+      // Refresh profile so the latest plan_tier (set by the Stripe webhook) is loaded
+      // for both cleaners and helpers — the page render is driven entirely by plan_tier.
+      await refreshProfile();
+      // Subscriptions table is already filtered by user_id (RLS also enforces this),
+      // so we never see other users' billing rows regardless of worker_type.
       const { data } = await supabase
         .from("subscriptions")
         .select("id, plan_name, status, current_period_start, current_period_end, created_at")
@@ -60,6 +65,7 @@ export default function Premium() {
       setLoading(false);
     };
     loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const activeSub = history.find((h) => h.status === "active" || h.status === "trialing");
