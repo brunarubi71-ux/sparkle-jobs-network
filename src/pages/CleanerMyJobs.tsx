@@ -58,10 +58,34 @@ export default function CleanerMyJobs() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (user) {
-      fetchJobs();
-      fetchTabCounts();
-    }
+    if (!user) return;
+    fetchJobs();
+    fetchTabCounts();
+
+    // Realtime: refresh counts/jobs when applications or jobs change for this user
+    const channel = supabase
+      .channel(`cleaner-myjobs-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "job_applications", filter: `cleaner_id=eq.${user.id}` },
+        () => {
+          fetchJobs();
+          fetchTabCounts();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs", filter: `hired_cleaner_id=eq.${user.id}` },
+        () => {
+          fetchJobs();
+          fetchTabCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchTabCounts = async () => {
@@ -86,7 +110,7 @@ export default function CleanerMyJobs() {
         .from("job_applications")
         .select("id", { count: "exact", head: true })
         .eq("cleaner_id", user.id)
-        .eq("status", "pending"),
+        .in("status", ["pending", "applied"]),
     ]);
     setTabCounts({
       active: activeRes.count ?? 0,
@@ -112,7 +136,7 @@ export default function CleanerMyJobs() {
       .from("job_applications")
       .select("job_id, status, jobs:jobs!job_applications_job_id_fkey(id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time)")
       .eq("cleaner_id", user!.id)
-      .eq("status", "pending");
+      .in("status", ["pending", "applied"]);
 
     const hired = (hiredJobs as CleanerJob[]) || [];
     const hiredIds = new Set(hired.map((j) => j.id));
@@ -229,7 +253,7 @@ export default function CleanerMyJobs() {
               {t("cleaner_jobs.active")} ({tabCounts.active})
             </TabsTrigger>
             <TabsTrigger value="applied" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
-              Applied ({tabCounts.applied})
+              {t("cleaner_jobs.applied")} ({tabCounts.applied})
             </TabsTrigger>
             <TabsTrigger value="completed" className="rounded-xl text-[11px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card">
               {t("cleaner_jobs.completed")} ({tabCounts.completed})
@@ -259,8 +283,8 @@ export default function CleanerMyJobs() {
             ) : appliedJobs.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                title="No pending applications"
-                description="Jobs you've applied for will appear here while waiting for owner approval."
+                title={t("cleaner_jobs.no_applied")}
+                description={t("cleaner_jobs.no_applied_hint")}
               />
             ) : (
               appliedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
