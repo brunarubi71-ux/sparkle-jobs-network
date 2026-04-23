@@ -180,7 +180,7 @@ export default function CleanerMyJobs() {
     const hiredIds = new Set(hired.map((job) => job.id));
 
     const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
-      .map((row) => {
+      .map((row): CleanerJob | null => {
         if (!row.jobs || hiredIds.has(row.jobs.id)) return null;
 
         return {
@@ -196,9 +196,9 @@ export default function CleanerMyJobs() {
           date_time: null,
           cleaners_required: row.jobs.cleaners_required,
           helpers_required: row.jobs.helpers_required,
-        } satisfies CleanerJob;
+        };
       })
-      .filter((job): job is CleanerJob => Boolean(job));
+      .filter((job): job is CleanerJob => job !== null);
 
     setJobs([...applied, ...hired]);
     setTabCounts((current) => ({ ...current, applied: applied.length }));
