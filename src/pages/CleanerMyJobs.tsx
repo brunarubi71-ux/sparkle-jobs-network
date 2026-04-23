@@ -269,8 +269,8 @@ export default function CleanerMyJobs() {
             ) : activeJobs.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                title="No jobs yet 💪"
-                description="Start applying to jobs near you to grow your earnings!"
+                title={t("cleaner_jobs.no_active_title")}
+                description={t("cleaner_jobs.no_active_desc")}
               />
             ) : (
               activeJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
@@ -297,8 +297,8 @@ export default function CleanerMyJobs() {
             ) : completedJobs.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                title="No completed jobs yet ✨"
-                description="Your completed jobs will appear here."
+                title={t("cleaner_jobs.no_completed_title")}
+                description={t("cleaner_jobs.no_completed_desc")}
               />
             ) : (
               completedJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)
@@ -311,8 +311,8 @@ export default function CleanerMyJobs() {
             ) : cancelledJobs.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                title="No cancelled jobs"
-                description="Cancelled jobs will show up here."
+                title={t("cleaner_jobs.no_cancelled_title")}
+                description={t("cleaner_jobs.no_cancelled_desc")}
               />
             ) : (
               cancelledJobs.map((job, index) => <JobCard key={job.id} job={job} index={index} />)

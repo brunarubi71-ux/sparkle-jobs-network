@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Crown, Check, Sparkles, Zap, Receipt } from "lucide-react";
+import { Crown, Check, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import { useEffect, useState } from "react";
