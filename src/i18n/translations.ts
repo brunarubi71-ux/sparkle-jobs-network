@@ -36,6 +36,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.post_job": "Post Job",
     "nav.my_jobs": "My Jobs",
     "nav.sell": "Sell",
+    "nav.wallet": "Wallet",
 
     // Jobs
     "jobs.nearby": "Nearby Jobs",
@@ -493,6 +494,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.post_job": "Postar Vaga",
     "nav.my_jobs": "Minhas Vagas",
     "nav.sell": "Vender",
+    "nav.wallet": "Carteira",
 
     "jobs.nearby": "Vagas Próximas",
     "jobs.subtitle": "Encontre vagas de limpeza perto de você",
@@ -925,6 +927,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.post_job": "Publicar",
     "nav.my_jobs": "Mis Trabajos",
     "nav.sell": "Vender",
+    "nav.wallet": "Billetera",
 
     "jobs.nearby": "Trabajos Cercanos",
     "jobs.subtitle": "Encuentra trabajos de limpieza cerca de ti",
