@@ -16,17 +16,36 @@ import { useLanguage } from "@/i18n/LanguageContext";
 interface CleanerJob {
   id: string;
   title: string;
-  cleaning_type: string;
+  cleaning_type: string | null;
   price: number;
-  bedrooms: number;
-  bathrooms: number;
+  bedrooms: number | null;
+  bathrooms: number | null;
   city: string | null;
-  status: string; // effective status: "pending" | actual job status
+  status: string;
   created_at: string;
   date_time: string | null;
+  cleaners_required?: number | null;
+  helpers_required?: number | null;
+}
+
+interface AppliedJobRow {
+  id: string;
+  status: string;
+  created_at: string;
+  job_id: string;
+  jobs: {
+    id: string;
+    title: string;
+    price: number;
+    city: string | null;
+    status: string;
+    cleaners_required: number | null;
+    helpers_required: number | null;
+  } | null;
 }
 
 const ACTIVE_STATUSES = ["accepted", "hired", "in_progress", "pending_review"];
+const APPLIED_APPLICATION_STATUSES = ["pending", "applied", "waiting"];
 
 export default function CleanerMyJobs() {
   const { user, profile } = useAuth();
@@ -42,9 +61,10 @@ export default function CleanerMyJobs() {
 
   const highlightJobId = searchParams.get("highlight");
 
-  // Real status → badge config (color + label + icon)
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    pending: { color: "bg-amber-100 text-amber-700", label: "Waiting for Owner approval", icon: "⏳" },
+    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
+    applied: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
+    waiting: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
     accepted: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
     hired: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
     in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress", icon: "🔧" },
@@ -62,7 +82,6 @@ export default function CleanerMyJobs() {
     fetchJobs();
     fetchTabCounts();
 
-    // Realtime: refresh counts/jobs when applications or jobs change for this user
     const channel = supabase
       .channel(`cleaner-myjobs-${user.id}`)
       .on(
@@ -90,7 +109,7 @@ export default function CleanerMyJobs() {
 
   const fetchTabCounts = async () => {
     if (!user) return;
-    const [activeRes, completedRes, cancelledRes, pendingAppsRes] = await Promise.all([
+    const [activeRes, completedRes, cancelledRes, appliedRes] = await Promise.all([
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
@@ -108,13 +127,23 @@ export default function CleanerMyJobs() {
         .eq("status", "cancelled"),
       supabase
         .from("job_applications")
-        .select("id", { count: "exact", head: true })
+        .select(`
+          id,
+          status,
+          created_at,
+          job_id,
+          jobs (
+            id, title, price, city, status,
+            cleaners_required, helpers_required
+          )
+        `, { count: "exact" })
         .eq("cleaner_id", user.id)
-        .in("status", ["pending", "applied"]),
+        .in("status", APPLIED_APPLICATION_STATUSES),
     ]);
+
     setTabCounts({
       active: activeRes.count ?? 0,
-      applied: pendingAppsRes.count ?? 0,
+      applied: appliedRes.count ?? 0,
       completed: completedRes.count ?? 0,
       cancelled: cancelledRes.count ?? 0,
     });
@@ -123,43 +152,56 @@ export default function CleanerMyJobs() {
   const fetchJobs = async () => {
     setLoading(true);
 
-    // Jobs where the cleaner has been hired (or further along)
-    const { data: hiredJobs } = await supabase
-      .from("jobs")
-      .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
-      .eq("hired_cleaner_id", user!.id)
-      .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
-      .order("created_at", { ascending: false });
-
-    // Applications by this cleaner that are still awaiting owner approval.
-    // Fetch the application rows first, then load the related jobs in a separate query
-    // so a missing/changed FK relationship can never silently zero the result.
-    const { data: pendingApps } = await supabase
-      .from("job_applications")
-      .select("job_id, status")
-      .eq("cleaner_id", user!.id)
-      .in("status", ["pending", "applied"]);
-
-    const hired = (hiredJobs as CleanerJob[]) || [];
-    const hiredIds = new Set(hired.map((j) => j.id));
-
-    const pendingJobIds = Array.from(
-      new Set(((pendingApps as { job_id: string }[]) || []).map((a) => a.job_id))
-    ).filter((id) => !hiredIds.has(id));
-
-    let pending: CleanerJob[] = [];
-    if (pendingJobIds.length > 0) {
-      const { data: pendingJobsData } = await supabase
+    const [hiredJobsRes, appliedJobsRes] = await Promise.all([
+      supabase
         .from("jobs")
         .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
-        .in("id", pendingJobIds);
-      pending = ((pendingJobsData as CleanerJob[]) || []).map((j) => ({
-        ...j,
-        status: "pending",
-      }));
-    }
+        .eq("hired_cleaner_id", user!.id)
+        .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("job_applications")
+        .select(`
+          id,
+          status,
+          created_at,
+          job_id,
+          jobs (
+            id, title, price, city, status,
+            cleaners_required, helpers_required
+          )
+        `)
+        .eq("cleaner_id", user!.id)
+        .in("status", APPLIED_APPLICATION_STATUSES)
+        .order("created_at", { ascending: false }),
+    ]);
 
-    setJobs([...pending, ...hired]);
+    const hired = (hiredJobsRes.data as CleanerJob[]) || [];
+    const hiredIds = new Set(hired.map((job) => job.id));
+
+    const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
+      .map((row) => {
+        if (!row.jobs || hiredIds.has(row.jobs.id)) return null;
+
+        return {
+          id: row.jobs.id,
+          title: row.jobs.title,
+          cleaning_type: null,
+          price: row.jobs.price,
+          bedrooms: null,
+          bathrooms: null,
+          city: row.jobs.city,
+          status: row.status,
+          created_at: row.created_at,
+          date_time: null,
+          cleaners_required: row.jobs.cleaners_required,
+          helpers_required: row.jobs.helpers_required,
+        } satisfies CleanerJob;
+      })
+      .filter((job): job is CleanerJob => Boolean(job));
+
+    setJobs([...applied, ...hired]);
+    setTabCounts((current) => ({ ...current, applied: applied.length }));
     setLoading(false);
   };
 
@@ -172,6 +214,8 @@ export default function CleanerMyJobs() {
 
       const statusOrder: Record<string, number> = {
         pending: 0,
+        applied: 0,
+        waiting: 0,
         hired: 1,
         accepted: 2,
         in_progress: 3,
@@ -187,7 +231,10 @@ export default function CleanerMyJobs() {
     });
 
   const activeJobs = useMemo(() => sortJobs(jobs.filter((job) => ACTIVE_STATUSES.includes(job.status))), [jobs, highlightJobId]);
-  const appliedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "pending")), [jobs, highlightJobId]);
+  const appliedJobs = useMemo(
+    () => sortJobs(jobs.filter((job) => APPLIED_APPLICATION_STATUSES.includes(job.status))),
+    [jobs, highlightJobId]
+  );
   const completedJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "completed")), [jobs, highlightJobId]);
   const cancelledJobs = useMemo(() => sortJobs(jobs.filter((job) => job.status === "cancelled")), [jobs, highlightJobId]);
 
