@@ -201,7 +201,7 @@ export default function CleanerMyJobs() {
       .filter((job): job is CleanerJob => job !== null);
 
     setJobs([...applied, ...hired]);
-    setTabCounts((current) => ({ ...current, applied: applied.length }));
+    setTabCounts((current) => ({ ...current, applied: appliedJobsRes.data?.length ?? 0 }));
     setLoading(false);
   };
 
