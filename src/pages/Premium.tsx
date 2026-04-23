@@ -237,52 +237,6 @@ export default function Premium() {
           </>
         )}
 
-        {/* Billing history */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
-          className="bg-card rounded-2xl p-5 shadow-card"
-        >
-          <h3 className="font-semibold text-foreground mb-3">Billing History</h3>
-          {loading ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Loading...</p>
-          ) : history.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-full bg-accent mx-auto flex items-center justify-center mb-2">
-                <Receipt className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground">No billing history yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Your invoices will appear here once you subscribe
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {history.map((row) => (
-                <div key={row.id} className="py-3 flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {row.plan_name || "Subscription"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(row.created_at), "MMM d, yyyy")}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-1 rounded-full uppercase ${
-                      row.status === "active" || row.status === "trialing"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {row.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
       </div>
 
       {/* Stripe Checkout Dialog */}
