@@ -644,7 +644,7 @@ export default function Jobs() {
         <NotificationBell />
       </div>
 
-      {/* ── JOB CARDS ── */}
+      <TrialBanner />
       <div className="space-y-3 px-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
