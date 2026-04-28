@@ -28,6 +28,9 @@ import NotFound from "./pages/NotFound";
 import Earnings from "./pages/Earnings";
 import CheckoutReturn from "./pages/CheckoutReturn";
 import Wallet from "./pages/Wallet";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cancellation from "./pages/Cancellation";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +92,9 @@ const App = () => {
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Routes>
               <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/cancellation" element={<Cancellation />} />
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
