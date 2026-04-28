@@ -50,12 +50,12 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                   Complete your upgrade
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-muted-foreground">
-                  Pro Plan — $9.99/month
+                  Pro Plan — $14.99/month · 7-day free trial
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-4 max-h-[70vh] overflow-y-auto">
                 <StripeEmbeddedCheckout
-                  priceId="pro_plan"
+                  priceId="pro_monthly"
                   customerEmail={user?.email ?? profile?.email ?? undefined}
                   userId={user?.id}
                   returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
@@ -69,7 +69,7 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                   {title || "You've reached your free limit"}
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-muted-foreground leading-relaxed">
-                  {message || "For just $9.99/month you get 5 jobs per week, priority access and increased visibility."}
+                  {message || "For just $14.99/month you get 5 jobs per week, priority access and increased visibility. Try free for 7 days."}
                 </DialogDescription>
               </DialogHeader>
 
@@ -92,7 +92,7 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-foreground">Pro Plan</p>
-                  <p className="text-xs text-muted-foreground">$9.99/month · cancel anytime</p>
+                  <p className="text-xs text-muted-foreground">$14.99/month · 7-day free trial · cancel anytime</p>
                 </div>
               </button>
 
@@ -101,7 +101,7 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                 disabled={!selected}
                 className="mt-4 w-full h-12 rounded-2xl gradient-primary text-primary-foreground font-bold text-base hover:opacity-90 shadow-card"
               >
-                Unlock Now — $9.99
+                Start 7-day free trial
               </Button>
 
               <button

@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Crown, Check, Sparkles, Zap } from "lucide-react";
+import { Crown, Check, Sparkles, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 import { useEffect, useState } from "react";
@@ -8,9 +8,11 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { getStripeEnvironment } from "@/lib/stripe";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
-interface BillingRow {
+interface SubRow {
   id: string;
   plan_name: string | null;
   status: string;
@@ -23,53 +25,83 @@ const proBenefits = [
   { icon: "⚡", text: "5 jobs per week" },
   { icon: "🎯", text: "Priority job access" },
   { icon: "👁️", text: "Increased visibility" },
-  { icon: "📅", text: "2 schedule listings" },
+  { icon: "📅", text: "1 schedule contact unlock" },
+  { icon: "🎁", text: "7-day free trial" },
 ];
 
 const premiumBenefits = [
   { icon: "🚀", text: "Unlimited jobs per week" },
   { icon: "⭐", text: "Top profile placement" },
-  { icon: "📅", text: "Unlimited schedule listings" },
+  { icon: "📅", text: "Unlimited schedule contacts" },
+  { icon: "💰", text: "Reduced 5% platform fee" },
   { icon: "🏅", text: "Premium badge on profile" },
+  { icon: "🎁", text: "7-day free trial" },
 ];
 
 const planLabel: Record<string, string> = { free: "Free", pro: "Pro", premium: "Premium" };
-const planPrice: Record<string, string> = { free: "$0", pro: "$9.99/mo", premium: "$19.99/mo" };
+
+type Billing = "monthly" | "annual";
+
+const PRICES = {
+  pro: { monthly: { id: "pro_monthly", amount: 14.99 }, annual: { id: "pro_annual", amount: 149 } },
+  premium: { monthly: { id: "premium_monthly", amount: 29.99 }, annual: { id: "premium_annual", amount: 299 } },
+};
 
 export default function Premium() {
   const { user, profile, refreshProfile } = useAuth();
-  const [history, setHistory] = useState<BillingRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeSub, setActiveSub] = useState<SubRow | null>(null);
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
+  const [billing, setBilling] = useState<Billing>("monthly");
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const currentTier = (profile?.plan_tier || "free") as "free" | "pro" | "premium";
   const isPaid = currentTier !== "free";
 
   useEffect(() => {
-    const loadHistory = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      // Refresh profile so the latest plan_tier (set by the Stripe webhook) is loaded
-      // for both cleaners and helpers — the page render is driven entirely by plan_tier.
+    const load = async () => {
+      if (!user) return;
       await refreshProfile();
-      // Subscriptions table is already filtered by user_id (RLS also enforces this),
-      // so we never see other users' billing rows regardless of worker_type.
       const { data } = await supabase
         .from("subscriptions")
         .select("id, plan_name, status, current_period_start, current_period_end, created_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setHistory((data as BillingRow[]) || []);
-      setLoading(false);
+        .eq("environment", getStripeEnvironment())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActiveSub((data as SubRow) || null);
     };
-    loadHistory();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const activeSub = history.find((h) => h.status === "active" || h.status === "trialing");
   const userBenefits = currentTier === "premium" ? premiumBenefits : currentTier === "pro" ? proBenefits : [];
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-portal-session", {
+        body: {
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/premium`,
+        },
+      });
+      if (error || !data?.url) throw new Error(error?.message || "Could not open billing portal");
+      window.open(data.url, "_blank");
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to open billing portal");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const proPrice = PRICES.pro[billing];
+  const premiumPrice = PRICES.premium[billing];
+  const priceSuffix = billing === "monthly" ? "/mo" : "/yr";
+  const activePriceLabel = (tier: "pro" | "premium") => {
+    const p = PRICES[tier][billing];
+    return `$${p.amount}${priceSuffix}`;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -103,25 +135,36 @@ export default function Premium() {
               <div className="inline-flex items-center gap-1.5 bg-accent text-primary text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-3">
                 Free Plan
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-1">You're on the Free Plan</h2>
+              <h2 className="text-xl font-bold text-foreground mb-1">You've reached your free limit</h2>
               <p className="text-sm text-muted-foreground">
                 Upgrade to unlock more jobs and earn more
               </p>
             </motion.div>
 
-            {/* Recommendation */}
+            {/* Billing toggle */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.05 }}
-              className="rounded-2xl gradient-primary px-4 py-3 text-center shadow-card"
+              className="bg-card rounded-2xl p-1.5 flex shadow-card"
             >
-              <p className="text-sm font-bold text-primary-foreground">
-                ✨ We recommend Pro for you!
-              </p>
-              <p className="text-[11px] text-primary-foreground/90 mt-0.5">
-                Most cleaners on Pro earn 3x more per week
-              </p>
+              <button
+                onClick={() => setBilling("monthly")}
+                className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all ${
+                  billing === "monthly" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBilling("annual")}
+                className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all relative ${
+                  billing === "annual" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
+                }`}
+              >
+                Annual
+                <span className="ml-1 text-[9px] font-bold opacity-90">save ~17%</span>
+              </button>
             </motion.div>
 
             {/* Plan cards */}
@@ -141,9 +184,10 @@ export default function Premium() {
                   <p className="font-bold text-foreground">Pro</p>
                 </div>
                 <p className="text-lg font-extrabold text-foreground leading-tight">
-                  $9.99
-                  <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                  ${proPrice.amount}
+                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
                 </p>
+                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {proBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -153,7 +197,7 @@ export default function Premium() {
                   ))}
                 </ul>
                 <Button
-                  onClick={() => setCheckoutPriceId("pro_monthly")}
+                  onClick={() => setCheckoutPriceId(proPrice.id)}
                   className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
                 >
                   Start with Pro →
@@ -167,9 +211,10 @@ export default function Premium() {
                   <p className="font-bold text-foreground">Premium</p>
                 </div>
                 <p className="text-lg font-extrabold text-foreground leading-tight">
-                  $19.99
-                  <span className="text-xs font-medium text-muted-foreground">/mo</span>
+                  ${premiumPrice.amount}
+                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
                 </p>
+                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {premiumBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -179,7 +224,7 @@ export default function Premium() {
                   ))}
                 </ul>
                 <Button
-                  onClick={() => setCheckoutPriceId("premium_monthly")}
+                  onClick={() => setCheckoutPriceId(premiumPrice.id)}
                   className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
                 >
                   Go Premium →
@@ -202,12 +247,11 @@ export default function Premium() {
                     Active
                   </div>
                   <h2 className="text-2xl font-bold text-foreground">{planLabel[currentTier]}</h2>
-                  <p className="text-sm text-muted-foreground">{planPrice[currentTier]}</p>
                 </div>
                 {activeSub?.current_period_end && (
                   <div className="text-right">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Next billing
+                      {activeSub.status === "trialing" ? "Trial ends" : "Next billing"}
                     </p>
                     <p className="text-sm font-semibold text-foreground">
                       {format(new Date(activeSub.current_period_end), "MMM d, yyyy")}
@@ -232,12 +276,15 @@ export default function Premium() {
 
               <Button
                 variant="outline"
+                disabled={portalLoading}
                 className="w-full h-11 rounded-xl border-primary/30 text-primary hover:bg-primary/5 font-semibold text-sm"
-                onClick={() => {
-                  // Placeholder: future Stripe portal integration
-                }}
+                onClick={handleManageSubscription}
               >
-                Manage Subscription
+                {portalLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Manage Subscription"
+                )}
               </Button>
             </motion.div>
 
@@ -257,9 +304,10 @@ export default function Premium() {
                     <p className="font-bold text-foreground">Premium</p>
                   </div>
                   <p className="text-lg font-extrabold text-foreground leading-tight">
-                    $19.99
+                    $29.99
                     <span className="text-xs font-medium text-muted-foreground">/mo</span>
                   </p>
+                  <p className="text-[10px] text-muted-foreground">or $299/yr (save ~17%)</p>
                   <ul className="mt-3 mb-4 space-y-1.5">
                     {premiumBenefits.map((b) => (
                       <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -279,7 +327,6 @@ export default function Premium() {
             )}
           </>
         )}
-
       </div>
 
       {/* Stripe Checkout Dialog */}
