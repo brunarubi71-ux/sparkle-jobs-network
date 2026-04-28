@@ -19,7 +19,7 @@ export const APPLY_LIMITS: Record<PlanTier, number> = {
 
 export const CONTACT_LIMITS: Record<PlanTier, number> = {
   free: 0,
-  pro: 2,
+  pro: 1,
   premium: Number.POSITIVE_INFINITY,
 };
 

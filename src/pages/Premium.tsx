@@ -22,10 +22,10 @@ interface SubRow {
 }
 
 const proBenefits = [
-  { icon: "⚡", text: "5 jobs per week" },
+  { icon: "⚡", text: "7 job applications per week" },
   { icon: "🎯", text: "Priority job access" },
   { icon: "👁️", text: "Increased visibility" },
-  { icon: "📅", text: "1 schedule contact unlock" },
+  { icon: "📅", text: "1 schedule contact per week" },
   { icon: "🎁", text: "7-day free trial" },
 ];
 
@@ -33,7 +33,6 @@ const premiumBenefits = [
   { icon: "🚀", text: "Unlimited jobs per week" },
   { icon: "⭐", text: "Top profile placement" },
   { icon: "📅", text: "Unlimited schedule contacts" },
-  { icon: "💰", text: "Reduced 5% platform fee" },
   { icon: "🏅", text: "Premium badge on profile" },
   { icon: "🎁", text: "7-day free trial" },
 ];
