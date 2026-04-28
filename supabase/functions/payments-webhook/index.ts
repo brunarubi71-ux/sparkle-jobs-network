@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { getPlanFromPriceId } from "../_shared/subscription-prices.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -86,14 +87,15 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
   }
 
   const item = subscription.items?.data?.[0];
-  const priceId = item?.price?.metadata?.lovable_external_id || item?.price?.id;
+  const stripePriceId = item?.price?.id;
+  const priceId = item?.price?.metadata?.lovable_external_id || stripePriceId;
   const productId = item?.price?.product;
 
   const periodStart = subscription.current_period_start;
   const periodEnd = subscription.current_period_end;
 
   // Determine plan tier from price ID
-  const planTier = priceId?.includes("premium") ? "premium" : "pro";
+  const planTier = getPlanFromPriceId(priceId) || getPlanFromPriceId(stripePriceId);
 
   // Update subscriptions table
   await supabase.from("subscriptions").upsert(
@@ -124,8 +126,10 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
 
 async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
   const item = subscription.items?.data?.[0];
-  const priceId = item?.price?.metadata?.lovable_external_id || item?.price?.id;
+  const stripePriceId = item?.price?.id;
+  const priceId = item?.price?.metadata?.lovable_external_id || stripePriceId;
   const productId = item?.price?.product;
+  const planTier = getPlanFromPriceId(priceId) || getPlanFromPriceId(stripePriceId);
   const periodStart = subscription.current_period_start;
   const periodEnd = subscription.current_period_end;
 
@@ -135,6 +139,7 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
       status: subscription.status,
       product_id: productId,
       price_id: priceId,
+      plan_name: planTier,
       current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: subscription.cancel_at_period_end || false,
