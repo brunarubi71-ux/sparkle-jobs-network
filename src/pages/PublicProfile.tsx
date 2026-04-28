@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import PlanBadge from "@/components/PlanBadge";
 import { toast } from "sonner";
 
 function formatMemberSince(iso?: string) {
@@ -222,6 +223,7 @@ export default function PublicProfile() {
                 <ShieldCheck className="w-3 h-3 mr-1" /> Verified
               </Badge>
             )}
+            <PlanBadge tier={(profile as any).plan_tier} />
           </div>
         </div>
       </div>

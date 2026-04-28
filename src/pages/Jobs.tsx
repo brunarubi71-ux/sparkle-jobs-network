@@ -24,8 +24,9 @@ import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from 
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { getPlanLimits, getJobsUsedThisWeek } from "@/lib/planLimits";
+import { canApplyToJob, getApplyLimit, weekStartISO } from "@/lib/paywall";
 import NotificationBell from "@/components/NotificationBell";
+import TrialBanner from "@/components/TrialBanner";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];
@@ -145,6 +146,21 @@ export default function Jobs() {
   const [locationDenied, setLocationDenied] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
+  const [weeklyApplications, setWeeklyApplications] = useState(0);
+
+  // Track applications submitted this week to enforce paywall
+  const refreshWeeklyApps = useCallback(async () => {
+    if (!user) return;
+    const since = weekStartISO();
+    const { count } = await supabase
+      .from("job_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("cleaner_id", user.id)
+      .gte("created_at", since);
+    setWeeklyApplications(count ?? 0);
+  }, [user]);
+
+  useEffect(() => { refreshWeeklyApps(); }, [refreshWeeklyApps]);
 
   const mapCenterSet = React.useRef(false);
   const [flyTrigger, setFlyTrigger] = useState(0);
@@ -388,13 +404,7 @@ export default function Jobs() {
   }, [filtered, selectedJob]);
 
   /* ── accept logic ── */
-  const canAcceptJob = () => {
-    if (!profile) return false;
-    const { maxJobsPerWeek } = getPlanLimits(profile.plan_tier);
-    if (!Number.isFinite(maxJobsPerWeek)) return true;
-    const usedThisWeek = getJobsUsedThisWeek(profile.jobs_used_date, profile.jobs_used_today);
-    return usedThisWeek < maxJobsPerWeek;
-  };
+  const canAcceptJob = () => canApplyToJob(profile, weeklyApplications);
 
   const handleAcceptClick = (job: Job) => {
     if (!user || !profile) return;
@@ -409,12 +419,12 @@ export default function Jobs() {
       if (tier === "free") {
         setPaywallContent({
           title: "You've reached your free limit",
-          message: "Upgrade to Pro for 5 jobs/week!",
+          message: `Free plan: ${getApplyLimit({ plan_tier: "free" })} job applications per week. Upgrade to Pro for 7/week!`,
         });
       } else if (tier === "pro") {
         setPaywallContent({
           title: "Weekly limit reached",
-          message: "Upgrade to Premium for unlimited jobs!",
+          message: `Pro plan: ${getApplyLimit({ plan_tier: "pro" })} job applications per week. Upgrade to Premium for unlimited!`,
         });
       } else {
         setPaywallContent({ title: "Limit reached", message: "Upgrade your plan to apply to more jobs." });
@@ -446,6 +456,7 @@ export default function Jobs() {
       }
       if (!data?.success) throw new Error(data?.error || t("common.failed_apply"));
       await refreshProfile();
+      await refreshWeeklyApps();
       setJobs(cur => cur.filter(item => item.id !== job.id));
       setSelectedJob(null);
       setConfirmJob(null);
@@ -634,7 +645,7 @@ export default function Jobs() {
         <NotificationBell />
       </div>
 
-      {/* ── JOB CARDS ── */}
+      <TrialBanner />
       <div className="space-y-3 px-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)

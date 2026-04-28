@@ -481,6 +481,28 @@ export default function Profile() {
           </motion.div>
         )}
 
+
+        {/* Manage Subscription (paid users) */}
+        {(activePlanTier === "pro" || activePlanTier === "premium") && (
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-xl border-primary/30 text-primary hover:bg-primary/5 font-semibold"
+            onClick={async () => {
+              const { getStripeEnvironment } = await import("@/lib/stripe");
+              const { data, error } = await supabase.functions.invoke("create-portal-session", {
+                body: { environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/profile` },
+              });
+              if (error || !data?.url) {
+                toast.error(error?.message || "Could not open billing portal");
+                return;
+              }
+              window.open(data.url, "_blank");
+            }}
+          >
+            Manage Subscription
+          </Button>
+        )}
+
         {/* Logout */}
         <Button
           variant="outline"

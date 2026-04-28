@@ -14,11 +14,19 @@ interface Props {
   trigger?: "job_limit" | "schedule_limit" | "general";
 }
 
+const PRICES = {
+  monthly: { id: "pro_monthly", amount: 14.99, label: "$14.99/mo" },
+  annual: { id: "pro_annual", amount: 149, label: "$149/yr" },
+};
+
 export default function PremiumModal({ open, onClose, title, message }: Props) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [selected, setSelected] = useState(true);
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [showCheckout, setShowCheckout] = useState(false);
+
+  const price = PRICES[billing];
 
   const handleSeeAllPlans = () => {
     onClose();
@@ -50,12 +58,12 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                   Complete your upgrade
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-muted-foreground">
-                  Pro Plan — $14.99/month · 7-day free trial
+                  Pro Plan — {price.label} · 7-day free trial
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-4 max-h-[70vh] overflow-y-auto">
                 <StripeEmbeddedCheckout
-                  priceId="pro_monthly"
+                  priceId={price.id}
                   customerEmail={user?.email ?? profile?.email ?? undefined}
                   userId={user?.id}
                   returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
@@ -69,15 +77,38 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                   {title || "You've reached your free limit"}
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-muted-foreground leading-relaxed">
-                  {message || "For just $14.99/month you get 5 jobs per week, priority access and increased visibility. Try free for 7 days."}
+                  {message || "Upgrade to Pro for more job applications, priority access and increased visibility. Try free for 7 days."}
                 </DialogDescription>
               </DialogHeader>
+
+              {/* Billing toggle */}
+              <div className="mt-4 bg-muted rounded-xl p-1 flex">
+                <button
+                  type="button"
+                  onClick={() => setBilling("monthly")}
+                  className={`flex-1 h-8 rounded-lg text-xs font-bold transition-all ${
+                    billing === "monthly" ? "bg-card text-foreground shadow" : "text-muted-foreground"
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBilling("annual")}
+                  className={`flex-1 h-8 rounded-lg text-xs font-bold transition-all relative ${
+                    billing === "annual" ? "bg-card text-foreground shadow" : "text-muted-foreground"
+                  }`}
+                >
+                  Annual
+                  <span className="ml-1 text-[9px] font-bold text-primary">Save ~17%</span>
+                </button>
+              </div>
 
               {/* Single plan tick option */}
               <button
                 type="button"
                 onClick={() => setSelected((s) => !s)}
-                className={`mt-5 w-full flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
+                className={`mt-3 w-full flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
                   selected
                     ? "border-primary bg-primary/5 shadow-[0_0_20px_hsl(var(--primary)/0.25)]"
                     : "border-border bg-background"
@@ -92,7 +123,7 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-foreground">Pro Plan</p>
-                  <p className="text-xs text-muted-foreground">$14.99/month · 7-day free trial · cancel anytime</p>
+                  <p className="text-xs text-muted-foreground">{price.label} · 7-day free trial · cancel anytime</p>
                 </div>
               </button>
 
