@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import BadgeDisplay from "@/components/BadgeDisplay";
+import PlanBadge from "@/components/PlanBadge";
 import { toast } from "sonner";
 
 function formatMemberSince(iso?: string) {
