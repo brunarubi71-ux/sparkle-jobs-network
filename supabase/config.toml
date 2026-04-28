@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.create-wallet-checkout]
 verify_jwt = false
+
+[functions.create-portal-session]
+verify_jwt = false
