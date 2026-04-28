@@ -5,6 +5,12 @@ export const SUBSCRIPTION_PRICE_IDS: Record<string, Record<string, string>> = {
     premium_monthly: "price_1TR03YBVtJFDwiEDVyOCdKyg",
     premium_annual: "price_1TR03bBVtJFDwiED5FCTus5s",
   },
+  live: {
+    pro_monthly: "price_1TR03SBVtJFDwiEDDagq8ul5",
+    pro_annual: "price_1TR03VBVtJFDwiEDTttQmLyu",
+    premium_monthly: "price_1TR03YBVtJFDwiEDVyOCdKyg",
+    premium_annual: "price_1TR03bBVtJFDwiED5FCTus5s",
+  },
 };
 
 export const PRICE_ID_TO_PLAN: Record<string, "pro" | "premium"> = {
@@ -20,7 +26,13 @@ export const PRICE_ID_TO_PLAN: Record<string, "pro" | "premium"> = {
 
 export function resolveSubscriptionPriceId(priceId: string, environment: string): string {
   if (priceId.startsWith("price_")) return priceId;
-  return SUBSCRIPTION_PRICE_IDS[environment]?.[priceId] ?? priceId;
+  const mapped = SUBSCRIPTION_PRICE_IDS[environment]?.[priceId];
+  if (!mapped) {
+    throw new Error(
+      `No Stripe price mapping for "${priceId}" in environment "${environment}". Update supabase/functions/_shared/subscription-prices.ts.`
+    );
+  }
+  return mapped;
 }
 
 export function getPlanFromPriceId(priceId?: string | null): "pro" | "premium" {
