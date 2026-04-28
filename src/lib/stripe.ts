@@ -2,7 +2,12 @@ import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
-const environment = clientToken?.startsWith('pk_test_') ? 'sandbox' : 'live';
+
+// TEMPORARY: Force sandbox until live Stripe onboarding (business info,
+// bank account) is completed. When ready to accept real payments, remove
+// this override and restore the prefix-derived environment:
+//   const environment = clientToken?.startsWith('pk_test_') ? 'sandbox' : 'live';
+const environment = 'sandbox';
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
