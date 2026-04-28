@@ -455,6 +455,7 @@ export default function Jobs() {
       }
       if (!data?.success) throw new Error(data?.error || t("common.failed_apply"));
       await refreshProfile();
+      await refreshWeeklyApps();
       setJobs(cur => cur.filter(item => item.id !== job.id));
       setSelectedJob(null);
       setConfirmJob(null);
