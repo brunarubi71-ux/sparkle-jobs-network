@@ -222,6 +222,7 @@ export default function PublicProfile() {
                 <ShieldCheck className="w-3 h-3 mr-1" /> Verified
               </Badge>
             )}
+            <PlanBadge tier={(profile as any).plan_tier} />
           </div>
         </div>
       </div>
