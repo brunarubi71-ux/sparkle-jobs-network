@@ -23,9 +23,43 @@ const TERMS = {
 
 (6) Owners may not hire Cleaners outside the platform for 12 months.
 
-(7) Shinely retains a platform fee of 10% (5% for Premium).
+(7) Owners pay a 10% platform fee on each Job Price (subject to change with 30 days notice). Pro and Premium are subscription plans that unlock features for Cleaners and Helpers — they do not change the platform fee.
 
 (8) Violations may result in account suspension.`,
+  pt: `Ao usar o Shinely, você concorda que:
+
+(1) Você tem 18+ anos.
+
+(2) Pagamentos devem ser feitos exclusivamente pela plataforma.
+
+(3) Compartilhar informações de contato no chat é proibido.
+
+(4) Cleaners/Helpers devem completar jobs aceitos ou enfrentar penalidades.
+
+(5) Cancelamentos em menos de 24h resultam em penalidades.
+
+(6) Owners não podem contratar Cleaners fora da plataforma por 12 meses.
+
+(7) Os Owners pagam uma taxa de plataforma de 10% sobre cada Preço do Job (sujeita a alteração com aviso prévio de 30 dias). Pro e Premium são planos de assinatura que desbloqueiam recursos para Cleaners e Helpers — não alteram a taxa de plataforma.
+
+(8) Violações podem resultar em suspensão da conta.`,
+  es: `Al usar Shinely, aceptas que:
+
+(1) Tienes 18+ años.
+
+(2) Los pagos deben realizarse exclusivamente a través de la plataforma.
+
+(3) Compartir información de contacto en el chat está prohibido.
+
+(4) Los Cleaners/Helpers deben completar los trabajos aceptados o enfrentar penalidades.
+
+(5) Las cancelaciones en menos de 24h resultan en penalidades.
+
+(6) Los Owners no pueden contratar Cleaners fuera de la plataforma por 12 meses.
+
+(7) Los Owners pagan una tarifa de plataforma del 10% sobre cada Precio del Job (sujeta a cambios con aviso previo de 30 días). Pro y Premium son planes de suscripción que desbloquean funciones para Cleaners y Helpers — no cambian la tarifa de la plataforma.
+
+(8) Las violaciones pueden resultar en la suspensión de la cuenta.`,
   pt: `Ao usar o Shinely, você concorda que:
 
 (1) Você tem 18+ anos.
