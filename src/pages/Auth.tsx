@@ -330,6 +330,14 @@ export default function Auth() {
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+
+      <div className="relative z-10 mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
+        <a href="/terms" className="hover:text-white hover:underline">Terms</a>
+        <span aria-hidden="true">·</span>
+        <a href="/privacy" className="hover:text-white hover:underline">Privacy</a>
+        <span aria-hidden="true">·</span>
+        <a href="/cancellation" className="hover:text-white hover:underline">Cancellation</a>
+      </div>
     </div>
   );
 }
