@@ -21,9 +21,7 @@ serve(async (req) => {
     const stripe = createStripeClient(env);
 
     const resolvedPriceId = resolveSubscriptionPriceId(priceId, env);
-    const stripePrice = resolvedPriceId.startsWith("price_")
-      ? await stripe.prices.retrieve(resolvedPriceId)
-      : (await stripe.prices.list({ lookup_keys: [resolvedPriceId] })).data[0];
+    const stripePrice = await stripe.prices.retrieve(resolvedPriceId);
     if (!stripePrice) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
         status: 404,
