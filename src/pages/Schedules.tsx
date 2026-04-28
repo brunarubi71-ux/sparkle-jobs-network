@@ -33,6 +33,7 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import NotificationBell from "@/components/NotificationBell";
+import { canViewScheduleContact, getContactLimit } from "@/lib/paywall";
 
 interface Schedule {
   id: string;
@@ -89,18 +90,13 @@ export default function Schedules() {
   const isOwner = profile?.role === "owner";
   const ownerUnlocked = !!(profile as any)?.schedules_unlocked;
 
-  const getContactLimit = () => {
-    const tier = profile?.plan_tier || "free";
-    if (tier === "premium") return Infinity;
-    if (tier === "pro") return 1;
-    return 0;
-  };
+  // Per-spec contact limits: free=0, pro=2/wk, premium=∞.
+  // Uses profile.free_contacts_used as the running counter.
+  const getLimit = () => getContactLimit(profile);
 
   const canUnlockContact = () => {
     if (!profile) return false;
-    const limit = getContactLimit();
-    if (limit === Infinity) return true;
-    return profile.free_contacts_used < limit;
+    return canViewScheduleContact(profile, profile.free_contacts_used ?? 0);
   };
 
   const handleOwnerUnlockClick = () => {
@@ -109,7 +105,7 @@ export default function Schedules() {
 
   const unlockContact = async (scheduleId: string) => {
     if (!user || !profile) return;
-    const limit = getContactLimit();
+  const limit = getLimit();
     if (limit === Infinity || unlockedIds.has(scheduleId)) {
       setUnlockedIds((s) => new Set(s).add(scheduleId));
       return;
