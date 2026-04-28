@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -171,30 +171,39 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {tabs.map((tab) => {
-          const active = location.pathname === tab.path;
-          return (
-            <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <div className="relative">
-                <tab.icon className={`w-5 h-5 ${active ? "text-primary" : ""}`} />
-                {tab.badge > 0 && (
-                  <span
-                    aria-label={`${tab.badge} pending`}
-                    className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card"
-                  />
-                )}
-              </div>
-              <span className="text-[10px] font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
+      <div className="flex flex-col">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto w-full">
+          {tabs.map((tab) => {
+            const active = location.pathname === tab.path;
+            return (
+              <button
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+                  active ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <div className="relative">
+                  <tab.icon className={`w-5 h-5 ${active ? "text-primary" : ""}`} />
+                  {tab.badge > 0 && (
+                    <span
+                      aria-label={`${tab.badge} pending`}
+                      className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card"
+                    />
+                  )}
+                </div>
+                <span className="text-[10px] font-medium">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="border-t border-border/60 py-1.5 px-4 flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+          <Link to="/terms" className="hover:text-primary">Terms</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/cancellation" className="hover:text-primary">Cancellation</Link>
+        </div>
       </div>
     </nav>
   );

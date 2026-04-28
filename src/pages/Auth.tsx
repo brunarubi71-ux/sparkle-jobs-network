@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
@@ -330,6 +330,14 @@ export default function Auth() {
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+
+      <div className="relative z-10 mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
+        <Link to="/terms" className="hover:text-white hover:underline">Terms</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/privacy" className="hover:text-white hover:underline">Privacy</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/cancellation" className="hover:text-white hover:underline">Cancellation</Link>
+      </div>
     </div>
   );
 }
