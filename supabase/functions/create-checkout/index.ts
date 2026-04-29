@@ -21,12 +21,28 @@ serve(async (req) => {
     const stripe = createStripeClient(env);
 
     const resolvedPriceId = resolveSubscriptionPriceId(priceId, env);
-    const stripePrice = await stripe.prices.retrieve(resolvedPriceId);
+    const stripePrice = await stripe.prices.retrieve(resolvedPriceId, { expand: ["product"] });
     if (!stripePrice) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+    if (stripePrice.active === false) {
+      console.warn(`[create-checkout] activating inactive price ${stripePrice.id}`);
+      await stripe.prices.update(stripePrice.id, { active: true });
+    }
+    const product = stripePrice.product;
+    const productId = typeof product === "string" ? product : product?.id;
+    if (productId && typeof product !== "string" && product.active === false) {
+      console.warn(`[create-checkout] activating inactive product ${productId}`);
+      await stripe.products.update(productId, { active: true });
+    } else if (productId && typeof product === "string") {
+      const stripeProduct = await stripe.products.retrieve(productId);
+      if (stripeProduct.active === false) {
+        console.warn(`[create-checkout] activating inactive product ${productId}`);
+        await stripe.products.update(productId, { active: true });
+      }
     }
     const isRecurring = stripePrice.type === "recurring";
 
