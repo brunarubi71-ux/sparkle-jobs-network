@@ -21,19 +21,35 @@ serve(async (req) => {
     const stripe = createStripeClient(env);
 
     const resolvedPriceId = resolveSubscriptionPriceId(priceId, env);
-    const stripePrice = await stripe.prices.retrieve(resolvedPriceId);
+    const stripePrice = await stripe.prices.retrieve(resolvedPriceId, { expand: ["product"] });
     if (!stripePrice) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (stripePrice.active === false) {
+      console.warn(`[create-checkout] activating inactive price ${stripePrice.id}`);
+      await stripe.prices.update(stripePrice.id, { active: true });
+    }
+    const product = stripePrice.product;
+    const productId = typeof product === "string" ? product : product?.id;
+    if (productId && typeof product !== "string" && product.active === false) {
+      console.warn(`[create-checkout] activating inactive product ${productId}`);
+      await stripe.products.update(productId, { active: true });
+    } else if (productId && typeof product === "string") {
+      const stripeProduct = await stripe.products.retrieve(productId);
+      if (stripeProduct.active === false) {
+        console.warn(`[create-checkout] activating inactive product ${productId}`);
+        await stripe.products.update(productId, { active: true });
+      }
+    }
     const isRecurring = stripePrice.type === "recurring";
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
-      ui_mode: "embedded",
+      ui_mode: "embedded_page",
       payment_method_types: ["card"],
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(customerEmail && { customer_email: customerEmail }),

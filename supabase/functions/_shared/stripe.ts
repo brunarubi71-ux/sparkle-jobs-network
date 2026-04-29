@@ -1,26 +1,28 @@
-// supabase/functions/_shared/stripe.ts
 import { encode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
+import Stripe from "https://esm.sh/stripe@22.0.2";
+
+const getEnv = (key: string): string => {
+  const value = Deno.env.get(key);
+  if (!value) throw new Error(`${key} is not configured`);
+  return value;
+};
 
 export type StripeEnv = 'sandbox' | 'live';
 
-export function getConnectionApiKey(env: StripeEnv): string {
-  const key = env === 'sandbox'
-    ? Deno.env.get('STRIPE_SANDBOX_API_KEY')
-    : Deno.env.get('STRIPE_LIVE_API_KEY');
-  if (!key) throw new Error(`STRIPE_${env.toUpperCase()}_API_KEY is not configured`);
-  return key;
-}
-
-import Stripe from "https://esm.sh/stripe@18.5.0";
-
 const GATEWAY_STRIPE_BASE = 'https://connector-gateway.lovable.dev/stripe';
+
+export function getConnectionApiKey(env: StripeEnv): string {
+  return env === 'sandbox'
+    ? getEnv('STRIPE_SANDBOX_API_KEY')
+    : getEnv('STRIPE_LIVE_API_KEY');
+}
 
 export function createStripeClient(env: StripeEnv): Stripe {
   const connectionApiKey = getConnectionApiKey(env);
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableApiKey) throw new Error('LOVABLE_API_KEY is not configured');
+  const lovableApiKey = getEnv('LOVABLE_API_KEY');
 
   return new Stripe(connectionApiKey, {
+    apiVersion: '2026-03-25.dahlia',
     httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
       const gatewayUrl = url.toString().replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);
       return fetch(gatewayUrl, {
@@ -39,10 +41,9 @@ export async function verifyWebhook(req: Request, env: StripeEnv): Promise<{ typ
   const signature = req.headers.get("stripe-signature");
   const body = await req.text();
   const secret = env === 'sandbox'
-    ? Deno.env.get('PAYMENTS_SANDBOX_WEBHOOK_SECRET')
-    : Deno.env.get('PAYMENTS_LIVE_WEBHOOK_SECRET');
+    ? getEnv('PAYMENTS_SANDBOX_WEBHOOK_SECRET')
+    : getEnv('PAYMENTS_LIVE_WEBHOOK_SECRET');
 
-  if (!secret) throw new Error('Webhook secret environment variable is not configured');
   if (!signature || !body) throw new Error("Missing signature or body");
 
   let timestamp: string | undefined;
