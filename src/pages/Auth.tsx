@@ -35,10 +35,20 @@ export default function Auth() {
     try {
       if (isSignUp) {
         await signUp(email, password, fullName, role, role === "cleaner" ? hasTransportation : undefined);
+        navigate("/");
       } else {
         await signIn(email, password);
+        // Role-based redirect for admins
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+          if ((prof?.role as string) === "admin") {
+            navigate("/admin", { replace: true });
+            return;
+          }
+        }
+        navigate("/");
       }
-      navigate("/");
     } catch (err: any) {
       setError(err.message);
     } finally {
