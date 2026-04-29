@@ -132,8 +132,27 @@ export default function JobDetails() {
   const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
 
+  // Solo start logic: helpers required but none accepted yet
+  const helpersRequired = job?.helpers_required ?? 0;
+  const helpersAccepted = teamMembers.filter(m => m.worker_type === "helper").length;
+  const helperMissing = helpersRequired >= 1 && helpersAccepted < helpersRequired;
+  const allowSoloStart = !!job?.allow_solo_start;
+  const startBlockedByMissingHelper = helperMissing && !allowSoloStart;
+
+  const approveSoloStart = async () => {
+    if (!id) return;
+    const { error } = await supabase.from("jobs").update({ allow_solo_start: true } as any).eq("id", id);
+    if (error) { toast.error("Could not approve solo start"); return; }
+    toast.success("Solo start approved — Cleaner can begin without Helper");
+    await fetchJob();
+  };
+
   const startJob = async () => {
     if (!id) return;
+    if (startBlockedByMissingHelper) {
+      toast.error("Waiting for Helper to be hired or Owner approval");
+      return;
+    }
     setStartingJob(true);
     await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
     toast.success(t("job.started_success"));
