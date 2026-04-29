@@ -138,7 +138,6 @@ export default function ChatConversation() {
   const sendMessage = async () => {
     if (!newMsg.trim() || !user || !id) return;
 
-    // Always block any contact info sharing in chat
     const detection = detectContactInfo(newMsg);
     if (detection.detected) {
       setContactWarning(true);
@@ -149,23 +148,45 @@ export default function ChatConversation() {
       return;
     }
 
-    setSending(true);
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: id,
+    const text = newMsg.trim();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimistic: Message = {
+      id: tempId,
       sender_id: user.id,
-      message_text: newMsg.trim(),
-    });
-    if (error) {
-      console.error("[Chat] Failed to send message:", error);
-      toast.error(error.message || "Failed to send message");
-      setSending(false);
-      return;
-    }
+      message_text: text,
+      created_at: new Date().toISOString(),
+    };
+    // Optimistic UI
+    setMessages((prev) => [...prev, optimistic]);
     setNewMsg("");
-    setSending(false);
     setContactWarning(false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     broadcastTyping(false);
+    setSending(true);
+
+    const { data: inserted, error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: id, sender_id: user.id, message_text: text })
+      .select("id, sender_id, message_text, created_at")
+      .single();
+
+    if (error) {
+      console.error("[Chat] Failed to send message:", error);
+      toast.error(error.message || "Failed to send message");
+      // Roll back optimistic message
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setNewMsg(text);
+      setSending(false);
+      return;
+    }
+
+    // Reconcile temp → real (also covers case where realtime arrived first)
+    setMessages((prev) => {
+      const withoutTemp = prev.filter((m) => m.id !== tempId);
+      if (withoutTemp.some((m) => m.id === (inserted as any).id)) return withoutTemp;
+      return [...withoutTemp, inserted as Message];
+    });
+    setSending(false);
   };
 
   const penaltyMessage = getPenaltyMessage(violationScore, userRole);
