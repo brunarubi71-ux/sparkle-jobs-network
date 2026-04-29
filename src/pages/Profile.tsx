@@ -88,12 +88,20 @@ export default function Profile() {
 
   const fetchActivePlan = async () => {
     if (!user) return;
-    // Confirm real plan via subscriptions table (active or trialing, not expired)
+    // Owners never have subscriptions — they pay a per-job platform fee.
+    if (profile?.role === "owner") {
+      setActivePlanTier("free");
+      setHasActiveSubscription(false);
+      return;
+    }
+    const { getStripeEnvironment } = await import("@/lib/stripe");
+    // Confirm real plan via subscriptions table (active/trialing/past_due, not expired)
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("status, plan_name, current_period_end, cancel_at_period_end")
       .eq("user_id", user.id)
-      .in("status", ["active", "trialing"])
+      .eq("environment", getStripeEnvironment())
+      .in("status", ["active", "trialing", "past_due"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -102,13 +110,15 @@ export default function Profile() {
       !!sub &&
       (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
 
+    setHasActiveSubscription(stillValid);
+
     if (stillValid) {
       const name = (sub!.plan_name || "").toLowerCase();
       if (name.includes("pro")) setActivePlanTier("pro");
       else if (name.includes("premium")) setActivePlanTier("premium");
       else setActivePlanTier(((profile as any)?.plan_tier as any) || "premium");
     } else {
-      setActivePlanTier(((profile as any)?.plan_tier as any) || "free");
+      setActivePlanTier("free");
     }
   };
 
