@@ -1,15 +1,19 @@
 export const SUBSCRIPTION_PRICE_IDS: Record<string, Record<string, string>> = {
   sandbox: {
+    // RUBI SOLUTIONS CORP test account (acct_1TM8dFBVtJFDwiED)
     pro_monthly: "price_1TR03SBVtJFDwiEDDagq8ul5",
     pro_annual: "price_1TR03VBVtJFDwiEDTttQmLyu",
     premium_monthly: "price_1TR03YBVtJFDwiEDVyOCdKyg",
     premium_annual: "price_1TR03bBVtJFDwiED5FCTus5s",
   },
   live: {
-    pro_monthly: "price_1TR03SBVtJFDwiEDDagq8ul5",
-    pro_annual: "price_1TR03VBVtJFDwiEDTttQmLyu",
-    premium_monthly: "price_1TR03YBVtJFDwiEDVyOCdKyg",
-    premium_annual: "price_1TR03bBVtJFDwiED5FCTus5s",
+    // SHINELY APP live account (acct_1TNGWHE6CWgPDhI7).
+    // Logical IDs are resolved to real Stripe price IDs by the connector
+    // gateway per environment — no need to hardcode price_xxx values here.
+    pro_monthly: "pro_monthly",
+    pro_annual: "pro_annual",
+    premium_monthly: "premium_monthly",
+    premium_annual: "premium_annual",
   },
 };
 
