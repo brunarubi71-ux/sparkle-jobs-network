@@ -20,10 +20,16 @@ export const PRICE_ID_TO_PLAN: Record<string, "pro" | "premium"> = {
   pro_annual: "pro",
   premium_monthly: "premium",
   premium_annual: "premium",
+  // Sandbox (RUBI SOLUTIONS CORP)
   price_1TR03SBVtJFDwiEDDagq8ul5: "pro",
   price_1TR03VBVtJFDwiEDTttQmLyu: "pro",
   price_1TR03YBVtJFDwiEDVyOCdKyg: "premium",
   price_1TR03bBVtJFDwiED5FCTus5s: "premium",
+  // Live (SHINELY APP)
+  price_1TRE34E6CWgPDhI7jctgKXwa: "pro",
+  price_1TRE33E6CWgPDhI7NtK2ktCO: "pro",
+  price_1TRE32E6CWgPDhI7zh0wZ6Vg: "premium",
+  price_1TRE32E6CWgPDhI7RRYTHjDx: "premium",
 };
 
 export function resolveSubscriptionPriceId(priceId: string, environment: string): string {
