@@ -132,8 +132,27 @@ export default function JobDetails() {
   const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
 
+  // Solo start logic: helpers required but none accepted yet
+  const helpersRequired = job?.helpers_required ?? 0;
+  const helpersAccepted = teamMembers.filter(m => m.worker_type === "helper").length;
+  const helperMissing = helpersRequired >= 1 && helpersAccepted < helpersRequired;
+  const allowSoloStart = !!job?.allow_solo_start;
+  const startBlockedByMissingHelper = helperMissing && !allowSoloStart;
+
+  const approveSoloStart = async () => {
+    if (!id) return;
+    const { error } = await supabase.from("jobs").update({ allow_solo_start: true } as any).eq("id", id);
+    if (error) { toast.error("Could not approve solo start"); return; }
+    toast.success("Solo start approved — Cleaner can begin without Helper");
+    await fetchJob();
+  };
+
   const startJob = async () => {
     if (!id) return;
+    if (startBlockedByMissingHelper) {
+      toast.error("Waiting for Helper to be hired or Owner approval");
+      return;
+    }
     setStartingJob(true);
     await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
     toast.success(t("job.started_success"));
@@ -658,7 +677,33 @@ export default function JobDetails() {
           </motion.div>
         )}
 
-        {/* Owner: Instructions (read-only view of what they entered) */}
+        {/* Owner: Allow Solo Start (helper missing) */}
+        {isOwner && job.status === "hired" && helperMissing && (
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-card rounded-2xl shadow-card p-4 border-l-4 border-l-amber-400"
+          >
+            <h3 className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+              <Users className="w-4 h-4 text-amber-500" /> Helper not yet hired
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              You can let the Cleaner begin the job alone instead of waiting for a Helper.
+            </p>
+            <Button
+              onClick={approveSoloStart}
+              disabled={allowSoloStart}
+              className={`w-full h-11 rounded-xl font-semibold ${
+                allowSoloStart
+                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-default"
+                  : "gradient-primary text-white"
+              }`}
+            >
+              {allowSoloStart ? "✓ Solo start approved" : "Allow solo start (Cleaner can begin without Helper)"}
+            </Button>
+          </motion.div>
+        )}
+
         {isOwner && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="space-y-4">
             {mainPhoto && (
@@ -767,11 +812,25 @@ export default function JobDetails() {
         {/* Cleaner: Start Job */}
         {isCleaner && ["accepted", "hired"].includes(job.status) && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Button onClick={startJob} disabled={startingJob}
-              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98]">
+            <Button
+              onClick={startJob}
+              disabled={startingJob || startBlockedByMissingHelper}
+              title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
+              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Play className="w-6 h-6 mr-2" />
               {startingJob ? t("job.starting") : t("job.start")}
             </Button>
+            {startBlockedByMissingHelper && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
+                ⏳ Waiting for Helper to be hired or Owner approval
+              </p>
+            )}
+            {helperMissing && allowSoloStart && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 text-center font-medium">
+                ✓ Owner approved solo start
+              </p>
+            )}
           </motion.div>
         )}
 
