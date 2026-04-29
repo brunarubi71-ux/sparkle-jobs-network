@@ -57,10 +57,11 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleHome() {
-  const { profile } = useAuth();
-  if (profile?.role === "admin") return <Navigate to="/admin" replace />;
-  if (profile?.role === "owner") return <PostJob />;
-  // Helpers see the same Jobs feed as cleaners
+  const { profile, loading } = useAuth();
+  if (loading || !profile) return <div className="min-h-screen bg-background" />;
+  if (profile.role === "admin") return <Navigate to="/admin" replace />;
+  if ((profile.role as string) === "owner") return <Navigate to="/post-job" replace />;
+  // Cleaners and helpers see the Jobs feed
   return <Jobs />;
 }
 
