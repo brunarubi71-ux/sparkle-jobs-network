@@ -344,9 +344,98 @@ Florida, USA
 Email: privacy@shinelyapp.com
 `;
 
-export const CANCELLATION_POLICY = `# Cancellation & Refund Policy
+export const CANCELLATION_POLICY = `# Shinely Cancellation & Refund Policy
 
-_Last updated: April 28, 2026_
+_Last updated: April 27, 2026_
 
-Placeholder content. The finalized Cancellation Policy will be pasted here.
+This Cancellation & Refund Policy explains how to cancel a Shinely Subscription Plan or a Job, and what refunds (if any) apply. It is part of our [Terms of Service](/terms).
+
+This policy covers two distinct things:
+
+- **Subscription cancellation** — canceling your Pro or Premium plan.
+- **Job cancellation** — canceling a specific cleaning Job that has been booked.
+
+## 1. Subscription Plans (Pro & Premium)
+
+### 1.1 Free trial
+
+New subscribers to Pro or Premium receive a **7-day free trial**. You are not charged during the trial. If you cancel before the trial ends, you will not be charged. If you do not cancel, the trial automatically converts to a paid subscription on day 8 and you will be charged the applicable rate.
+
+### 1.2 How to cancel a subscription
+
+1. Sign in to Shinely.
+2. Go to **Settings → Billing → Manage Subscription**.
+3. Click **Cancel Subscription** and confirm.
+
+You can also cancel through the Stripe customer portal linked from that page. Cancellation is effective at the end of your current billing period unless stated otherwise.
+
+### 1.3 Effect of cancellation
+
+- **During the trial:** access ends immediately, no charge.
+- **Monthly plan:** you keep access through the end of the paid period (e.g., if you cancel on day 20 of a monthly cycle, you keep access until day 30).
+- **Annual plan:** you keep access through the end of the paid year.
+
+When the period ends, your account is downgraded to **Free**. Subscription features (priority listing, badge, increased contact limits, etc.) are removed at that point. Your account, profile, reviews, and history remain.
+
+### 1.4 Refunds — monthly plans
+
+Monthly subscription fees are **non-refundable** once charged. You keep access through the end of the paid month after cancellation.
+
+### 1.5 Refunds — annual plans
+
+You may request a **prorated refund** of an annual subscription by contacting **support@shinelyapp.com** within **14 days** of the most recent annual charge. Outside of that 14-day window, annual subscriptions are non-refundable, but you keep access for the remaining paid period.
+
+We will issue refunds to the original payment method via Stripe. Refunds typically appear within **5–10 business days**, depending on your card issuer.
+
+### 1.6 Failed payments
+
+If a renewal payment fails, we will notify you and attempt to retry according to Stripe's standard schedule. If payment cannot be collected within the retry period, the subscription is canceled and your account downgrades to Free.
+
+### 1.7 Promotional offers
+
+Promotional or discounted subscription periods (such as a launch discount) are non-refundable except as required by law.
+
+## 2. Jobs
+
+### 2.1 Owner cancels a Job
+
+| When you cancel | Refund |
+|-----------------|--------|
+| More than 24 hours before the scheduled start | 100% refund (Job Price + Platform Fee) |
+| Within 24 hours of the scheduled start | 50% refund of the Job Price; Platform Fee is non-refundable |
+| After the scheduled start or no-show | No refund |
+
+If a Cleaner has already incurred reasonable expenses (e.g., supplies, travel) for a job canceled less than 24 hours in advance, those costs may be deducted from the refund.
+
+### 2.2 Cleaner or Helper cancels
+
+Cleaners and Helpers should make every effort not to cancel after accepting a Job. Cancellations harm Owners and may impact your rating and ability to receive future Jobs.
+
+- **Cancellation more than 24 hours in advance:** Owner receives a full refund. Repeated cancellations may result in account warnings or suspension.
+- **Cancellation within 24 hours:** Owner receives a full refund; Cleaner's account may be flagged. We may issue a service credit to the Owner at our discretion.
+- **No-show:** the Cleaner's account may be suspended. The Owner receives a full refund.
+
+### 2.3 Disputes about Job quality
+
+If you (Owner) believe a Job was not completed as described, contact the Cleaner first to attempt resolution. If you cannot resolve it within **48 hours**, contact us at **support@shinelyapp.com** with a description and any supporting evidence (photos, messages). We will review and may issue a partial or full refund at our discretion. Decisions are final.
+
+### 2.4 Chargebacks
+
+We strongly prefer that you contact us before initiating a chargeback with your card issuer. Chargebacks initiated without contacting us first may result in account suspension and reduce our ability to resolve the underlying issue.
+
+## 3. Account Closure
+
+You can close your account at any time from **Settings → Account → Close Account**, or by emailing **support@shinelyapp.com**. Closing your account does **not** automatically cancel an active subscription — you should cancel the subscription first.
+
+After your account is closed:
+
+- Your profile is removed from public view.
+- Reviews you wrote remain visible (anonymized).
+- We retain certain records as described in our [Privacy Policy](/privacy) (typically up to 7 years for financial records).
+
+## 4. Contact
+
+**Rubi Solutions Corp.**
+Florida, USA
+Email: support@shinelyapp.com
 `;
