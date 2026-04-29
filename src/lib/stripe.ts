@@ -1,15 +1,10 @@
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 
-// TEMPORARY: Hardcoded sandbox publishable key for acct_1TM8dFBVtJFDwiED
-// to match the backend (which is also forced to sandbox). This guarantees
-// the frontend Stripe.js key matches the backend secret key, regardless of
-// which env file the build picked up.
-// When ready to accept real payments, restore:
-//   const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
-//   const environment = clientToken?.startsWith('pk_test_') ? 'sandbox' : 'live';
-const clientToken = 'pk_test_51TM8dFBVtJFDwiEDQt40qVrprjVY8EJtcL9FnxOd30elTOGYpO7BUeP1ywGQMLKDkzx5LTD13MC45gIBbwIxM3pH00ITjyfw2L';
-const environment = 'sandbox';
+const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
+const environment: "sandbox" | "live" = clientToken?.startsWith("pk_test_")
+  ? "sandbox"
+  : "live";
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
@@ -33,6 +28,6 @@ export async function getStripePriceId(priceId: string): Promise<string> {
   return data.stripeId;
 }
 
-export function getStripeEnvironment(): string {
+export function getStripeEnvironment(): "sandbox" | "live" {
   return environment;
 }
