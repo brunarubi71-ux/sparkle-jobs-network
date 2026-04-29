@@ -677,7 +677,33 @@ export default function JobDetails() {
           </motion.div>
         )}
 
-        {/* Owner: Instructions (read-only view of what they entered) */}
+        {/* Owner: Allow Solo Start (helper missing) */}
+        {isOwner && job.status === "hired" && helperMissing && (
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-card rounded-2xl shadow-card p-4 border-l-4 border-l-amber-400"
+          >
+            <h3 className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+              <Users className="w-4 h-4 text-amber-500" /> Helper not yet hired
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              You can let the Cleaner begin the job alone instead of waiting for a Helper.
+            </p>
+            <Button
+              onClick={approveSoloStart}
+              disabled={allowSoloStart}
+              className={`w-full h-11 rounded-xl font-semibold ${
+                allowSoloStart
+                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-default"
+                  : "gradient-primary text-white"
+              }`}
+            >
+              {allowSoloStart ? "✓ Solo start approved" : "Allow solo start (Cleaner can begin without Helper)"}
+            </Button>
+          </motion.div>
+        )}
+
         {isOwner && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="space-y-4">
             {mainPhoto && (
