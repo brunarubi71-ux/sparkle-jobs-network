@@ -210,11 +210,138 @@ Florida, USA
 Email: support@shinelyapp.com
 `;
 
-export const PRIVACY_POLICY = `# Privacy Policy
+export const PRIVACY_POLICY = `# Shinely Privacy Policy
 
-_Last updated: April 28, 2026_
+_Last updated: April 27, 2026_
 
-Placeholder content. The finalized Privacy Policy will be pasted here.
+This Privacy Policy explains how Rubi Solutions Corp. ("Shinely," "we," "us") collects, uses, and shares information when you use the Shinely platform (the "Platform"). By using Shinely, you agree to the practices described in this Policy.
+
+## 1. Information We Collect
+
+### 1.1 Information you provide
+
+- **Account data:** name, email, phone, password.
+- **Profile data:** city, bio, languages, specialties, years of experience, transportation, profile photo.
+- **Job data:** Owners' job descriptions, addresses, access codes, property photos, and instructions; Cleaners' and Helpers' applications and messages.
+- **Payment data:** processed by Stripe. We receive limited metadata (last 4 digits, country, expiration) but do not store full card numbers or CVCs.
+- **Communications:** in-app messages between Users, support requests, reviews, and ratings.
+
+### 1.2 Information collected automatically
+
+- **Device & log data:** IP address, browser/OS, device identifiers, timestamps, pages viewed, referring URLs, error reports.
+- **Location data:** approximate location from IP, and (if you grant permission) precise location for proximity matching.
+- **Cookies & similar technologies:** for authentication, preferences, and analytics. See Section 6.
+
+### 1.3 Information from third parties
+
+- **Stripe:** customer ID, subscription status, billing events.
+- **Authentication providers:** if you sign in with email/social, basic profile info from those providers.
+
+## 2. How We Use Information
+
+We use information to:
+
+- create and operate your account;
+- match Owners with Cleaners and Helpers;
+- process subscriptions and Job payments via Stripe;
+- send transactional messages (booking confirmations, payment receipts, password resets, security alerts);
+- send service-related and (with consent) marketing emails;
+- prevent fraud, abuse, and unauthorized access;
+- respond to support requests;
+- analyze usage and improve the Platform;
+- comply with legal obligations.
+
+## 3. How We Share Information
+
+We share information only as described below.
+
+### 3.1 With other Users
+
+- Profile information (name, city, photo, bio, ratings) is visible to other Users.
+- When a Cleaner is hired, the Owner's job address and access codes are shared with the hired Cleaner and Helper.
+- Reviews you write are visible to other Users.
+- We do **not** share an Owner's personal contact info (email, phone) with Cleaners or Helpers unless the Owner chooses to do so or the Cleaner/Helper holds a Premium plan and the Owner has listed contact info on a public schedule.
+
+### 3.2 With service providers
+
+- **Stripe** (payments)
+- **Supabase** (hosting, authentication, database)
+- Email delivery, analytics, error reporting, customer support tools.
+
+These providers may access information only as needed to perform services for us and are bound by confidentiality obligations.
+
+### 3.3 For legal reasons
+
+We may disclose information if required by law, subpoena, court order, or to protect the rights, safety, or property of Shinely, our Users, or others.
+
+### 3.4 Business transfers
+
+If Shinely is acquired, merged, or sells assets, your information may be transferred as part of that transaction.
+
+### 3.5 With your consent
+
+For any other purpose disclosed at the time of collection.
+
+**We do not sell your personal information to third parties for their own marketing.**
+
+## 4. Your Rights
+
+Depending on where you live, you may have the right to:
+
+- **Access** the personal information we hold about you.
+- **Correct** inaccurate information.
+- **Delete** your information (subject to legal exceptions).
+- **Port** your information to another service.
+- **Opt out** of marketing communications.
+- **Limit** certain uses of sensitive information.
+
+To exercise these rights, email **privacy@shinelyapp.com** or use the Manage Account page in the app. We will respond within the timeframes required by law (generally 45 days under CCPA/CPRA, 30 days under GDPR).
+
+### California residents (CCPA / CPRA)
+
+You have additional rights, including the right to know what categories of personal information we collect, the right to know whether we sell or share information (we do not sell, but we share with service providers as described above), and the right to non-discrimination when exercising these rights.
+
+### EU/UK residents (GDPR/UK GDPR)
+
+You may also lodge a complaint with your local data protection authority. Our legal bases for processing are: **contract** (to provide the Platform), **legitimate interest** (security, improvement), **consent** (marketing, precise location), and **legal obligation**.
+
+## 5. Data Retention
+
+We keep account data while your account is active. After deletion, we may retain certain information for fraud prevention, legal compliance, or to resolve disputes — typically up to **7 years** for financial records required by tax law, and up to **3 years** for other records.
+
+## 6. Cookies and Analytics
+
+We use cookies and similar technologies to keep you logged in, remember preferences, and analyze usage. You can usually disable cookies in your browser, but parts of the Platform may not work without them.
+
+We may use analytics tools (e.g., Google Analytics, Posthog) that collect aggregate usage data. These tools may use cookies or device identifiers.
+
+## 7. Security
+
+We use reasonable technical and organizational measures to protect your information, including TLS encryption in transit, encryption at rest for sensitive fields, hashed passwords, role-based access controls, and audit logging. No system is 100% secure — please keep your password confidential and notify us immediately if you suspect unauthorized access.
+
+## 8. Children's Privacy
+
+The Platform is not intended for anyone under 18. We do not knowingly collect information from children under 18. If you believe a child has provided information to us, contact **privacy@shinelyapp.com** and we will delete it.
+
+## 9. International Transfers
+
+Shinely is operated from the United States. Your information may be processed and stored in the U.S. or other countries that may have different data protection laws. We use appropriate safeguards (such as Standard Contractual Clauses) when transferring data from the EEA/UK.
+
+## 10. Third-Party Links
+
+The Platform may link to third-party services. We are not responsible for their privacy practices. Review their policies before providing information.
+
+## 11. Changes to This Policy
+
+We may update this Policy from time to time. If changes are material, we will notify you (e.g., by email or in-app notice). The "Last updated" date at the top reflects the most recent revision. Continued use of the Platform after changes take effect constitutes acceptance.
+
+## 12. Contact
+
+For questions, requests, or complaints about this Policy or our data practices:
+
+**Rubi Solutions Corp.**
+Florida, USA
+Email: privacy@shinelyapp.com
 `;
 
 export const CANCELLATION_POLICY = `# Cancellation & Refund Policy
