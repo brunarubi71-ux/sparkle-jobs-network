@@ -8,12 +8,10 @@ export const SUBSCRIPTION_PRICE_IDS: Record<string, Record<string, string>> = {
   },
   live: {
     // SHINELY APP live account (acct_1TNGWHE6CWgPDhI7).
-    // Logical IDs are resolved to real Stripe price IDs by the connector
-    // gateway per environment — no need to hardcode price_xxx values here.
-    pro_monthly: "pro_monthly",
-    pro_annual: "pro_annual",
-    premium_monthly: "premium_monthly",
-    premium_annual: "premium_annual",
+    pro_monthly: "price_1TRE34E6CWgPDhI7jctgKXwa",
+    pro_annual: "price_1TRE33E6CWgPDhI7NtK2ktCO",
+    premium_monthly: "price_1TRE32E6CWgPDhI7zh0wZ6Vg",
+    premium_annual: "price_1TRE32E6CWgPDhI7RRYTHjDx",
   },
 };
 
