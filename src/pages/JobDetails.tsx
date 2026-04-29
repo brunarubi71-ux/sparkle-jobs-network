@@ -812,11 +812,25 @@ export default function JobDetails() {
         {/* Cleaner: Start Job */}
         {isCleaner && ["accepted", "hired"].includes(job.status) && (
           <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Button onClick={startJob} disabled={startingJob}
-              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98]">
+            <Button
+              onClick={startJob}
+              disabled={startingJob || startBlockedByMissingHelper}
+              title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
+              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Play className="w-6 h-6 mr-2" />
               {startingJob ? t("job.starting") : t("job.start")}
             </Button>
+            {startBlockedByMissingHelper && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
+                ⏳ Waiting for Helper to be hired or Owner approval
+              </p>
+            )}
+            {helperMissing && allowSoloStart && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 text-center font-medium">
+                ✓ Owner approved solo start
+              </p>
+            )}
           </motion.div>
         )}
 
