@@ -49,7 +49,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
-      ui_mode: "embedded",
+      ui_mode: "embedded_page",
       payment_method_types: ["card"],
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(customerEmail && { customer_email: customerEmail }),
