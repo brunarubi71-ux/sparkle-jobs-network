@@ -102,7 +102,9 @@ export default function Premium() {
           returnUrl: `${window.location.origin}/premium`,
         },
       });
-      if (error || !data?.url) throw new Error(error?.message || "Could not open billing portal");
+      if (error) throw new Error(error.message || "Could not open billing portal");
+      if (data?.error) throw new Error(data.message || "No active subscription on this account.");
+      if (!data?.url) throw new Error("Could not open billing portal");
       window.open(data.url, "_blank");
     } catch (e) {
       toast.error((e as Error).message || "Failed to open billing portal");
