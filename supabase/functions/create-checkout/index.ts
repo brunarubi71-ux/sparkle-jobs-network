@@ -53,9 +53,12 @@ serve(async (req) => {
       payment_method_types: ["card"],
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(customerEmail && { customer_email: customerEmail }),
-      ...(userId && {
-        metadata: { userId },
-        ...(isRecurring && { subscription_data: { metadata: { userId } } }),
+      ...(userId && { metadata: { userId } }),
+      ...(isRecurring && {
+        subscription_data: {
+          trial_period_days: 7,
+          ...(userId && { metadata: { userId } }),
+        },
       }),
     });
 

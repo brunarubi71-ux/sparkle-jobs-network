@@ -503,8 +503,16 @@ export default function Profile() {
               const { data, error } = await supabase.functions.invoke("create-portal-session", {
                 body: { environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/profile` },
               });
-              if (error || !data?.url) {
-                toast.error(error?.message || "Could not open billing portal");
+              if (error) {
+                toast.error(error.message || "Could not open billing portal");
+                return;
+              }
+              if (data?.error) {
+                toast.error(data.message || "No active subscription on this account.");
+                return;
+              }
+              if (!data?.url) {
+                toast.error("Could not open billing portal");
                 return;
               }
               window.open(data.url, "_blank");

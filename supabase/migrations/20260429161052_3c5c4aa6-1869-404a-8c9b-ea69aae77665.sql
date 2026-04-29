@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS allow_solo_start boolean NOT NULL DEFAULT false;

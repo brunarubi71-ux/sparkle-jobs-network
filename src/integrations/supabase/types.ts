@@ -157,6 +157,7 @@ export type Database = {
         Row: {
           address: string | null
           alarm_instructions: string | null
+          allow_solo_start: boolean
           bathrooms: number
           bedrooms: number
           city: string | null
@@ -200,6 +201,7 @@ export type Database = {
         Insert: {
           address?: string | null
           alarm_instructions?: string | null
+          allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
           city?: string | null
@@ -243,6 +245,7 @@ export type Database = {
         Update: {
           address?: string | null
           alarm_instructions?: string | null
+          allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
           city?: string | null

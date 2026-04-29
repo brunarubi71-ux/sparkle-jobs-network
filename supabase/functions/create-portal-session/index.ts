@@ -36,8 +36,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!sub?.stripe_customer_id) {
-      return new Response(JSON.stringify({ error: "No subscription found" }), {
-        status: 404,
+      // Return 200 with a structured error so supabase-js doesn't wrap it as "non-2xx"
+      return new Response(JSON.stringify({ error: "no_subscription", message: "No active subscription found for this account." }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

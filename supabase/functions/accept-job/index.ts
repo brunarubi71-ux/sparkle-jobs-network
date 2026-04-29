@@ -134,9 +134,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    // Cleaners can apply if cleaners are needed OR if it's a helpers-only job (still allowed)
-    if (workerType === "cleaner" && cleanersRequired < 1 && helpersRequired < 1) {
-      return new Response(JSON.stringify({ success: false, error: "This job no longer needs workers." }), {
+    // Cleaners can only apply if cleaners are needed
+    if (workerType === "cleaner" && cleanersRequired < 1) {
+      return new Response(JSON.stringify({ success: false, error: "This job only needs Helpers." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
