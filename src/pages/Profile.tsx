@@ -43,6 +43,7 @@ export default function Profile() {
   const [cleanersHired, setCleanersHired] = useState(0);
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
   const isWorkerRole = profile?.role === "cleaner";
