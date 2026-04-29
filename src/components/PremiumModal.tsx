@@ -28,6 +28,9 @@ export default function PremiumModal({ open, onClose, title, message }: Props) {
 
   const price = PRICES[billing];
 
+  // Subscriptions are only for cleaners/helpers — never for job owners.
+  if (profile?.role === "owner") return null;
+
   const handleSeeAllPlans = () => {
     onClose();
     navigate("/premium");
