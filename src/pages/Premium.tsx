@@ -48,23 +48,6 @@ const PRICES = {
 
 export default function Premium() {
   const { user, profile, refreshProfile } = useAuth();
-
-  // Subscriptions are only for cleaners/helpers — never for job owners.
-  if (profile?.role === "owner") {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center">
-        <Crown className="w-12 h-12 text-primary mb-4" />
-        <h1 className="text-2xl font-bold text-foreground mb-2">Premium plans are for Cleaners and Helpers</h1>
-        <p className="text-sm text-muted-foreground max-w-sm mb-6">
-          As a Job Owner, you don't need a subscription. A 10% platform fee is collected automatically when you book a job.
-        </p>
-        <Button onClick={() => (window.location.href = "/")} className="rounded-xl">
-          Back to home
-        </Button>
-        <BottomNav />
-      </div>
-    );
-  }
   const [activeSub, setActiveSub] = useState<SubRow | null>(null);
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
   const [billing, setBilling] = useState<Billing>("monthly");
@@ -72,8 +55,10 @@ export default function Premium() {
 
   const currentTier = (profile?.plan_tier || "free") as "free" | "pro" | "premium";
   const isPaid = currentTier !== "free";
+  const isOwner = profile?.role === "owner";
 
   useEffect(() => {
+    if (isOwner) return;
     const load = async () => {
       if (!user) return;
       await refreshProfile();
@@ -89,7 +74,24 @@ export default function Premium() {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, isOwner]);
+
+  // Subscriptions are only for cleaners/helpers — never for job owners.
+  if (isOwner) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center">
+        <Crown className="w-12 h-12 text-primary mb-4" />
+        <h1 className="text-2xl font-bold text-foreground mb-2">Premium plans are for Cleaners and Helpers</h1>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">
+          As a Job Owner, you don't need a subscription. A 10% platform fee is collected automatically when you book a job.
+        </p>
+        <Button onClick={() => (window.location.href = "/")} className="rounded-xl">
+          Back to home
+        </Button>
+        <BottomNav />
+      </div>
+    );
+  }
 
   const userBenefits = currentTier === "premium" ? premiumBenefits : currentTier === "pro" ? proBenefits : [];
 
