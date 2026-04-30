@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select("id, role, plan_tier, jobs_used_today, jobs_used_date, worker_type")
+      .select("id, role, plan_tier, jobs_used_today, jobs_used_date, worker_type, identity_status")
       .eq("id", user.id)
       .single();
 
@@ -73,6 +73,13 @@ Deno.serve(async (req) => {
 
     if (profile.role !== "cleaner") {
       return new Response(JSON.stringify({ success: false, error: "Only cleaners can accept jobs." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (profile.identity_status !== "approved") {
+      return new Response(JSON.stringify({ success: false, error: "Please complete identity verification before applying to jobs." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

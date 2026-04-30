@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendNotification } from "@/lib/notifications";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -95,28 +96,24 @@ export default function AdminDashboard() {
     if (error) { toast.error(`Failed to ${decision === "approved" ? "approve" : "reject"} identity`); return; }
 
     // Notify the user about the identity decision
-    try {
-      if (decision === "approved") {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          title: "Identity Verified ✅",
-          message: "Your identity has been verified! You can now apply for jobs.",
-          type: "identity_approved",
-          link: "/profile",
-        });
-      } else {
-        await supabase.from("notifications").insert({
-          user_id: userId,
-          title: "Identity Rejected ❌",
-          message: reason
-            ? `Your identity verification was rejected: ${reason}. Please resubmit your documents in your profile.`
-            : "Your identity verification was rejected. Please resubmit your documents in your profile.",
-          type: "identity_rejected",
-          link: "/profile",
-        });
-      }
-    } catch (e) {
-      console.error("[AdminDashboard] identity notification failed", e);
+    if (decision === "approved") {
+      await sendNotification({
+        userId,
+        title: "Identity Verified ✅",
+        message: "Your identity has been verified! You can now apply for jobs.",
+        type: "identity_approved",
+        link: "/profile",
+      });
+    } else {
+      await sendNotification({
+        userId,
+        title: "Identity Rejected ❌",
+        message: reason
+          ? `Your identity verification was rejected: ${reason}. Please resubmit your documents in your profile.`
+          : "Your identity verification was rejected. Please resubmit your documents in your profile.",
+        type: "identity_rejected",
+        link: "/profile",
+      });
     }
 
     if (decision === "approved") {

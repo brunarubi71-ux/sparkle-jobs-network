@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendNotification, sendNotifications } from "@/lib/notifications";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -268,18 +269,19 @@ export default function JobDetails() {
       (approvedApps || []).forEach((a: any) => { if (a.cleaner_id) approvedIds.add(a.cleaner_id); });
 
       if (approvedIds.size > 0) {
-        const approvedRows = Array.from(approvedIds).map((uid) => ({
-          user_id: uid,
-          title: "Job Approved 🎉",
-          message: `Your work on "${job.title}" has been approved! Payment is being processed.`,
-          type: "job_approved",
-          related_id: id,
-          link: `/job/${id}`,
-        }));
-        await supabase.from("notifications").insert(approvedRows);
+        await sendNotifications(
+          Array.from(approvedIds).map((uid) => ({
+            userId: uid,
+            title: "Job Approved 🎉",
+            message: `Your work on "${job.title}" has been approved! Payment is being processed.`,
+            type: "job_approved",
+            relatedId: id,
+            link: `/job/${id}`,
+          })),
+        );
       }
     } catch (e) {
-      console.error("[JobDetails] job_approved notification failed", e);
+      console.error("[JobDetails] job_approved batch failed", e);
     }
 
     // ----- Payment split: 10% platform fee, 90% split equally among ALL hired workers -----
@@ -304,45 +306,39 @@ export default function JobDetails() {
       ? Math.round((workerPool / workerIds.length) * 100) / 100
       : 0;
 
-    // Update each worker's profile + insert wallet transaction
+    // Update each worker's profile + atomically credit their wallet
     for (const workerId of workerIds) {
       try {
         const { data: wp } = await supabase
           .from("profiles")
-          .select("jobs_completed, total_earnings, worker_type, wallet_balance")
+          .select("jobs_completed, total_earnings, worker_type")
           .eq("id", workerId)
           .single();
         if (!wp) continue;
         const newJobs = (wp.jobs_completed || 0) + 1;
         const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
-        const newWallet = Math.round((Number((wp as any).wallet_balance || 0) + perWorker) * 100) / 100;
         await supabase.from("profiles").update({
           jobs_completed: newJobs,
           total_earnings: newEarnings,
-          wallet_balance: newWallet,
         } as any).eq("id", workerId);
 
-        await supabase.from("wallet_transactions" as any).insert({
-          user_id: workerId,
-          amount: perWorker,
-          type: "credit",
-          description: `Earnings from "${job.title}"`,
-          job_id: id,
+        // Atomic credit (handles concurrent updates safely)
+        await supabase.rpc("credit_wallet", {
+          p_user_id: workerId,
+          p_amount: perWorker,
+          p_description: `Earnings from "${job.title}"`,
+          p_job_id: id,
         });
 
         // Payment Received notification for this worker
-        try {
-          await supabase.from("notifications").insert({
-            user_id: workerId,
-            title: "Payment Received 💰",
-            message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
-            type: "payment_received",
-            related_id: id,
-            link: "/wallet",
-          });
-        } catch (e) {
-          console.error("[JobDetails] payment notification failed", e);
-        }
+        await sendNotification({
+          userId: workerId,
+          title: "Payment Received 💰",
+          message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
+          type: "payment_received",
+          relatedId: id,
+          link: "/wallet",
+        });
 
         const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
         const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId);

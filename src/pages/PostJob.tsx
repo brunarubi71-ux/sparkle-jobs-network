@@ -265,16 +265,18 @@ export default function PostJob() {
       if (error) throw error;
 
       if (paymentMethod === "wallet") {
-        // Deduct from wallet
-        const newBalance = Math.round((walletBalance - totalCharged) * 100) / 100;
-        await supabase.from("profiles").update({ wallet_balance: newBalance } as any).eq("id", user.id);
-        await supabase.from("wallet_transactions" as any).insert({
-          user_id: user.id,
-          amount: totalCharged,
-          type: "debit",
-          description: `Job posted: ${form.title}`,
-          job_id: insertedJob?.id || null,
+        // Atomic debit (handles concurrent updates and insufficient funds in one statement)
+        const { error: debitError } = await supabase.rpc("debit_wallet", {
+          p_amount: totalCharged,
+          p_description: `Job posted: ${form.title}`,
+          p_job_id: insertedJob?.id || null,
         });
+        if (debitError) {
+          // Roll the unpaid job back so the owner isn't left with a stuck "open" job
+          await supabase.from("jobs").delete().eq("id", insertedJob!.id);
+          toast.error(debitError.message || "Wallet payment failed");
+          return;
+        }
         await refreshProfile();
         toast.success("Job posted successfully! 🎉");
         try { await awardPoints(user.id, "job_posted"); } catch {}
