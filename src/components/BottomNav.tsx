@@ -4,6 +4,7 @@ import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList,
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function BottomNav() {
   const location = useLocation();
@@ -197,12 +198,15 @@ export default function BottomNav() {
             );
           })}
         </div>
-        <div className="border-t border-border/60 py-1.5 px-4 flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
-          <Link to="/terms" className="hover:text-primary">Terms</Link>
-          <span aria-hidden="true">·</span>
-          <Link to="/privacy" className="hover:text-primary">Privacy</Link>
-          <span aria-hidden="true">·</span>
-          <Link to="/cancellation" className="hover:text-primary">Cancellation</Link>
+        <div className="border-t border-border/60 py-1.5 px-4 flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <Link to="/terms" className="hover:text-primary">Terms</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/cancellation" className="hover:text-primary">Cancellation</Link>
+          </div>
+          <LanguageSwitcher variant="floating" />
         </div>
       </div>
     </nav>
