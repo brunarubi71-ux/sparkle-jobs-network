@@ -23,12 +23,7 @@ const supabase = createClient(
 
 // Keep in sync with supabase/functions/_shared/subscription-prices.ts
 const PRICE_ID_TO_PLAN: Record<string, "pro" | "premium"> = {
-  // Sandbox (RUBI SOLUTIONS CORP — acct_1TM8dFBVtJFDwiED)
-  price_1TR03SBVtJFDwiEDDagq8ul5: "pro",
-  price_1TR03VBVtJFDwiEDTttQmLyu: "pro",
-  price_1TR03YBVtJFDwiEDVyOCdKyg: "premium",
-  price_1TR03bBVtJFDwiED5FCTus5s: "premium",
-  // Live (SHINELY APP — acct_1TNGWHE6CWgPDhI7)
+  // SHINELY APP live account (acct_1TNGWHE6CWgPDhI7)
   price_1TRE34E6CWgPDhI7jctgKXwa: "pro",
   price_1TRE33E6CWgPDhI7NtK2ktCO: "pro",
   price_1TRE32E6CWgPDhI7zh0wZ6Vg: "premium",
