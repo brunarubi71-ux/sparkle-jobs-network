@@ -58,9 +58,17 @@ export default function JobDetails() {
     setLoading(true);
     const { data } = await supabase.from("jobs").select("*").eq("id", id!).single();
     if (data) {
-      setJob(data);
-      setCompletionPhotos((data as any).completion_photos || []);
-      setCompletionNotes((data as any).completion_notes || "");
+      // Stakeholders (owner / hired cleaner / accepted applicant) get the
+      // private details row; everyone else hits RLS and gets `null`.
+      const { data: priv } = await supabase
+        .from("job_private_details" as any)
+        .select("*")
+        .eq("job_id", id!)
+        .maybeSingle();
+      const merged = { ...(data as any), ...((priv as any) || {}) };
+      setJob(merged);
+      setCompletionPhotos((merged as any).completion_photos || []);
+      setCompletionNotes((merged as any).completion_notes || "");
       // Fetch owner profile + verification status
       const { data: ownerData } = await supabase
         .from("profiles")

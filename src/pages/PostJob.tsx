@@ -57,13 +57,22 @@ export default function PostJob() {
   useEffect(() => {
     if (!isEditMode || !user || !editJobId) return;
     (async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", editJobId)
-        .eq("owner_id", user.id)
-        .maybeSingle();
-      if (error || !data) {
+      const [jobRes, privRes] = await Promise.all([
+        supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", editJobId)
+          .eq("owner_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("job_private_details" as any)
+          .select("*")
+          .eq("job_id", editJobId)
+          .maybeSingle(),
+      ]);
+      const data = jobRes.data as any;
+      const priv = (privRes.data as any) || {};
+      if (jobRes.error || !data) {
         toast.error("Could not load job to edit.");
         navigate("/my-jobs");
         return;
@@ -80,13 +89,13 @@ export default function PostJob() {
         description: data.description ?? "",
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
         helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
-        door_code: data.door_code ?? "",
-        supply_code: data.supply_code ?? "",
-        lockbox_code: data.lockbox_code ?? "",
-        gate_code: data.gate_code ?? "",
-        alarm_instructions: data.alarm_instructions ?? "",
-        parking_instructions: data.parking_instructions ?? "",
-        door_access_info: data.door_access_info ?? "",
+        door_code: priv.door_code ?? "",
+        supply_code: priv.supply_code ?? "",
+        lockbox_code: priv.lockbox_code ?? "",
+        gate_code: priv.gate_code ?? "",
+        alarm_instructions: priv.alarm_instructions ?? "",
+        parking_instructions: priv.parking_instructions ?? "",
+        door_access_info: priv.door_access_info ?? "",
         guest_stay_length: data.guest_stay_length != null ? String(data.guest_stay_length) : "",
         number_of_guests: data.number_of_guests != null ? String(data.number_of_guests) : "",
       });
@@ -194,15 +203,24 @@ export default function PostJob() {
         cleaners_required: cleanersReq, helpers_required: helpersReq,
         main_property_photo: mainPhotoUrl,
         property_photos: allAdditional.length > 0 ? allAdditional : null,
-        door_code: form.door_code || null, supply_code: form.supply_code || null,
-        lockbox_code: form.lockbox_code || null, gate_code: form.gate_code || null,
-        alarm_instructions: form.alarm_instructions || null,
-        parking_instructions: form.parking_instructions || null,
-        door_access_info: form.door_access_info || null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
       } as any).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
+
+      const { error: privError } = await supabase
+        .from("job_private_details" as any)
+        .upsert({
+          job_id: editJobId,
+          door_code: form.door_code || null,
+          supply_code: form.supply_code || null,
+          lockbox_code: form.lockbox_code || null,
+          gate_code: form.gate_code || null,
+          alarm_instructions: form.alarm_instructions || null,
+          parking_instructions: form.parking_instructions || null,
+          door_access_info: form.door_access_info || null,
+        }, { onConflict: "job_id" });
+      if (privError) throw privError;
       toast.success("Job updated");
       navigate("/my-jobs");
     } catch (err) {
@@ -252,17 +270,32 @@ export default function PostJob() {
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
         status,
-        door_code: form.door_code || null,
-        supply_code: form.supply_code || null,
-        lockbox_code: form.lockbox_code || null,
-        gate_code: form.gate_code || null,
-        alarm_instructions: form.alarm_instructions || null,
-        parking_instructions: form.parking_instructions || null,
-        door_access_info: form.door_access_info || null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
       } as any).select("id").single();
       if (error) throw error;
+
+      const hasPrivateData =
+        form.door_code || form.supply_code || form.lockbox_code || form.gate_code ||
+        form.alarm_instructions || form.parking_instructions || form.door_access_info;
+      if (hasPrivateData && insertedJob?.id) {
+        const { error: privError } = await supabase
+          .from("job_private_details" as any)
+          .insert({
+            job_id: insertedJob.id,
+            door_code: form.door_code || null,
+            supply_code: form.supply_code || null,
+            lockbox_code: form.lockbox_code || null,
+            gate_code: form.gate_code || null,
+            alarm_instructions: form.alarm_instructions || null,
+            parking_instructions: form.parking_instructions || null,
+            door_access_info: form.door_access_info || null,
+          });
+        if (privError) {
+          await supabase.from("jobs").delete().eq("id", insertedJob.id);
+          throw privError;
+        }
+      }
 
       if (paymentMethod === "wallet") {
         // Atomic debit (handles concurrent updates and insufficient funds in one statement)

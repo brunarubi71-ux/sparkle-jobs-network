@@ -63,11 +63,21 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       .update({
         status: "open",
         escrow_status: "held",
-        payment_intent_id: session.payment_intent || null,
       })
       .eq("id", jobId);
     if (error) console.error("Failed to activate job:", error);
-    else console.log(`Job ${jobId} activated after payment`);
+
+    if (session.payment_intent) {
+      const { error: privError } = await supabase
+        .from("job_private_details")
+        .upsert(
+          { job_id: jobId, payment_intent_id: session.payment_intent },
+          { onConflict: "job_id" }
+        );
+      if (privError) console.error("Failed to record payment_intent_id:", privError);
+    }
+
+    if (!error) console.log(`Job ${jobId} activated after payment`);
     return;
   }
 

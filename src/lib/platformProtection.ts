@@ -9,61 +9,33 @@ const PENALTY_THRESHOLDS = {
   SEVERE: 10,      // 10 violations: heavy penalty
 };
 
-const VISIBILITY_PENALTIES: Record<string, number> = {
-  WARNING: 1.0,
-  MILD: 0.8,
-  MODERATE: 0.5,
-  SEVERE: 0.2,
-};
-
 export async function logViolation(
   userId: string,
   violationType: ViolationType,
   context: "chat" | "job_post" | "profile",
   messageSnippet?: string
 ): Promise<{ newScore: number; penaltyLevel: string }> {
-  // Log the violation
-  await supabase.from("platform_violations").insert({
-    user_id: userId,
-    violation_type: violationType,
-    context,
-    message_snippet: messageSnippet ? messageSnippet.substring(0, 100) : null,
-    auto_penalty_applied: true,
-  } as any);
+  // Server-side RPC inserts the violation against auth.uid() and bumps
+  // violation_score / visibility_penalty atomically. The client cannot
+  // bypass this to insert against another user or reset its own score.
+  await supabase.rpc("record_self_violation" as any, {
+    _violation_type: violationType,
+    _context: context,
+    _message_snippet: messageSnippet ?? null,
+  });
 
-  // Increment violation score
   const { data: profile } = await supabase
     .from("profiles")
     .select("violation_score")
     .eq("id", userId)
     .single();
 
-  const currentScore = (profile as any)?.violation_score || 0;
-  const newScore = currentScore + 1;
+  const newScore = (profile as any)?.violation_score ?? 0;
 
-  // Determine penalty level
   let penaltyLevel = "WARNING";
-  let visibility = 1.0;
-
-  if (newScore >= PENALTY_THRESHOLDS.SEVERE) {
-    penaltyLevel = "SEVERE";
-    visibility = VISIBILITY_PENALTIES.SEVERE;
-  } else if (newScore >= PENALTY_THRESHOLDS.MODERATE) {
-    penaltyLevel = "MODERATE";
-    visibility = VISIBILITY_PENALTIES.MODERATE;
-  } else if (newScore >= PENALTY_THRESHOLDS.MILD) {
-    penaltyLevel = "MILD";
-    visibility = VISIBILITY_PENALTIES.MILD;
-  }
-
-  // Update profile
-  await supabase
-    .from("profiles")
-    .update({
-      violation_score: newScore,
-      visibility_penalty: visibility,
-    } as any)
-    .eq("id", userId);
+  if (newScore >= PENALTY_THRESHOLDS.SEVERE) penaltyLevel = "SEVERE";
+  else if (newScore >= PENALTY_THRESHOLDS.MODERATE) penaltyLevel = "MODERATE";
+  else if (newScore >= PENALTY_THRESHOLDS.MILD) penaltyLevel = "MILD";
 
   return { newScore, penaltyLevel };
 }
