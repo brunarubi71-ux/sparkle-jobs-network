@@ -38,6 +38,27 @@ const PRICE_ID_TO_PLAN: Record<string, "pro" | "premium"> = {
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
+// Try each configured secret in order; first match wins.
+// STRIPE_WEBHOOK_SECRET      → live destination
+// STRIPE_WEBHOOK_SECRET_TEST → sandbox/test destination (optional)
+async function verifySignature(body: string, signature: string): Promise<Stripe.Event> {
+  const secrets = [
+    Deno.env.get("STRIPE_WEBHOOK_SECRET"),
+    Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST"),
+  ].filter(Boolean) as string[];
+
+  for (const secret of secrets) {
+    try {
+      return await stripe.webhooks.constructEventAsync(
+        body, signature, secret, undefined, cryptoProvider,
+      );
+    } catch {
+      // try next secret
+    }
+  }
+  throw new Error("No configured webhook secret matched the request signature");
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -52,13 +73,7 @@ Deno.serve(async (req) => {
   let event: Stripe.Event;
 
   try {
-    event = await stripe.webhooks.constructEventAsync(
-      body,
-      signature,
-      Deno.env.get("STRIPE_WEBHOOK_SECRET")!,
-      undefined,
-      cryptoProvider,
-    );
+    event = await verifySignature(body, signature);
   } catch (err) {
     console.error("Signature verification failed:", err);
     return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 });
