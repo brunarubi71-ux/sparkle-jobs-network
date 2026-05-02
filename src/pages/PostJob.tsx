@@ -300,7 +300,7 @@ export default function PostJob() {
       if (paymentMethod === "wallet") {
         // Atomic debit (handles concurrent updates and insufficient funds in one statement)
         const { error: debitError } = await supabase.rpc("debit_wallet", {
-          p_user_id: session.user.id,
+          p_user_id: user!.id,
           p_amount: totalCharged,
           p_description: `Job posted: ${form.title}`,
           p_job_id: insertedJob?.id || null,
