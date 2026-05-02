@@ -1,7 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveSubscriptionPriceId } from "../_shared/subscription-prices.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+const json = (status: number, body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -9,12 +20,25 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, quantity, customerEmail, userId, returnUrl, environment } = await req.json();
+    // --- Auth: validate JWT and derive userId ---
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return json(500, { error: "Server is not configured" });
+    }
+
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) return json(401, { error: "Not authenticated" });
+
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authorization } },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) return json(401, { error: "Session expired. Please sign in again." });
+
+    const { priceId, quantity, returnUrl, environment } = await req.json();
     if (!priceId || typeof priceId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(priceId)) {
-      return new Response(JSON.stringify({ error: "Invalid priceId" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(400, { error: "Invalid priceId" });
     }
 
     const env = (environment || 'sandbox') as StripeEnv;
@@ -23,10 +47,7 @@ serve(async (req) => {
     const resolvedPriceId = resolveSubscriptionPriceId(priceId, env);
     const stripePrice = await stripe.prices.retrieve(resolvedPriceId, { expand: ["product"] });
     if (!stripePrice) {
-      return new Response(JSON.stringify({ error: "Price not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(404, { error: "Price not found" });
     }
     if (stripePrice.active === false) {
       console.warn(`[create-checkout] activating inactive price ${stripePrice.id}`);
@@ -46,6 +67,10 @@ serve(async (req) => {
     }
     const isRecurring = stripePrice.type === "recurring";
 
+    // Use authenticated user's ID and email — never trust client-supplied userId
+    const userId = user.id;
+    const customerEmail = user.email;
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
@@ -53,24 +78,19 @@ serve(async (req) => {
       payment_method_types: ["card"],
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(customerEmail && { customer_email: customerEmail }),
-      ...(userId && { metadata: { userId } }),
+      metadata: { userId },
       ...(isRecurring && {
         subscription_data: {
           trial_period_days: 7,
-          ...(userId && { metadata: { userId } }),
+          metadata: { userId },
         },
       }),
     });
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(200, { clientSecret: session.client_secret });
   } catch (error) {
     const message = (error as Error)?.message || String(error);
     console.error("[create-checkout] error:", message, (error as Error)?.stack);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(500, { error: "Checkout failed. Please try again." });
   }
 });

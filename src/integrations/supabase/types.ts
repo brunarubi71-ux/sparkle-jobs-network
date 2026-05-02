@@ -817,12 +817,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_wallet: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      debit_wallet: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      get_job_sensitive_details: {
+        Args: { p_job_id: string }
+        Returns: {
+          alarm_instructions: string
+          door_access_info: string
+          door_code: string
+          gate_code: string
+          lockbox_code: string
+          owner_instructions: string
+          parking_instructions: string
+          payment_intent_id: string
+          supply_code: string
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
+      send_notification: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_related_id?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "cleaner" | "owner" | "admin"
