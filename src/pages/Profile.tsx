@@ -20,6 +20,7 @@ import PointsBadgesSection from "@/components/PointsBadgesSection";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { awardPoints } from "@/lib/points";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -52,7 +53,7 @@ export default function Profile() {
     enabled: !!user?.id && isWorkerRole,
     queryFn: async () => {
       const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
-        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id),
+        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id).eq("is_hidden", false),
         supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
         supabase
           .from("jobs")
@@ -130,6 +131,7 @@ export default function Profile() {
       .from("reviews")
       .select("rating, review_text, created_at, id")
       .eq("reviewed_id", user.id)
+      .eq("is_hidden", false)
       .order("created_at", { ascending: false });
     const list = received || [];
     setReviewCountReceived(list.length);
@@ -521,6 +523,12 @@ export default function Profile() {
             Manage Subscription
           </Button>
         )}
+
+        {/* Language */}
+        <div className="w-full flex items-center justify-between px-1">
+          <span className="text-sm text-muted-foreground">{t("profile.language") || "Language"}</span>
+          <LanguageSwitcher variant="inline" />
+        </div>
 
         {/* Logout */}
         <Button

@@ -1,6 +1,8 @@
 import LegalPage from "@/components/LegalPage";
-import { PRIVACY_POLICY } from "@/content/legal";
+import { getLegal } from "@/content/legal";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Privacy() {
-  return <LegalPage title="Privacy Policy" markdown={PRIVACY_POLICY} />;
+  const { language } = useLanguage();
+  return <LegalPage title="Privacy Policy" markdown={getLegal("privacy", language)} />;
 }

@@ -13,6 +13,7 @@ import EmptyState from "@/components/EmptyState";
 import BackToTop from "@/components/BackToTop";
 import PullToRefresh from "@/components/PullToRefresh";
 import { toast } from "sonner";
+import { sendNotifications } from "@/lib/notifications";
 import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
 import { awardPoints } from "@/lib/points";
@@ -141,19 +142,16 @@ export default function MyJobs() {
 
     // Notify all affected workers
     if (affected.size > 0) {
-      const rows = Array.from(affected).map((uid) => ({
-        user_id: uid,
-        title: "Job Cancelled",
-        message: `The job "${jobTitle || "this job"}" has been cancelled by the owner.`,
-        type: "job_cancelled",
-        related_id: jobId,
-        link: `/job/${jobId}`,
-      }));
-      try {
-        await supabase.from("notifications").insert(rows);
-      } catch (e) {
-        console.error("[MyJobs] cancel notification failed", e);
-      }
+      await sendNotifications(
+        Array.from(affected).map((uid) => ({
+          userId: uid,
+          title: "Job Cancelled",
+          message: `The job "${jobTitle || "this job"}" has been cancelled by the owner.`,
+          type: "job_cancelled",
+          relatedId: jobId,
+          link: `/job/${jobId}`,
+        })),
+      );
     }
 
     toast.success(t("myjobs.job_cancelled"));

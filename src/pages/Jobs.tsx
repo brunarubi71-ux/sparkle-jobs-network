@@ -285,14 +285,6 @@ export default function Jobs() {
         rawJobs = rawJobs.filter(j => j.status === "open" && !j.hired_cleaner_id);
       }
 
-      console.log("[Jobs] Fetched jobs", {
-        worker_type: profile?.worker_type,
-        plan_tier: profile?.plan_tier,
-        total_open_or_applied: (data as Job[])?.length ?? 0,
-        visible_to_user: rawJobs.length,
-        breakdown: rawJobs.map(j => ({ id: j.id, title: j.title, status: j.status, cleaners_required: j.cleaners_required, helpers_required: j.helpers_required, filled: filledByJob.get(j.id) })),
-      });
-
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
       const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();

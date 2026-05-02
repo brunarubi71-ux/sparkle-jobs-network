@@ -1,6 +1,8 @@
 import LegalPage from "@/components/LegalPage";
-import { TERMS_OF_SERVICE } from "@/content/legal";
+import { getLegal } from "@/content/legal";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Terms() {
-  return <LegalPage title="Terms of Service" markdown={TERMS_OF_SERVICE} />;
+  const { language } = useLanguage();
+  return <LegalPage title="Terms of Service" markdown={getLegal("terms", language)} />;
 }

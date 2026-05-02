@@ -49,8 +49,8 @@ const PHONE_PATTERNS = [
 
 // Email patterns
 const EMAIL_PATTERNS = [
-  /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/,
-  /\b[A-Za-z0-9._%+\-]+\s*@\s*[A-Za-z0-9.\-]+\s*\.\s*[A-Za-z]{2,}\b/,
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
+  /\b[A-Za-z0-9._%+-]+\s*@\s*[A-Za-z0-9.-]+\s*\.\s*[A-Za-z]{2,}\b/,
   // "at gmail dot com" style
   /\b\w+\s+at\s+\w+\s+dot\s+(com|net|org|io|co)\b/i,
 ];

@@ -1,6 +1,8 @@
 import LegalPage from "@/components/LegalPage";
-import { CANCELLATION_POLICY } from "@/content/legal";
+import { getLegal } from "@/content/legal";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Cancellation() {
-  return <LegalPage title="Cancellation & Refund Policy" markdown={CANCELLATION_POLICY} />;
+  const { language } = useLanguage();
+  return <LegalPage title="Cancellation & Refund Policy" markdown={getLegal("cancellation", language)} />;
 }
