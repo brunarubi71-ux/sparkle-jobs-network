@@ -8,6 +8,7 @@ import {
   Shield, Users, Briefcase, DollarSign, BarChart3, ShieldCheck,
   Check, X, Crown, AlertTriangle, Ban, RotateCcw, Search, Eye, TrendingUp,
   Webhook, ShieldOff, Settings2, Wallet, Star, EyeOff, Trash2,
+  Megaphone, Settings, AlertOctagon, UsersRound, Plus, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 import { awardPoints } from "@/lib/points";
 
-type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "reviews" | "webhooks";
+type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "reviews" | "webhooks" | "settings" | "violations" | "teams";
 type RoleFilter = "all" | "owner" | "cleaner" | "helper";
 type StatusFilter = "all" | "verified" | "pending" | "unverified" | "suspended" | "banned";
 type RevenueRange = "7" | "30" | "90" | "all";
@@ -52,6 +53,12 @@ export default function AdminDashboard() {
   const [overrideJob, setOverrideJob] = useState<any | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [appSettings, setAppSettings] = useState<any[]>([]);
+  const [violations, setViolations] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamInvites, setTeamInvites] = useState<any[]>([]);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [editSetting, setEditSetting] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,12 +71,16 @@ export default function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [profilesRes, jobsRes, disputesRes, webhooksRes, reviewsRes] = await Promise.all([
+    const [profilesRes, jobsRes, disputesRes, webhooksRes, reviewsRes, settingsRes, violationsRes, teamMembersRes, teamInvitesRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("webhook_events").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("reviews").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("app_settings").select("*").order("key"),
+      supabase.from("platform_violations").select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("team_members").select("*").order("created_at", { ascending: false }),
+      supabase.from("team_invites").select("*").order("created_at", { ascending: false }),
     ]);
     const p = profilesRes.data || [];
     const j = jobsRes.data || [];
@@ -81,6 +92,10 @@ export default function AdminDashboard() {
     setDisputes(d);
     setWebhookEvents(w);
     setReviews(r);
+    setAppSettings(settingsRes.data || []);
+    setViolations(violationsRes.data || []);
+    setTeamMembers(teamMembersRes.data || []);
+    setTeamInvites(teamInvitesRes.data || []);
     setStats({
       users: p.length,
       cleaners: p.filter((u: any) => u.role === "cleaner").length,
@@ -225,6 +240,65 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
+  const sendBroadcast = async (filter: string, title: string, message: string, link?: string) => {
+    const { data, error } = await supabase.rpc("admin_broadcast_notification" as any, {
+      _filter: filter,
+      _title: title,
+      _message: message,
+      _type: "admin_broadcast",
+      _link: link || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Broadcast sent to ${data} user${Number(data) === 1 ? "" : "s"}`);
+    setBroadcastOpen(false);
+  };
+
+  const upsertSetting = async (key: string, value: any, description?: string) => {
+    const { error } = await supabase.rpc("admin_upsert_app_setting" as any, {
+      _key: key,
+      _value: value,
+      _description: description || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Setting "${key}" saved`);
+    setEditSetting(null);
+    fetchAll();
+  };
+
+  const deleteSetting = async (key: string) => {
+    if (!confirm(`Delete setting "${key}"? This may break feature flags.`)) return;
+    const { error } = await supabase.rpc("admin_delete_app_setting" as any, { _key: key });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Setting "${key}" deleted`);
+    fetchAll();
+  };
+
+  const resetUserViolations = async (userId: string, userName: string) => {
+    if (!confirm(`Clear ALL violations for ${userName}? Score resets to 0 and visibility penalty to 1.0.`)) return;
+    const { data, error } = await supabase.rpc("admin_reset_violations" as any, {
+      _user_id: userId,
+      _reason: null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Cleared ${data} violation${Number(data) === 1 ? "" : "s"}`);
+    fetchAll();
+  };
+
+  const removeTeamMember = async (memberId: string) => {
+    if (!confirm("Remove this team member? They'll lose access to the team.")) return;
+    const { error } = await supabase.rpc("admin_remove_team_member" as any, { _member_id: memberId });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success("Team member removed");
+    fetchAll();
+  };
+
+  const cancelTeamInvite = async (inviteId: string) => {
+    const { error } = await supabase.rpc("admin_cancel_team_invite" as any, { _invite_id: inviteId });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success("Invite cancelled");
+    fetchAll();
+  };
+
   const changeUserPlan = async (userId: string, newPlan: "free" | "premium" | "pro") => {
     const update: any = {
       plan_tier: newPlan,
@@ -309,6 +383,9 @@ export default function AdminDashboard() {
     { key: "jobs", label: "Jobs", icon: Briefcase },
     { key: "disputes", label: "Disputes", icon: AlertTriangle, badge: stats.openDisputes },
     { key: "reviews", label: "Reviews", icon: Star, badge: reviews.filter((r: any) => !r.is_hidden).length > 0 ? undefined : 0 },
+    { key: "violations", label: "Violations", icon: AlertOctagon, badge: users.filter((u: any) => (u.violation_score || 0) > 0).length },
+    { key: "teams", label: "Teams", icon: UsersRound },
+    { key: "settings", label: "Settings", icon: Settings },
     { key: "webhooks", label: "Webhooks", icon: Webhook, badge: webhookEvents.filter((w: any) => w.error || !w.processed_at).length },
   ];
 
@@ -479,9 +556,14 @@ export default function AdminDashboard() {
         {/* ─── USERS ─── */}
         {tab === "users" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-lg font-bold text-foreground">User Management</h2>
-              <span className="text-xs text-muted-foreground">{filteredUsers.length} of {users.filter((u: any) => u.role !== "admin").length}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{filteredUsers.length} of {users.filter((u: any) => u.role !== "admin").length}</span>
+                <Button size="sm" onClick={() => setBroadcastOpen(true)} className="h-8 text-xs bg-primary text-primary-foreground">
+                  <Megaphone className="w-3 h-3 mr-1" /> Broadcast
+                </Button>
+              </div>
             </div>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -756,6 +838,195 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ─── VIOLATIONS ─── */}
+        {tab === "violations" && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <AlertOctagon className="w-5 h-5 text-destructive" />
+              Platform Violations
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Users with violation_score &gt; 0. Each violation can be triggered automatically (chat profanity, spam, etc.) and reduces the user's visibility in search.
+            </p>
+            {users.filter((u: any) => (u.violation_score || 0) > 0).length === 0 && (
+              <p className="text-muted-foreground text-sm text-center py-8">No users with violations.</p>
+            )}
+            {users
+              .filter((u: any) => (u.violation_score || 0) > 0)
+              .sort((a: any, b: any) => (b.violation_score || 0) - (a.violation_score || 0))
+              .map((u: any) => {
+                const userViolations = violations.filter((v: any) => v.user_id === u.id);
+                return (
+                  <div key={u.id} className="bg-card rounded-xl shadow-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{u.full_name || u.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-2xl font-bold text-destructive">{u.violation_score || 0}</p>
+                        <p className="text-[10px] text-muted-foreground">score</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-muted/40 rounded-lg p-2">
+                        <p className="text-[10px] text-muted-foreground">Visibility</p>
+                        <p className="text-foreground">{Math.round(Number(u.visibility_penalty || 1) * 100)}%</p>
+                      </div>
+                      <div className="bg-muted/40 rounded-lg p-2">
+                        <p className="text-[10px] text-muted-foreground">Total events</p>
+                        <p className="text-foreground">{userViolations.length}</p>
+                      </div>
+                    </div>
+                    {userViolations.slice(0, 3).map((v: any) => (
+                      <div key={v.id} className="text-[11px] bg-muted/30 rounded p-2">
+                        <p className="font-medium text-foreground">{v.violation_type} <span className="text-muted-foreground">· {v.context}</span></p>
+                        {v.message_snippet && <p className="text-muted-foreground italic mt-0.5">"{v.message_snippet}"</p>}
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(v.created_at).toLocaleString()}</p>
+                      </div>
+                    ))}
+                    {userViolations.length > 3 && (
+                      <p className="text-[10px] text-muted-foreground text-center">+ {userViolations.length - 3} older violation{userViolations.length - 3 === 1 ? "" : "s"}</p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => resetUserViolations(u.id, u.full_name || u.email)}
+                      className="h-8 w-full text-[11px] text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" /> Clear All Violations
+                    </Button>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {/* ─── TEAMS ─── */}
+        {tab === "teams" && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <UsersRound className="w-5 h-5 text-primary" />
+              Teams ({teamMembers.length} members · {teamInvites.filter((i: any) => i.status === "pending").length} pending)
+            </h2>
+            {teamMembers.length === 0 && teamInvites.length === 0 && (
+              <p className="text-muted-foreground text-sm text-center py-8">No teams yet.</p>
+            )}
+            {teamMembers.length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold text-foreground mt-2">Active Members</h3>
+                {teamMembers.map((m: any) => {
+                  const owner = users.find((u: any) => u.id === m.team_owner_id);
+                  const member = users.find((u: any) => u.id === m.member_id);
+                  return (
+                    <div key={m.id} className="bg-card rounded-xl shadow-card p-3 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {member?.full_name || member?.email || "—"}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Team of {owner?.full_name || owner?.email || "—"}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] capitalize flex-shrink-0">{m.role}</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Joined: {new Date(m.joined_at).toLocaleDateString()}</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeTeamMember(m.id)}
+                        className="h-8 w-full text-[11px] text-destructive border-destructive/40 hover:bg-destructive/5"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" /> Remove from Team
+                      </Button>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+            {teamInvites.length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold text-foreground mt-4">Invites</h3>
+                {teamInvites.map((i: any) => {
+                  const owner = users.find((u: any) => u.id === i.team_owner_id);
+                  const invitee = i.invitee_id ? users.find((u: any) => u.id === i.invitee_id) : null;
+                  const statusColor = i.status === "pending" ? "bg-amber-100 text-amber-700" : i.status === "accepted" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground";
+                  return (
+                    <div key={i.id} className="bg-card rounded-xl shadow-card p-3 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {invitee?.full_name || invitee?.email || i.email || "—"}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            From {owner?.full_name || owner?.email || "—"}
+                          </p>
+                        </div>
+                        <Badge className={`${statusColor} border-0 text-[10px] flex-shrink-0`}>{i.status}</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Sent: {new Date(i.created_at).toLocaleString()}</p>
+                      {i.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => cancelTeamInvite(i.id)}
+                          className="h-8 w-full text-[11px] text-destructive border-destructive/40 hover:bg-destructive/5"
+                        >
+                          <X className="w-3 h-3 mr-1" /> Cancel Invite
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── SETTINGS ─── */}
+        {tab === "settings" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
+                App Settings ({appSettings.length})
+              </h2>
+              <Button size="sm" onClick={() => setEditSetting({ key: "", value: {}, description: "" })} className="h-8 text-xs bg-primary text-primary-foreground">
+                <Plus className="w-3 h-3 mr-1" /> New
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Feature flags and platform-wide configuration. Values are JSON. Editing affects the live app immediately.
+            </p>
+            {appSettings.length === 0 && (
+              <p className="text-muted-foreground text-sm text-center py-8">No settings yet.</p>
+            )}
+            {appSettings.map((s: any) => (
+              <div key={s.key} className="bg-card rounded-xl shadow-card p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-mono font-medium text-foreground">{s.key}</p>
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                    {new Date(s.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {s.description && (
+                  <p className="text-xs text-muted-foreground">{s.description}</p>
+                )}
+                <pre className="text-[11px] bg-muted/40 rounded-lg p-2 overflow-x-auto font-mono whitespace-pre-wrap break-all">{JSON.stringify(s.value, null, 2)}</pre>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button size="sm" variant="outline" onClick={() => setEditSetting(s)} className="h-8 text-[11px]">
+                    <Settings2 className="w-3 h-3 mr-1" /> Edit
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => deleteSetting(s.key)} className="h-8 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/5">
+                    <Trash2 className="w-3 h-3 mr-1" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ─── WEBHOOKS ─── */}
         {tab === "webhooks" && (
           <div className="space-y-3">
@@ -844,6 +1115,20 @@ export default function AdminDashboard() {
         user={subOverrideUser}
         onClose={() => setSubOverrideUser(null)}
         onConfirm={overrideSubscription}
+      />
+
+      {/* Broadcast Modal */}
+      <BroadcastModal
+        open={broadcastOpen}
+        onClose={() => setBroadcastOpen(false)}
+        onConfirm={sendBroadcast}
+      />
+
+      {/* App Setting Edit Modal */}
+      <SettingEditModal
+        setting={editSetting}
+        onClose={() => setEditSetting(null)}
+        onConfirm={upsertSetting}
       />
     </div>
   );
@@ -1517,3 +1802,165 @@ function SubscriptionOverrideModal({
   );
 }
 
+
+function BroadcastModal({
+  open, onClose, onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (filter: string, title: string, message: string, link?: string) => void;
+}) {
+  const [filter, setFilter] = useState("all");
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [link, setLink] = useState("");
+  useEffect(() => { if (!open) { setFilter("all"); setTitle(""); setMessage(""); setLink(""); } }, [open]);
+
+  const filterLabels: Record<string, string> = {
+    all: "All users",
+    "role:cleaner": "All cleaners",
+    "role:owner": "All owners",
+    "plan:free": "Free plan users",
+    "plan:premium": "Premium subscribers",
+    "plan:pro": "Pro subscribers",
+    verified: "Identity-verified users",
+    unverified: "Unverified users",
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-primary" /> Broadcast Notification
+          </DialogTitle>
+          <DialogDescription>Send an in-app notification to a cohort of users (banned excluded).</DialogDescription>
+        </DialogHeader>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Audience</p>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(filterLabels).map(([k, label]) => (
+                <SelectItem key={k} value={k}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Title</p>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="e.g. New feature: schedules!" className="h-10 rounded-lg" />
+        </div>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Message</p>
+          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} placeholder="What you want to announce…" className="rounded-lg text-sm min-h-[100px]" />
+          <p className="text-[10px] text-muted-foreground mt-1 text-right">{message.length}/500</p>
+        </div>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Link (optional)</p>
+          <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="/jobs or https://..." className="h-10 rounded-lg" />
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button
+            onClick={() => onConfirm(filter, title, message, link || undefined)}
+            disabled={!title.trim() || !message.trim()}
+            className="flex-1 bg-primary text-primary-foreground"
+          >
+            <Megaphone className="w-3.5 h-3.5 mr-1" /> Send
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SettingEditModal({
+  setting, onClose, onConfirm,
+}: {
+  setting: any | null;
+  onClose: () => void;
+  onConfirm: (key: string, value: any, description?: string) => void;
+}) {
+  const [key, setKey] = useState("");
+  const [valueText, setValueText] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (setting) {
+      setKey(setting.key || "");
+      setValueText(JSON.stringify(setting.value ?? {}, null, 2));
+      setDescription(setting.description || "");
+      setError("");
+    }
+  }, [setting]);
+  if (!setting) return null;
+  const isNew = !setting.key;
+
+  const handleSave = () => {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(valueText);
+    } catch {
+      setError("Value is not valid JSON");
+      return;
+    }
+    if (!key.trim()) { setError("Key required"); return; }
+    onConfirm(key.trim(), parsed, description.trim() || undefined);
+  };
+
+  return (
+    <Dialog open={!!setting} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-primary" /> {isNew ? "New Setting" : "Edit Setting"}
+          </DialogTitle>
+          <DialogDescription>
+            {isNew ? "Create a new feature flag or config value." : "Edit this setting. Saves immediately to live app."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Key</p>
+          <Input
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            disabled={!isNew}
+            placeholder="e.g. feature_X_enabled"
+            className="h-10 rounded-lg font-mono"
+          />
+        </div>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Value (JSON)</p>
+          <Textarea
+            value={valueText}
+            onChange={(e) => { setValueText(e.target.value); setError(""); }}
+            placeholder='e.g. {"enabled": true}'
+            className="rounded-lg text-xs min-h-[120px] font-mono"
+          />
+        </div>
+
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Description (optional)</p>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-10 rounded-lg" />
+        </div>
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button onClick={handleSave} disabled={!key.trim() || !valueText.trim()} className="flex-1 bg-primary text-primary-foreground">
+            <Save className="w-3.5 h-3.5 mr-1" /> Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
