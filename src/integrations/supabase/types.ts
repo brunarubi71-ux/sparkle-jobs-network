@@ -153,6 +153,53 @@ export type Database = {
         }
         Relationships: []
       }
+      job_private_details: {
+        Row: {
+          alarm_instructions: string | null
+          door_access_info: string | null
+          door_code: string | null
+          gate_code: string | null
+          job_id: string
+          lockbox_code: string | null
+          owner_instructions: string | null
+          parking_instructions: string | null
+          payment_intent_id: string | null
+          supply_code: string | null
+        }
+        Insert: {
+          alarm_instructions?: string | null
+          door_access_info?: string | null
+          door_code?: string | null
+          gate_code?: string | null
+          job_id: string
+          lockbox_code?: string | null
+          owner_instructions?: string | null
+          parking_instructions?: string | null
+          payment_intent_id?: string | null
+          supply_code?: string | null
+        }
+        Update: {
+          alarm_instructions?: string | null
+          door_access_info?: string | null
+          door_code?: string | null
+          gate_code?: string | null
+          job_id?: string
+          lockbox_code?: string | null
+          owner_instructions?: string | null
+          parking_instructions?: string | null
+          payment_intent_id?: string | null
+          supply_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_private_details_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           address: string | null
@@ -817,6 +864,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_points: {
+        Args: { p_points: number; p_reason: string; p_user_id: string }
+        Returns: number
+      }
       credit_wallet: {
         Args: {
           p_amount: number
@@ -849,11 +900,28 @@ export type Database = {
           supply_code: string
         }[]
       }
+      get_schedule_contact: {
+        Args: { p_schedule_id: string }
+        Returns: {
+          contact_name: string
+          email: string
+          phone: string
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      record_platform_fee: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id: string
+          p_owner_id: string
+        }
+        Returns: undefined
+      }
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
       send_notification: {
         Args: {
