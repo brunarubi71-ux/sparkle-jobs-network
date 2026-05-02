@@ -360,12 +360,11 @@ export default function JobDetails() {
     // Record platform fee transaction (against owner)
     if (platformFee > 0 && job.owner_id) {
       try {
-        await supabase.from("wallet_transactions" as any).insert({
-          user_id: job.owner_id,
-          amount: platformFee,
-          type: "platform_fee",
-          description: `Platform fee (10%) for "${job.title}"`,
-          job_id: id,
+        await supabase.rpc("record_platform_fee", {
+          p_owner_id: job.owner_id,
+          p_amount: platformFee,
+          p_description: `Platform fee (10%) for "${job.title}"`,
+          p_job_id: id,
         });
       } catch (e) {
         console.error("[JobDetails] platform fee record failed", e);
