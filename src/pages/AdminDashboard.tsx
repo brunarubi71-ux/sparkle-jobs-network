@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import {
   Shield, Users, Briefcase, DollarSign, BarChart3, ShieldCheck,
   Check, X, Crown, AlertTriangle, Ban, RotateCcw, Search, Eye, TrendingUp,
+  Webhook, ShieldOff, Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +23,9 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 import { awardPoints } from "@/lib/points";
 
-type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes";
+type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "webhooks";
 type RoleFilter = "all" | "owner" | "cleaner" | "helper";
-type StatusFilter = "all" | "verified" | "pending" | "unverified" | "suspended";
+type StatusFilter = "all" | "verified" | "pending" | "unverified" | "suspended" | "banned";
 type RevenueRange = "7" | "30" | "90" | "all";
 
 export default function AdminDashboard() {
@@ -45,6 +46,9 @@ export default function AdminDashboard() {
   const [viewUser, setViewUser] = useState<any | null>(null);
   const [changeRoleUser, setChangeRoleUser] = useState<any | null>(null);
   const [changePlanUser, setChangePlanUser] = useState<any | null>(null);
+  const [banUser, setBanUser] = useState<any | null>(null);
+  const [overrideJob, setOverrideJob] = useState<any | null>(null);
+  const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,17 +61,20 @@ export default function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [profilesRes, jobsRes, disputesRes] = await Promise.all([
+    const [profilesRes, jobsRes, disputesRes, webhooksRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("webhook_events").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     const p = profilesRes.data || [];
     const j = jobsRes.data || [];
     const d = disputesRes.data || [];
+    const w = webhooksRes.data || [];
     setUsers(p);
     setJobs(j);
     setDisputes(d);
+    setWebhookEvents(w);
     setStats({
       users: p.length,
       cleaners: p.filter((u: any) => u.role === "cleaner").length,
@@ -151,6 +158,30 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
+  const setBan = async (userId: string, banned: boolean, reason?: string) => {
+    const { error } = await supabase.rpc("admin_set_ban" as any, {
+      _user_id: userId,
+      _banned: banned,
+      _reason: reason || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(banned ? "User banned permanently" : "User unbanned");
+    setBanUser(null);
+    fetchAll();
+  };
+
+  const overrideJobStatus = async (jobId: string, newStatus: string, reason?: string) => {
+    const { error } = await supabase.rpc("admin_override_job" as any, {
+      _job_id: jobId,
+      _new_status: newStatus,
+      _reason: reason || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Job status set to ${newStatus}`);
+    setOverrideJob(null);
+    fetchAll();
+  };
+
   const changeUserPlan = async (userId: string, newPlan: "free" | "premium" | "pro") => {
     const update: any = {
       plan_tier: newPlan,
@@ -176,6 +207,7 @@ export default function AdminDashboard() {
       if (statusFilter !== "all") {
         const isSuspended = u.suspension_until && new Date(u.suspension_until) > new Date();
         if (statusFilter === "suspended" && !isSuspended) return false;
+        if (statusFilter === "banned" && !u.is_banned) return false;
         if (statusFilter === "verified" && u.identity_status !== "approved") return false;
         if (statusFilter === "pending" && u.identity_status !== "pending") return false;
         if (statusFilter === "unverified" && !["unverified", "rejected", null, undefined].includes(u.identity_status)) return false;
@@ -233,6 +265,7 @@ export default function AdminDashboard() {
     { key: "identity", label: "Identity", icon: ShieldCheck, badge: pendingIdentity.length },
     { key: "jobs", label: "Jobs", icon: Briefcase },
     { key: "disputes", label: "Disputes", icon: AlertTriangle, badge: stats.openDisputes },
+    { key: "webhooks", label: "Webhooks", icon: Webhook, badge: webhookEvents.filter((w: any) => w.error || !w.processed_at).length },
   ];
 
   if (loading) {
@@ -437,6 +470,7 @@ export default function AdminDashboard() {
                   <SelectItem value="pending">Pending ID</SelectItem>
                   <SelectItem value="unverified">Unverified</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="banned">Banned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -460,6 +494,9 @@ export default function AdminDashboard() {
                           {isSuspended && (
                             <Badge className="bg-destructive/10 text-destructive border-0 text-[10px]">Suspended</Badge>
                           )}
+                          {u.is_banned && (
+                            <Badge className="bg-destructive text-destructive-foreground border-0 text-[10px]">Banned</Badge>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -477,9 +514,18 @@ export default function AdminDashboard() {
                         size="sm"
                         variant="outline"
                         onClick={() => toggleSuspend(u)}
-                        className={`h-8 text-[11px] ${isSuspended ? "text-emerald-600 border-emerald-300 hover:bg-emerald-50" : "text-destructive border-destructive/30 hover:bg-destructive/5"}`}
+                        disabled={u.is_banned}
+                        className={`h-8 text-[11px] ${isSuspended ? "text-emerald-600 border-emerald-300 hover:bg-emerald-50" : "text-amber-700 border-amber-300 hover:bg-amber-50"}`}
                       >
-                        {isSuspended ? (<><RotateCcw className="w-3 h-3 mr-1" /> Activate</>) : (<><Ban className="w-3 h-3 mr-1" /> Suspend</>)}
+                        {isSuspended ? (<><RotateCcw className="w-3 h-3 mr-1" /> Unsuspend</>) : (<><Ban className="w-3 h-3 mr-1" /> Suspend 30d</>)}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setBanUser(u)}
+                        className={`h-8 text-[11px] col-span-2 ${u.is_banned ? "text-emerald-600 border-emerald-300 hover:bg-emerald-50" : "text-destructive border-destructive/40 hover:bg-destructive/5"}`}
+                      >
+                        {u.is_banned ? (<><RotateCcw className="w-3 h-3 mr-1" /> Unban (Permanent)</>) : (<><ShieldOff className="w-3 h-3 mr-1" /> Ban Permanently</>)}
                       </Button>
                     </div>
                   </div>
@@ -529,7 +575,16 @@ export default function AdminDashboard() {
                     <span className="truncate">🧹 Cleaner: {cleaner?.full_name || cleaner?.email || "—"}</span>
                     <span>📍 {j.city || "N/A"}</span>
                     <span>📅 {new Date(j.created_at).toLocaleDateString()}</span>
+                    <span className="col-span-2 text-[10px]">🔒 Escrow: <span className="font-mono">{j.escrow_status}</span> · ID: <span className="font-mono">{j.id.slice(0, 8)}</span></span>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setOverrideJob(j)}
+                    className="h-8 text-[11px] w-full mt-1"
+                  >
+                    <Settings2 className="w-3 h-3 mr-1" /> Override Status
+                  </Button>
                 </div>
               );
             })}
@@ -560,6 +615,50 @@ export default function AdminDashboard() {
             ))}
           </div>
         )}
+
+        {/* ─── WEBHOOKS ─── */}
+        {tab === "webhooks" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Webhook className="w-5 h-5 text-primary" />
+                Webhook Events ({webhookEvents.length})
+              </h2>
+              <Button size="sm" variant="outline" onClick={fetchAll} className="h-8 text-xs">
+                <RotateCcw className="w-3 h-3 mr-1" /> Refresh
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Last 100 Stripe webhook events received. Use this to debug payment / subscription issues.
+            </p>
+            {webhookEvents.length === 0 && (
+              <p className="text-muted-foreground text-sm text-center py-8">No webhook events recorded yet.</p>
+            )}
+            {webhookEvents.map((w: any) => {
+              const status = w.error
+                ? { label: "Error", color: "bg-destructive/10 text-destructive" }
+                : w.processed_at
+                ? { label: "Processed", color: "bg-emerald-100 text-emerald-700" }
+                : { label: "Pending", color: "bg-amber-100 text-amber-700" };
+              return (
+                <div key={w.id} className="bg-card rounded-xl shadow-card p-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground truncate font-mono">{w.event_type}</p>
+                    <Badge className={`${status.color} border-0 text-[10px] flex-shrink-0`}>{status.label}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{w.stripe_event_id}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Received: {new Date(w.created_at).toLocaleString()}
+                    {w.processed_at && ` · Processed: ${new Date(w.processed_at).toLocaleString()}`}
+                  </p>
+                  {w.error && (
+                    <p className="text-xs text-destructive bg-destructive/5 rounded p-2 mt-1 break-words">{w.error}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* View Profile Modal */}
@@ -577,6 +676,20 @@ export default function AdminDashboard() {
         user={changePlanUser}
         onClose={() => setChangePlanUser(null)}
         onConfirm={changeUserPlan}
+      />
+
+      {/* Ban Modal */}
+      <BanModal
+        user={banUser}
+        onClose={() => setBanUser(null)}
+        onConfirm={setBan}
+      />
+
+      {/* Job Override Modal */}
+      <OverrideJobModal
+        job={overrideJob}
+        onClose={() => setOverrideJob(null)}
+        onConfirm={overrideJobStatus}
       />
     </div>
   );
@@ -867,27 +980,28 @@ function DisputeCard({
   jobs: any[];
   onResolved: () => void;
 }) {
-  const [notes, setNotes] = useState(dispute.admin_notes || "");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
-  const reporter = users.find((u: any) => u.id === dispute.reporter_id);
-  const reported = users.find((u: any) => u.id === dispute.reported_id);
+  const raisedBy = users.find((u: any) => u.id === dispute.raised_by);
+  const against = users.find((u: any) => u.id === dispute.against);
   const job = jobs.find((j: any) => j.id === dispute.job_id);
   const isOpen = dispute.status === "open";
 
   const resolve = async (decision: "refund_owner" | "pay_cleaner" | "dismiss") => {
     setSaving(true);
-    const { error } = await supabase
-      .from("disputes")
-      .update({
-        status: "resolved",
-        admin_decision: decision,
-        admin_notes: notes || null,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq("id", dispute.id);
+    const { error } = await supabase.rpc("admin_resolve_dispute" as any, {
+      _dispute_id: dispute.id,
+      _decision: decision,
+      _notes: notes || null,
+    });
     setSaving(false);
-    if (error) { toast.error("Failed to resolve dispute"); return; }
-    toast.success("Dispute resolved");
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    const labels: Record<string, string> = {
+      refund_owner: "Refund issued to owner",
+      pay_cleaner: "Cleaner paid",
+      dismiss: "Dispute dismissed",
+    };
+    toast.success(labels[decision] || "Dispute resolved");
     onResolved();
   };
 
@@ -895,12 +1009,15 @@ function DisputeCard({
     ? <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">Open</Badge>
     : <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">Resolved</Badge>;
 
+  const jobAmount = Number(job?.total_amount || job?.price || 0);
+  const cleanerAmount = Number(job?.cleaner_earnings || job?.price || 0);
+
   return (
     <div className="bg-card rounded-xl shadow-card p-3 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground truncate">
-            {job?.title || "Job"} · ${Number(job?.price || 0).toFixed(2)}
+            {job?.title || "Job"} · ${jobAmount.toFixed(2)}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {new Date(dispute.created_at).toLocaleString()}
@@ -911,12 +1028,12 @@ function DisputeCard({
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-muted/40 rounded-lg p-2">
-          <p className="text-[10px] text-muted-foreground">Reporter ({dispute.reporter_type})</p>
-          <p className="text-foreground truncate">{reporter?.full_name || reporter?.email || "—"}</p>
+          <p className="text-[10px] text-muted-foreground">Raised by</p>
+          <p className="text-foreground truncate">{raisedBy?.full_name || raisedBy?.email || "—"}</p>
         </div>
         <div className="bg-muted/40 rounded-lg p-2">
-          <p className="text-[10px] text-muted-foreground">Reported</p>
-          <p className="text-foreground truncate">{reported?.full_name || reported?.email || "—"}</p>
+          <p className="text-[10px] text-muted-foreground">Against</p>
+          <p className="text-foreground truncate">{against?.full_name || against?.email || "—"}</p>
         </div>
       </div>
 
@@ -925,10 +1042,10 @@ function DisputeCard({
         <p className="text-xs text-foreground bg-muted/40 rounded-lg p-2">{dispute.reason}</p>
       </div>
 
-      {dispute.response && (
+      {dispute.description && (
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Reported's response</p>
-          <p className="text-xs text-foreground bg-muted/40 rounded-lg p-2">{dispute.response}</p>
+          <p className="text-[10px] text-muted-foreground mb-1">Description</p>
+          <p className="text-xs text-foreground bg-muted/40 rounded-lg p-2 whitespace-pre-wrap">{dispute.description}</p>
         </div>
       )}
 
@@ -940,6 +1057,9 @@ function DisputeCard({
             placeholder="Admin notes (optional)…"
             className="rounded-lg text-xs min-h-[60px]"
           />
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] text-amber-900">
+            ⚠️ Resolving will <strong>execute payment</strong>: Refund Owner credits ${jobAmount.toFixed(2)} to owner's wallet · Pay Cleaner credits ${cleanerAmount.toFixed(2)} to cleaner's wallet · Dismiss closes without money movement.
+          </div>
           <div className="grid grid-cols-3 gap-2">
             <Button
               size="sm"
@@ -951,9 +1071,9 @@ function DisputeCard({
             </Button>
             <Button
               size="sm"
-              disabled={saving}
+              disabled={saving || !job?.hired_cleaner_id}
               onClick={() => resolve("pay_cleaner")}
-              className="h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+              className="h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] disabled:opacity-50"
             >
               Pay Cleaner
             </Button>
@@ -970,10 +1090,141 @@ function DisputeCard({
         </>
       ) : (
         <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
-          <p><span className="font-medium text-foreground">Decision:</span> {dispute.admin_decision || "—"}</p>
-          {dispute.admin_notes && <p className="mt-1">{dispute.admin_notes}</p>}
+          <p><span className="font-medium text-foreground">Resolution:</span> {dispute.resolution || "—"}</p>
+          {dispute.resolved_at && (
+            <p className="mt-1 text-[10px]">Resolved: {new Date(dispute.resolved_at).toLocaleString()}</p>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function BanModal({
+  user, onClose, onConfirm,
+}: {
+  user: any | null;
+  onClose: () => void;
+  onConfirm: (id: string, banned: boolean, reason?: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  useEffect(() => { if (user) setReason(user.ban_reason || ""); }, [user]);
+  if (!user) return null;
+  const isCurrentlyBanned = !!user.is_banned;
+
+  return (
+    <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {isCurrentlyBanned ? <RotateCcw className="w-4 h-4 text-emerald-600" /> : <ShieldOff className="w-4 h-4 text-destructive" />}
+            {isCurrentlyBanned ? "Unban User" : "Ban User Permanently"}
+          </DialogTitle>
+          <DialogDescription>{user.full_name || user.email}</DialogDescription>
+        </DialogHeader>
+
+        {isCurrentlyBanned ? (
+          <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
+            <p>Currently banned since {user.banned_at ? new Date(user.banned_at).toLocaleString() : "—"}.</p>
+            {user.ban_reason && <p className="mt-1"><strong>Reason:</strong> {user.ban_reason}</p>}
+            <p className="mt-2">Unbanning restores full account access.</p>
+          </div>
+        ) : (
+          <>
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-2 text-[11px] text-destructive">
+              ⚠️ Ban is permanent. The user will be blocked from logging in and using the platform until you unban them.
+            </div>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Reason (visible to admins only, e.g. 'repeated harassment, fraud, etc.')"
+              className="rounded-lg text-xs min-h-[80px]"
+            />
+          </>
+        )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button
+            onClick={() => onConfirm(user.id, !isCurrentlyBanned, reason || undefined)}
+            disabled={!isCurrentlyBanned && !reason.trim()}
+            className={`flex-1 ${isCurrentlyBanned ? "bg-emerald-600 hover:bg-emerald-700" : "bg-destructive hover:bg-destructive/90"} text-white`}
+          >
+            {isCurrentlyBanned ? "Unban" : "Ban Permanently"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OverrideJobModal({
+  job, onClose, onConfirm,
+}: {
+  job: any | null;
+  onClose: () => void;
+  onConfirm: (id: string, status: string, reason?: string) => void;
+}) {
+  const [status, setStatus] = useState("");
+  const [reason, setReason] = useState("");
+  useEffect(() => { if (job) { setStatus(job.status); setReason(""); } }, [job]);
+  if (!job) return null;
+
+  const STATUSES = ["open", "accepted", "in_progress", "pending_review", "completed", "cancelled", "refunded", "disputed"];
+
+  return (
+    <Dialog open={!!job} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-primary" />
+            Override Job Status
+          </DialogTitle>
+          <DialogDescription>{job.title}</DialogDescription>
+        </DialogHeader>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] text-amber-900">
+          ⚠️ Force-changes the job status without normal validation. Use only when the job is stuck or for emergency intervention. <strong>Does NOT execute payment</strong> — use Disputes tab for refunds/payouts.
+        </div>
+
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 space-y-1">
+          <p><strong>Current status:</strong> <span className="font-mono">{job.status}</span></p>
+          <p><strong>Escrow:</strong> <span className="font-mono">{job.escrow_status}</span></p>
+          <p><strong>Job ID:</strong> <span className="font-mono">{job.id.slice(0, 8)}…</span></p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">New status</p>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-10 rounded-lg">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Reason (for audit log, optional)"
+          className="rounded-lg text-xs min-h-[60px]"
+        />
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button
+            onClick={() => onConfirm(job.id, status, reason || undefined)}
+            disabled={status === job.status}
+            className="flex-1 bg-primary text-primary-foreground"
+          >
+            Force Status
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
