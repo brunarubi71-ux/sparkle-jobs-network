@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   Shield, Users, Briefcase, DollarSign, BarChart3, ShieldCheck,
   Check, X, Crown, AlertTriangle, Ban, RotateCcw, Search, Eye, TrendingUp,
-  Webhook, ShieldOff, Settings2,
+  Webhook, ShieldOff, Settings2, Wallet, Star, EyeOff, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 import { awardPoints } from "@/lib/points";
 
-type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "webhooks";
+type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "reviews" | "webhooks";
 type RoleFilter = "all" | "owner" | "cleaner" | "helper";
 type StatusFilter = "all" | "verified" | "pending" | "unverified" | "suspended" | "banned";
 type RevenueRange = "7" | "30" | "90" | "all";
@@ -47,8 +47,11 @@ export default function AdminDashboard() {
   const [changeRoleUser, setChangeRoleUser] = useState<any | null>(null);
   const [changePlanUser, setChangePlanUser] = useState<any | null>(null);
   const [banUser, setBanUser] = useState<any | null>(null);
+  const [walletUser, setWalletUser] = useState<any | null>(null);
+  const [subOverrideUser, setSubOverrideUser] = useState<any | null>(null);
   const [overrideJob, setOverrideJob] = useState<any | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,20 +64,23 @@ export default function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [profilesRes, jobsRes, disputesRes, webhooksRes] = await Promise.all([
+    const [profilesRes, jobsRes, disputesRes, webhooksRes, reviewsRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("webhook_events").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("reviews").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
     const p = profilesRes.data || [];
     const j = jobsRes.data || [];
     const d = disputesRes.data || [];
     const w = webhooksRes.data || [];
+    const r = reviewsRes.data || [];
     setUsers(p);
     setJobs(j);
     setDisputes(d);
     setWebhookEvents(w);
+    setReviews(r);
     setStats({
       users: p.length,
       cleaners: p.filter((u: any) => u.role === "cleaner").length,
@@ -182,6 +188,43 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
+  const adjustWallet = async (userId: string, amount: number, reason: string) => {
+    const { data, error } = await supabase.rpc("admin_adjust_wallet" as any, {
+      _user_id: userId,
+      _amount: amount,
+      _reason: reason,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success(`Wallet adjusted. New balance: $${Number(data).toFixed(2)}`);
+    setWalletUser(null);
+    fetchAll();
+  };
+
+  const overrideSubscription = async (userId: string, action: string, days?: number, reason?: string) => {
+    const { error } = await supabase.rpc("admin_override_subscription" as any, {
+      _user_id: userId,
+      _action: action,
+      _days: days || null,
+      _reason: reason || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    toast.success("Subscription updated");
+    setSubOverrideUser(null);
+    fetchAll();
+  };
+
+  const moderateReview = async (reviewId: string, action: "hide" | "unhide" | "delete", reason?: string) => {
+    const { error } = await supabase.rpc("admin_moderate_review" as any, {
+      _review_id: reviewId,
+      _action: action,
+      _reason: reason || null,
+    });
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
+    const labels: Record<string, string> = { hide: "Review hidden", unhide: "Review restored", delete: "Review deleted" };
+    toast.success(labels[action]);
+    fetchAll();
+  };
+
   const changeUserPlan = async (userId: string, newPlan: "free" | "premium" | "pro") => {
     const update: any = {
       plan_tier: newPlan,
@@ -265,6 +308,7 @@ export default function AdminDashboard() {
     { key: "identity", label: "Identity", icon: ShieldCheck, badge: pendingIdentity.length },
     { key: "jobs", label: "Jobs", icon: Briefcase },
     { key: "disputes", label: "Disputes", icon: AlertTriangle, badge: stats.openDisputes },
+    { key: "reviews", label: "Reviews", icon: Star, badge: reviews.filter((r: any) => !r.is_hidden).length > 0 ? undefined : 0 },
     { key: "webhooks", label: "Webhooks", icon: Webhook, badge: webhookEvents.filter((w: any) => w.error || !w.processed_at).length },
   ];
 
@@ -497,6 +541,9 @@ export default function AdminDashboard() {
                           {u.is_banned && (
                             <Badge className="bg-destructive text-destructive-foreground border-0 text-[10px]">Banned</Badge>
                           )}
+                          <Badge variant="outline" className="text-[10px]">
+                            💰 ${Number(u.wallet_balance || 0).toFixed(2)}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -506,6 +553,12 @@ export default function AdminDashboard() {
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setChangeRoleUser(u)} className="h-8 text-[11px]">
                         Change Role
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setWalletUser(u)} className="h-8 text-[11px]">
+                        <Wallet className="w-3 h-3 mr-1" /> Adjust Wallet
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setSubOverrideUser(u)} className="h-8 text-[11px]">
+                        <Crown className="w-3 h-3 mr-1" /> Subscription
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setChangePlanUser(u)} className="h-8 text-[11px]">
                         Change Plan
@@ -616,6 +669,93 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ─── REVIEWS ─── */}
+        {tab === "reviews" && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500" />
+              Reviews ({reviews.length})
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Hide a review to remove it from public profiles and rating averages. Delete only for spam/abuse.
+            </p>
+            {reviews.length === 0 && (
+              <p className="text-muted-foreground text-sm text-center py-8">No reviews yet.</p>
+            )}
+            {reviews.map((r: any) => {
+              const reviewer = users.find((u: any) => u.id === r.reviewer_id);
+              const reviewed = users.find((u: any) => u.id === r.reviewed_id);
+              const job = jobs.find((j: any) => j.id === r.job_id);
+              return (
+                <div key={r.id} className={`bg-card rounded-xl shadow-card p-3 space-y-2 ${r.is_hidden ? "opacity-60 border border-amber-300" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex">
+                          {[1,2,3,4,5].map(n => (
+                            <Star key={n} className={`w-3.5 h-3.5 ${n <= r.rating ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30"}`} />
+                          ))}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] capitalize">{r.reviewer_role}</Badge>
+                        {r.is_hidden && (
+                          <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">Hidden</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">{reviewer?.full_name || reviewer?.email || "—"}</span>
+                        {" → "}
+                        <span className="font-medium text-foreground">{reviewed?.full_name || reviewed?.email || "—"}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {job?.title || "—"} · {new Date(r.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  {r.comment && (
+                    <p className="text-xs text-foreground bg-muted/40 rounded-lg p-2 whitespace-pre-wrap">{r.comment}</p>
+                  )}
+                  {r.is_hidden && r.hidden_reason && (
+                    <p className="text-[10px] text-amber-700 bg-amber-50 rounded-lg p-2">
+                      <strong>Hidden reason:</strong> {r.hidden_reason}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {r.is_hidden ? (
+                      <Button size="sm" variant="outline" onClick={() => moderateReview(r.id, "unhide")} className="h-8 text-[11px] text-emerald-600 border-emerald-300 hover:bg-emerald-50">
+                        <RotateCcw className="w-3 h-3 mr-1" /> Unhide
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const reason = prompt("Reason for hiding (optional, visible to admins only):");
+                          if (reason !== null) moderateReview(r.id, "hide", reason || undefined);
+                        }}
+                        className="h-8 text-[11px] text-amber-700 border-amber-300 hover:bg-amber-50"
+                      >
+                        <EyeOff className="w-3 h-3 mr-1" /> Hide
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm("Permanently delete this review? This cannot be undone.")) {
+                          moderateReview(r.id, "delete");
+                        }
+                      }}
+                      className="h-8 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/5"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* ─── WEBHOOKS ─── */}
         {tab === "webhooks" && (
           <div className="space-y-3">
@@ -690,6 +830,20 @@ export default function AdminDashboard() {
         job={overrideJob}
         onClose={() => setOverrideJob(null)}
         onConfirm={overrideJobStatus}
+      />
+
+      {/* Wallet Adjust Modal */}
+      <WalletAdjustModal
+        user={walletUser}
+        onClose={() => setWalletUser(null)}
+        onConfirm={adjustWallet}
+      />
+
+      {/* Subscription Override Modal */}
+      <SubscriptionOverrideModal
+        user={subOverrideUser}
+        onClose={() => setSubOverrideUser(null)}
+        onConfirm={overrideSubscription}
       />
     </div>
   );
@@ -1228,3 +1382,138 @@ function OverrideJobModal({
     </Dialog>
   );
 }
+
+function WalletAdjustModal({
+  user, onClose, onConfirm,
+}: {
+  user: any | null;
+  onClose: () => void;
+  onConfirm: (id: string, amount: number, reason: string) => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [direction, setDirection] = useState<'credit' | 'debit'>('credit');
+  useEffect(() => { if (user) { setAmount(''); setReason(''); setDirection('credit'); } }, [user]);
+  if (!user) return null;
+  const numAmount = parseFloat(amount) || 0;
+  const signedAmount = direction === 'credit' ? numAmount : -numAmount;
+  const newBalance = Number(user.wallet_balance || 0) + signedAmount;
+
+  return (
+    <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-primary" /> Adjust Wallet
+          </DialogTitle>
+          <DialogDescription>{user.full_name || user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
+          Current balance: <strong className="text-foreground">${Number(user.wallet_balance || 0).toFixed(2)}</strong>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant={direction === 'credit' ? 'default' : 'outline'}
+            onClick={() => setDirection('credit')}
+            className={direction === 'credit' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : ''}
+          >
+            + Credit
+          </Button>
+          <Button
+            type="button"
+            variant={direction === 'debit' ? 'default' : 'outline'}
+            onClick={() => setDirection('debit')}
+            className={direction === 'debit' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+          >
+            − Debit
+          </Button>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Amount ($)</p>
+          <Input type="number" step="0.01" min="0.01" placeholder="e.g. 25.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-10 rounded-lg" />
+        </div>
+        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required, logged in wallet_transactions)" className="rounded-lg text-xs min-h-[60px]" />
+        {numAmount > 0 && (
+          <div className={`text-xs rounded-lg p-2 ${newBalance < 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-foreground'}`}>
+            New balance: <strong>${newBalance.toFixed(2)}</strong>
+            {newBalance < 0 && <p className="mt-1">⚠️ Insufficient balance for this debit.</p>}
+          </div>
+        )}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button
+            onClick={() => onConfirm(user.id, signedAmount, reason)}
+            disabled={numAmount <= 0 || !reason.trim() || newBalance < 0}
+            className="flex-1 bg-primary text-primary-foreground"
+          >
+            Apply
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SubscriptionOverrideModal({
+  user, onClose, onConfirm,
+}: {
+  user: any | null;
+  onClose: () => void;
+  onConfirm: (id: string, action: string, days?: number, reason?: string) => void;
+}) {
+  const [action, setAction] = useState<string>('grant_premium');
+  const [days, setDays] = useState('7');
+  const [reason, setReason] = useState('');
+  useEffect(() => { if (user) { setAction('grant_premium'); setDays('7'); setReason(''); } }, [user]);
+  if (!user) return null;
+
+  return (
+    <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-amber-500" /> Subscription Override
+          </DialogTitle>
+          <DialogDescription>{user.full_name || user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 space-y-1">
+          <p>Current plan: <strong className="text-foreground">{user.plan_tier}</strong> ({user.premium_status})</p>
+          {user.free_trial_ends_at && (
+            <p>Trial ends: <strong className="text-foreground">{new Date(user.free_trial_ends_at).toLocaleDateString()}</strong></p>
+          )}
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-[11px] text-blue-900">
+          ℹ️ This only changes the local database. If the user has a real Stripe subscription, manage that separately in the Stripe Dashboard.
+        </div>
+        <Select value={action} onValueChange={setAction}>
+          <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="grant_premium">Grant Premium (free)</SelectItem>
+            <SelectItem value="grant_pro">Grant Pro (free)</SelectItem>
+            <SelectItem value="extend_trial">Extend Trial</SelectItem>
+            <SelectItem value="revoke">Revoke (set to Free)</SelectItem>
+          </SelectContent>
+        </Select>
+        {action === 'extend_trial' && (
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Trial days from now</p>
+            <Input type="number" min="1" max="365" value={days} onChange={(e) => setDays(e.target.value)} className="h-10 rounded-lg" />
+          </div>
+        )}
+        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log, optional)" className="rounded-lg text-xs min-h-[60px]" />
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button
+            onClick={() => onConfirm(user.id, action, action === 'extend_trial' ? parseInt(days) : undefined, reason || undefined)}
+            disabled={action === 'extend_trial' && (!days || parseInt(days) <= 0)}
+            className="flex-1 bg-primary text-primary-foreground"
+          >
+            Apply
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
