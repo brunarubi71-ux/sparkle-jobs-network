@@ -1,8 +1,5 @@
 project_id = "upwzxjjeiuphlqsyztvm"
 
-[functions.payments-webhook]
-verify_jwt = false
-
 [functions.create-checkout]
 verify_jwt = false
 
@@ -19,4 +16,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-portal-session]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false
+
+[functions.verify-checkout-session]
+verify_jwt = false
+
+[functions.cleanup-test-data]
 verify_jwt = false

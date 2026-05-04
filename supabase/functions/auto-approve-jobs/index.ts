@@ -8,6 +8,24 @@ const supabase = createClient(
 );
 
 serve(async (req) => {
+  // CRON_SECRET gate. Without this, anyone on the internet could POST and
+  // force escrow release on every job in pending_review.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (!cronSecret) {
+    return new Response(
+      JSON.stringify({ error: "CRON_SECRET not configured" }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : "";
+  if (token !== cronSecret) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 

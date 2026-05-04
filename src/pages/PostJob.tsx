@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { containsContactInfo } from "@/lib/contactFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -232,8 +232,12 @@ export default function PostJob() {
     }
   };
 
+  const submittingRef = useRef(false);
+
   const submitJob = async (paymentMethod: "card" | "wallet") => {
     if (!user || !mainPhotoFile) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setConfirmOpen(false);
     setLoading(true);
     setUploadingPhotos(true);
@@ -326,14 +330,23 @@ export default function PostJob() {
       });
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-    } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
+    } catch (err: any) {
+      console.error("PostJob submit failed:", err);
+      toast.error(err?.message || t("post.error"));
+    } finally {
+      setLoading(false);
+      setUploadingPhotos(false);
+      submittingRef.current = false;
+    }
   };
 
   const handlePayCard = () => {
+    if (submittingRef.current) return;
     submitJob("card");
   };
 
   const handlePayWallet = () => {
+    if (submittingRef.current) return;
     const price = parseFloat(form.price) || 0;
     const fee = Math.round(price * 0.1 * 100) / 100;
     const total = Math.round((price + fee) * 100) / 100;

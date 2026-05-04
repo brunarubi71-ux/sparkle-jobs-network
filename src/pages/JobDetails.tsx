@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendNotification, sendNotifications } from "@/lib/notifications";
 import { useAuth } from "@/hooks/useAuth";
@@ -261,9 +261,25 @@ export default function JobDetails() {
     setCompleting(false);
   };
 
+  const confirmingRef = useRef(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+
   const confirmCompletion = async () => {
     if (!id || !job) return;
-    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
+    setConfirmingPayment(true);
+    try {
+    const { error: completionErr } = await supabase
+      .from("jobs")
+      .update({ status: "completed", owner_confirmed_completion: true })
+      .eq("id", id)
+      .eq("owner_id", user?.id ?? "");
+    if (completionErr) {
+      console.error("[JobDetails] confirmCompletion update failed:", completionErr);
+      toast.error("Could not approve job. Please try again.");
+      return;
+    }
 
     // ----- "Job Approved 🎉" notifications for ALL hired workers -----
     try {
@@ -375,6 +391,10 @@ export default function JobDetails() {
     setTimeout(() => setShowPaymentSuccess(false), 3000);
     toast.success(t("job.completion_confirmed"));
     await fetchJob();
+    } finally {
+      confirmingRef.current = false;
+      setConfirmingPayment(false);
+    }
   };
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
@@ -1039,9 +1059,9 @@ export default function JobDetails() {
                   <p className="text-sm text-muted-foreground">{completionNotes}</p>
                 </div>
               )}
-              <Button onClick={confirmCompletion}
-                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold">
-                <CheckCircle className="w-4 h-4 mr-2" /> {t("job.approve_payment")}
+              <Button onClick={confirmCompletion} disabled={confirmingPayment}
+                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold disabled:opacity-60">
+                <CheckCircle className="w-4 h-4 mr-2" /> {confirmingPayment ? "..." : t("job.approve_payment")}
               </Button>
             </div>
           </motion.div>
