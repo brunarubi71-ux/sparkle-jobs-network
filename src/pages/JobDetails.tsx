@@ -55,17 +55,35 @@ export default function JobDetails() {
 
   const fetchJob = async () => {
     setLoading(true);
-    const { data } = await supabase.from("jobs").select("*").eq("id", id!).single();
-    if (data) {
-      // Stakeholders (owner / hired cleaner / accepted applicant) get the
-      // private details row; everyone else hits RLS and gets `null`.
+    // Pull the public projection first (always readable). Then try the
+    // jobs row: stakeholders (owner / hired / accepted applicant / admin)
+    // get back the precise address, lat/long, and financial breakdown.
+    // Non-stakeholders see only what public_jobs exposes.
+    const { data: publicData } = await supabase
+      .from("public_jobs" as any)
+      .select("*")
+      .eq("id", id!)
+      .maybeSingle();
+    if (publicData) {
+      const { data: stakeholderData } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", id!)
+        .maybeSingle();
+      // Stakeholders also get the private details row; everyone else hits
+      // RLS and gets `null`.
       const { data: priv } = await supabase
         .from("job_private_details" as any)
         .select("*")
         .eq("job_id", id!)
         .maybeSingle();
-      const merged = { ...(data as any), ...((priv as any) || {}) };
+      const merged = {
+        ...(publicData as any),
+        ...((stakeholderData as any) || {}),
+        ...((priv as any) || {}),
+      };
       setJob(merged);
+      const data = merged;
       setCompletionPhotos((merged as any).completion_photos || []);
       setCompletionNotes((merged as any).completion_notes || "");
       // Fetch owner profile + verification status

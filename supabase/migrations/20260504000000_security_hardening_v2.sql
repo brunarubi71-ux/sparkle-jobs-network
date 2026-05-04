@@ -276,3 +276,69 @@ CREATE POLICY "Users can view their own profile"
 ON public.profiles FOR SELECT
 TO authenticated
 USING (auth.uid() = id OR public.is_admin(auth.uid()));
+
+-- 8. public_jobs view: a safe-by-default projection of jobs for browsing.
+--    Excludes the precise street address, exact lat/long, and the financial
+--    breakdown (platform_fee, total_amount, cleaner_earnings).  Distance
+--    can still be computed using rounded coordinates (~1km granularity).
+CREATE OR REPLACE VIEW public.public_jobs
+WITH (security_invoker = false) AS
+SELECT
+  id,
+  owner_id,
+  title,
+  cleaning_type,
+  price,
+  bedrooms,
+  bathrooms,
+  city,
+  ROUND(latitude::numeric, 2)::double precision  AS latitude,
+  ROUND(longitude::numeric, 2)::double precision AS longitude,
+  urgency,
+  status,
+  description,
+  main_property_photo,
+  property_photos,
+  team_size_required,
+  cleaners_required,
+  helpers_required,
+  number_of_guests,
+  guest_stay_length,
+  allow_solo_start,
+  hired_cleaner_id,
+  escrow_status,
+  pending_review_at,
+  owner_confirmed_completion,
+  completion_photos,
+  completion_notes,
+  started_at,
+  completed_at,
+  accepted_at,
+  applied_at,
+  date_time,
+  created_at
+FROM public.jobs;
+
+GRANT SELECT ON public.public_jobs TO authenticated;
+GRANT SELECT ON public.public_jobs TO anon;
+
+-- 9. Tighten jobs SELECT policy: only stakeholders + admin can read the
+--    full row (including precise address & financials). Browsers go through
+--    public_jobs.
+DROP POLICY IF EXISTS "Anyone authenticated can view open jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Stakeholders can view full job rows" ON public.jobs;
+
+CREATE POLICY "Stakeholders can view full job rows"
+ON public.jobs FOR SELECT
+TO authenticated
+USING (
+  owner_id = auth.uid()
+  OR hired_cleaner_id = auth.uid()
+  OR EXISTS (
+    SELECT 1 FROM public.job_applications
+    WHERE job_id = jobs.id
+      AND cleaner_id = auth.uid()
+      AND status IN ('accepted', 'hired')
+  )
+  OR public.is_admin(auth.uid())
+);

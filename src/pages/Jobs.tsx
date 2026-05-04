@@ -227,8 +227,11 @@ export default function Jobs() {
       // Fetch jobs that are still accepting workers:
       // - "open" jobs (no one accepted yet)
       // - "applied" jobs (partially filled team jobs — helpers may still be needed)
+      // Use public_jobs view: address/precise lat-long/financials are
+      // hidden until the user is hired. Coordinates here are rounded to
+      // ~1km granularity so we can still compute distance.
       const { data, error } = await supabase
-        .from("jobs")
+        .from("public_jobs" as any)
         .select("*")
         .in("status", ["open", "applied"])
         .order("created_at", { ascending: false });

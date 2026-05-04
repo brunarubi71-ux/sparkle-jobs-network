@@ -76,12 +76,12 @@ export default function PublicProfile() {
 
     const jobsCountPromise = isOwnerProfile
       ? supabase
-          .from("jobs")
+          .from("public_jobs" as any)
           .select("id", { count: "exact", head: true })
           .eq("owner_id", id!)
           .eq("status", "completed")
       : supabase
-          .from("jobs")
+          .from("public_jobs" as any)
           .select("id", { count: "exact", head: true })
           .eq("hired_cleaner_id", id!)
           .eq("status", "completed");

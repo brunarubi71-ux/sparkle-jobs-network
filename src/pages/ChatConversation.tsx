@@ -125,7 +125,7 @@ export default function ChatConversation() {
       }
     }
     if (conv?.job_id) {
-      const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
+      const { data: job } = await supabase.from("public_jobs" as any).select("status").eq("id", conv.job_id).single();
       if (job) setJobStatus(job.status as JobStatus);
     }
   };

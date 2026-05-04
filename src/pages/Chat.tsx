@@ -97,7 +97,7 @@ export default function Chat() {
       const [{ data: profiles }, { data: jobs }, { data: messages }] = await Promise.all([
         supabase.from("public_profiles" as any).select("id, full_name, avatar_url").in("id", otherUserIds),
         jobIds.length
-          ? supabase.from("jobs").select("id, title").in("id", jobIds)
+          ? supabase.from("public_jobs" as any).select("id, title").in("id", jobIds)
           : Promise.resolve({ data: [] as { id: string; title: string }[] }),
         supabase
           .from("messages")
