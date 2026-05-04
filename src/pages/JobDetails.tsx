@@ -16,7 +16,6 @@ import BottomNav from "@/components/BottomNav";
 import ReviewModal from "@/components/ReviewModal";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { syncBadges } from "@/lib/badges";
 
 /** Worker's estimated earnings: 90% of job price split equally between all workers. */
 const getWorkerEarnings = (job: { price: number; cleaners_required?: number | null; helpers_required?: number | null }) => {
@@ -71,7 +70,7 @@ export default function JobDetails() {
       setCompletionNotes((merged as any).completion_notes || "");
       // Fetch owner profile + verification status
       const { data: ownerData } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("id, full_name, avatar_url, identity_status")
         .eq("id", (data as any).owner_id)
         .maybeSingle();
@@ -88,7 +87,7 @@ export default function JobDetails() {
       const cleanerId = (data as any).hired_cleaner_id;
       if (cleanerId) {
         const [{ data: cp }, { data: revs }] = await Promise.all([
-          supabase.from("profiles").select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
+          supabase.from("public_profiles" as any).select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
           supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId).eq("is_hidden", false),
         ]);
         const ratings = (revs || []).map((r: any) => r.rating);
@@ -113,7 +112,7 @@ export default function JobDetails() {
         const ids = (apps || []).map((a: any) => a.cleaner_id);
         if (ids.length > 0) {
           const { data: profs } = await supabase
-            .from("profiles")
+            .from("public_profiles" as any)
             .select("id, full_name, avatar_url, worker_type")
             .in("id", ids);
           setTeamMembers(
@@ -330,31 +329,25 @@ export default function JobDetails() {
       ? Math.round((workerPool / workerIds.length) * 100) / 100
       : 0;
 
-    // Update each worker's profile + atomically credit their wallet
+    // Pay each worker. credit_wallet is now SECURITY DEFINER and atomically:
+    //   - credits the wallet
+    //   - increments jobs_completed and total_earnings on the worker's profile
+    // The previous client-side profile UPDATE was failing silently (RLS only
+    // allowed self-edit) and is no longer needed. Badge sync runs the next
+    // time the worker views their profile.
     for (const workerId of workerIds) {
       try {
-        const { data: wp } = await supabase
-          .from("profiles")
-          .select("jobs_completed, total_earnings, worker_type")
-          .eq("id", workerId)
-          .single();
-        if (!wp) continue;
-        const newJobs = (wp.jobs_completed || 0) + 1;
-        const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
-        await supabase.from("profiles").update({
-          jobs_completed: newJobs,
-          total_earnings: newEarnings,
-        } as any).eq("id", workerId);
-
-        // Atomic credit (handles concurrent updates safely)
-        await supabase.rpc("credit_wallet", {
+        const { error: creditErr } = await supabase.rpc("credit_wallet", {
           p_user_id: workerId,
           p_amount: perWorker,
           p_description: `Earnings from "${job.title}"`,
           p_job_id: id,
         });
+        if (creditErr) {
+          console.error("[JobDetails] credit_wallet failed for worker", workerId, creditErr);
+          continue;
+        }
 
-        // Payment Received notification for this worker
         await sendNotification({
           userId: workerId,
           title: "Payment Received 💰",
@@ -363,11 +356,6 @@ export default function JobDetails() {
           relatedId: id,
           link: "/wallet",
         });
-
-        const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
-        const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId).eq("is_hidden", false);
-        const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
-        await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
       } catch (e) {
         console.error("[JobDetails] payout error for worker", workerId, e);
       }

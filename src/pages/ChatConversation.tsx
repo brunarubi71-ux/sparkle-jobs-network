@@ -118,7 +118,7 @@ export default function ChatConversation() {
     if (conv) {
       const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
       setOtherUserId(otherId);
-      const { data: otherProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
+      const { data: otherProfile } = await supabase.from("public_profiles" as any).select("full_name, avatar_url").eq("id", otherId).single();
       if (otherProfile) {
         setOtherUserName((otherProfile as any).full_name || null);
         setOtherUserAvatar((otherProfile as any).avatar_url || null);
