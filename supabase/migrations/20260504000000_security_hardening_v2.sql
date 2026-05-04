@@ -260,6 +260,7 @@ SELECT
   current_tier,
   business_type,
   years_in_business,
+  language,
   created_at
 FROM public.profiles;
 

@@ -8,6 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
+import { LANGUAGE_FLAGS, LANGUAGE_LABELS, normalizeLanguage } from "@/lib/translate";
+import type { Language } from "@/i18n/translations";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { detectContactInfo } from "@/lib/contactFilter";
 
@@ -28,6 +30,7 @@ interface ProfileLite {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  language: Language | null;
 }
 
 interface ConversationView extends Conversation {
@@ -95,7 +98,7 @@ export default function Chat() {
       const conversationIds = conversationsRaw.map((c) => c.id);
 
       const [{ data: profiles }, { data: jobs }, { data: messages }] = await Promise.all([
-        supabase.from("public_profiles" as any).select("id, full_name, avatar_url").in("id", otherUserIds),
+        supabase.from("public_profiles" as any).select("id, full_name, avatar_url, language").in("id", otherUserIds),
         jobIds.length
           ? supabase.from("public_jobs" as any).select("id, title").in("id", jobIds)
           : Promise.resolve({ data: [] as { id: string; title: string }[] }),
@@ -213,8 +216,13 @@ export default function Chat() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm truncate text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
-                      {conv.otherUser?.full_name || t("chat.conversation")}
+                    <p className={`text-sm truncate text-foreground flex items-center gap-1 ${isUnread ? "font-bold" : "font-semibold"}`}>
+                      <span className="truncate">{conv.otherUser?.full_name || t("chat.conversation")}</span>
+                      {conv.otherUser?.language && (
+                        <span className="text-xs flex-shrink-0" title={LANGUAGE_LABELS[normalizeLanguage(conv.otherUser.language)]}>
+                          {LANGUAGE_FLAGS[normalizeLanguage(conv.otherUser.language)]}
+                        </span>
+                      )}
                     </p>
                     <span className="text-[10px] text-muted-foreground flex-shrink-0">
                       {formatDistanceToNow(new Date(conv.lastMessageAt || conv.created_at), { addSuffix: true })}

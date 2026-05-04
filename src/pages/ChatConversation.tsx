@@ -2,13 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, AlertTriangle, Shield, Lock } from "lucide-react";
+import { ArrowLeft, Send, AlertTriangle, Shield, Lock, Languages, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { detectContactInfo, maskContactInfo } from "@/lib/contactFilter";
 import { logViolation, getPenaltyMessage } from "@/lib/platformProtection";
 import PlatformWarningBanner from "@/components/PlatformWarningBanner";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  translateText,
+  LANGUAGE_FLAGS,
+  LANGUAGE_LABELS,
+  normalizeLanguage,
+} from "@/lib/translate";
+import type { Language } from "@/i18n/translations";
 
 interface Message {
   id: string;
@@ -39,6 +46,10 @@ export default function ChatConversation() {
   const [otherUserName, setOtherUserName] = useState<string | null>(null);
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
+  const [otherUserLanguage, setOtherUserLanguage] = useState<Language | null>(null);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
+  const { language: myLanguage } = useLanguage();
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,10 +129,15 @@ export default function ChatConversation() {
     if (conv) {
       const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
       setOtherUserId(otherId);
-      const { data: otherProfile } = await supabase.from("public_profiles" as any).select("full_name, avatar_url").eq("id", otherId).single();
+      const { data: otherProfile } = await supabase
+        .from("public_profiles" as any)
+        .select("full_name, avatar_url, language")
+        .eq("id", otherId)
+        .single();
       if (otherProfile) {
         setOtherUserName((otherProfile as any).full_name || null);
         setOtherUserAvatar((otherProfile as any).avatar_url || null);
+        setOtherUserLanguage(normalizeLanguage((otherProfile as any).language));
       }
     }
     if (conv?.job_id) {
@@ -191,6 +207,38 @@ export default function ChatConversation() {
 
   const penaltyMessage = getPenaltyMessage(violationScore, userRole);
 
+  const languagesDiffer = !!otherUserLanguage && otherUserLanguage !== myLanguage;
+
+  const handleTranslateMessage = async (msg: Message) => {
+    // Always translate from the partner's language to the viewer's. We don't
+    // detect each individual message — for chat snippets the partner's
+    // profile language is a reliable signal and saves an API call.
+    if (!otherUserLanguage || msg.sender_id === user?.id) return;
+    if (translations[msg.id] || translatingIds.has(msg.id)) {
+      // toggle off if already shown
+      setTranslations((prev) => {
+        if (!prev[msg.id]) return prev;
+        const { [msg.id]: _, ...rest } = prev;
+        return rest;
+      });
+      return;
+    }
+    setTranslatingIds((prev) => new Set(prev).add(msg.id));
+    try {
+      const translated = await translateText(msg.message_text, otherUserLanguage, myLanguage);
+      setTranslations((prev) => ({ ...prev, [msg.id]: translated }));
+    } catch (err: any) {
+      console.error("[Chat] Translate failed:", err);
+      toast.error(t("chat.translate_failed") || "Translation failed");
+    } finally {
+      setTranslatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(msg.id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <div className="bg-card border-b border-border px-3 h-14 flex items-center gap-2 flex-shrink-0">
@@ -215,8 +263,17 @@ export default function ChatConversation() {
               </span>
             )}
           </div>
-          <span className="font-semibold text-foreground flex-1 truncate text-sm hover:text-primary">
-            {otherUserName || t("chat.conversation")}
+          <span className="font-semibold text-foreground flex-1 truncate text-sm hover:text-primary flex items-center gap-1">
+            <span className="truncate">{otherUserName || t("chat.conversation")}</span>
+            {otherUserLanguage && (
+              <span
+                className="text-xs flex-shrink-0"
+                title={LANGUAGE_LABELS[otherUserLanguage]}
+                aria-label={LANGUAGE_LABELS[otherUserLanguage]}
+              >
+                {LANGUAGE_FLAGS[otherUserLanguage]}
+              </span>
+            )}
           </span>
         </button>
         {isPreAcceptance && (
@@ -244,6 +301,24 @@ export default function ChatConversation() {
           </div>
         )}
 
+        {/* Different-language banner */}
+        {languagesDiffer && (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 mb-3 flex items-start gap-2">
+            <Languages className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-foreground">
+              <span className="font-semibold">
+                {t("chat.translate_banner_title") || "Different languages"}{" "}
+                {LANGUAGE_FLAGS[myLanguage]} ↔ {LANGUAGE_FLAGS[otherUserLanguage!]}
+              </span>
+              <br />
+              <span className="text-muted-foreground">
+                {t("chat.translate_banner_desc") ||
+                  "Tap any of their messages to translate it to your language."}
+              </span>
+            </p>
+          </div>
+        )}
+
         {/* Penalty warning */}
         {penaltyMessage && violationScore >= 3 && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 mb-3">
@@ -256,16 +331,39 @@ export default function ChatConversation() {
         {messages.map((msg) => {
           const isMine = msg.sender_id === user?.id;
           const displayText = isPreAcceptance ? maskContactInfo(msg.message_text) : msg.message_text;
+          const translation = translations[msg.id];
+          const isTranslating = translatingIds.has(msg.id);
+          const canTranslate = languagesDiffer && !isMine;
           return (
             <div key={msg.id} className={`flex my-1 ${isMine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm break-words ${
-                  isMine
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-lavender-100 text-foreground rounded-bl-md"
-                }`}
-              >
-                {displayText}
+              <div className="max-w-[75%] flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => canTranslate && handleTranslateMessage(msg)}
+                  disabled={!canTranslate}
+                  className={`px-4 py-2 rounded-2xl text-sm break-words text-left ${
+                    isMine
+                      ? "bg-primary text-primary-foreground rounded-br-md cursor-default"
+                      : `bg-lavender-100 text-foreground rounded-bl-md ${canTranslate ? "cursor-pointer hover:bg-lavender-200 transition-colors" : "cursor-default"}`
+                  }`}
+                >
+                  {displayText}
+                </button>
+                {isTranslating && (
+                  <div className="flex items-center gap-1 px-2 text-[11px] text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {t("chat.translating") || "Translating…"}
+                  </div>
+                )}
+                {translation && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2 text-xs text-foreground">
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-primary font-semibold mb-0.5">
+                      <Languages className="w-3 h-3" />
+                      {LANGUAGE_FLAGS[myLanguage]} {t("chat.translation") || "Translation"}
+                    </div>
+                    {isPreAcceptance ? maskContactInfo(translation) : translation}
+                  </div>
+                )}
               </div>
             </div>
           );
