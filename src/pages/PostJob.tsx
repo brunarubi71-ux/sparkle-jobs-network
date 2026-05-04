@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { containsContactInfo } from "@/lib/contactFilter";
+import { lookupZip, detectZipCountry } from "@/lib/zipLookup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -47,11 +48,14 @@ export default function PostJob() {
   const [form, setForm] = useState({
     title: "", cleaning_type: "residential", price: "",
     bedrooms: "1", bathrooms: "1", address: "", city: "",
+    zip_code: "", latitude: "", longitude: "",
     urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
     door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
     alarm_instructions: "", parking_instructions: "", door_access_info: "",
     guest_stay_length: "", number_of_guests: "",
   });
+  const [zipLookupLoading, setZipLookupLoading] = useState(false);
+  const [zipLookupHint, setZipLookupHint] = useState<string | null>(null);
 
   // Load existing job in edit mode
   useEffect(() => {
@@ -85,6 +89,9 @@ export default function PostJob() {
         bathrooms: data.bathrooms != null ? String(data.bathrooms) : "1",
         address: data.address ?? "",
         city: data.city ?? "",
+        zip_code: data.zip_code ?? "",
+        latitude: data.latitude != null ? String(data.latitude) : "",
+        longitude: data.longitude != null ? String(data.longitude) : "",
         urgency: data.urgency ?? "scheduled",
         description: data.description ?? "",
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
@@ -106,6 +113,45 @@ export default function PostJob() {
   }, [isEditMode, editJobId, user, navigate]);
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+
+  const handleZipBlur = async () => {
+    const raw = form.zip_code.trim();
+    if (!raw) {
+      setZipLookupHint(null);
+      return;
+    }
+    const country = detectZipCountry(raw);
+    if (!country) {
+      setZipLookupHint(t("post.zip_invalid") || "Enter a 5-digit ZIP (US) or 8-digit CEP (BR).");
+      return;
+    }
+    setZipLookupLoading(true);
+    setZipLookupHint(null);
+    try {
+      const result = await lookupZip(raw);
+      if (!result) {
+        setZipLookupHint(t("post.zip_not_found") || "Postal code not found.");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        zip_code: result.zip,
+        // Only auto-fill the city/address when they're still empty so we
+        // don't overwrite something the user already typed by hand.
+        city: f.city || `${result.city}${result.state ? `, ${result.state}` : ""}`,
+        address: f.address || result.street || "",
+        latitude: result.latitude != null ? String(result.latitude) : f.latitude,
+        longitude: result.longitude != null ? String(result.longitude) : f.longitude,
+      }));
+      const placeLabel = `${result.city}${result.state ? ", " + result.state : ""}`;
+      setZipLookupHint(`📍 ${placeLabel}`);
+    } catch (err) {
+      console.error("[PostJob] zip lookup failed:", err);
+      setZipLookupHint(t("post.zip_lookup_failed") || "Could not look up postal code. Please type the address manually.");
+    } finally {
+      setZipLookupLoading(false);
+    }
+  };
 
   const handleMainPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -196,7 +242,11 @@ export default function PostJob() {
       const { error } = await supabase.from("jobs").update({
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        address: form.address || null, city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -265,7 +315,11 @@ export default function PostJob() {
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        address: form.address || null, city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -433,6 +487,27 @@ export default function PostJob() {
               <Label className="text-sm font-medium text-foreground">{t("post.bathrooms")}</Label>
               <Input placeholder="1" type="number" value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className="rounded-xl h-12" />
             </div>
+          </div>
+          <div className="space-y-1">
+            <div className="flex gap-2">
+              <Input
+                placeholder={t("post.zip_code") || "ZIP / CEP"}
+                value={form.zip_code}
+                onChange={(e) => update("zip_code", e.target.value)}
+                onBlur={handleZipBlur}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                className="rounded-xl h-12 flex-1"
+              />
+              {zipLookupLoading && (
+                <div className="flex items-center text-xs text-muted-foreground px-2">
+                  {t("post.zip_looking_up") || "Looking up…"}
+                </div>
+              )}
+            </div>
+            {zipLookupHint && (
+              <p className="text-xs text-muted-foreground px-1">{zipLookupHint}</p>
+            )}
           </div>
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
