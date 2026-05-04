@@ -5,13 +5,14 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Crown, Star, LogOut, Camera, FileText,
+  Crown, Star, LogOut, Camera, FileText, KeyRound,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
   DollarSign, CalendarDays, Briefcase, Pencil,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import EditProfileModal from "@/components/EditProfileModal";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -35,6 +36,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -530,6 +532,15 @@ export default function Profile() {
           <LanguageSwitcher variant="inline" />
         </div>
 
+        {/* Change password */}
+        <Button
+          variant="outline"
+          className="w-full h-12 rounded-xl border-border text-muted-foreground"
+          onClick={() => setPasswordOpen(true)}
+        >
+          <KeyRound className="w-4 h-4 mr-2" /> {t("profile.change_password") || "Change password"}
+        </Button>
+
         {/* Logout */}
         <Button
           variant="outline"
@@ -556,6 +567,7 @@ export default function Profile() {
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
+      <ChangePasswordModal open={passwordOpen} onOpenChange={setPasswordOpen} />
       <BottomNav />
     </div>
   );
