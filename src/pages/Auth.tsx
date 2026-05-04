@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/shinely-logo.png";
 
@@ -22,6 +23,7 @@ export default function Auth() {
   const [hasTransportation, setHasTransportation] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -258,7 +260,11 @@ export default function Auth() {
 
           {!isSignUp && (
             <div className="text-right">
-              <button type="button" className="text-xs text-primary font-medium hover:underline">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-xs text-primary font-medium hover:underline"
+              >
                 {t("auth.forgot_password")}
               </button>
             </div>
@@ -351,6 +357,8 @@ export default function Auth() {
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+
+      <ForgotPasswordModal open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
 
       <div className="relative z-10 mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
         <Link to="/terms" className="hover:text-white hover:underline">Terms</Link>
