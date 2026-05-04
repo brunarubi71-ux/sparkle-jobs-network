@@ -70,6 +70,7 @@ export default function PublicProfile() {
       .from("reviews")
       .select("id, rating, review_text, created_at, reviewer_id")
       .eq("reviewed_id", id!)
+      .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(5);
 
@@ -97,7 +98,8 @@ export default function PublicProfile() {
     const allRatingsPromise = supabase
       .from("reviews")
       .select("rating")
-      .eq("reviewed_id", id!);
+      .eq("reviewed_id", id!)
+      .eq("is_hidden", false);
 
     const [
       { data: latestReviews },

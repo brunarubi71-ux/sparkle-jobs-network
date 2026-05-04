@@ -89,7 +89,7 @@ export default function JobDetails() {
       if (cleanerId) {
         const [{ data: cp }, { data: revs }] = await Promise.all([
           supabase.from("profiles").select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
-          supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId),
+          supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId).eq("is_hidden", false),
         ]);
         const ratings = (revs || []).map((r: any) => r.rating);
         const avg = ratings.length
@@ -349,7 +349,7 @@ export default function JobDetails() {
         });
 
         const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
-        const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId);
+        const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId).eq("is_hidden", false);
         const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
         await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
       } catch (e) {
