@@ -164,6 +164,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "profile.updated": "Profile updated!",
     "profile.photo_updated": "Photo updated!",
     "profile.photo_added": "Photo added!",
+    "profile.password_too_short": "Password must be at least 8 characters",
+    "profile.passwords_dont_match": "Passwords don't match",
+    "profile.password_min": "At least 8 characters",
 
     // Premium
     "premium.title": "Go Premium",
@@ -457,6 +460,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.loading": "Loading...",
     "common.save": "Save",
     "common.cancel": "Cancel",
+    "common.ok": "OK",
     "common.edit": "Edit",
     "common.delete": "Delete",
     "common.language": "Language",
@@ -631,6 +635,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "profile.updated": "Perfil atualizado!",
     "profile.photo_updated": "Foto atualizada!",
     "profile.photo_added": "Foto adicionada!",
+    "profile.password_too_short": "A senha deve ter no mínimo 8 caracteres",
+    "profile.passwords_dont_match": "As senhas não coincidem",
+    "profile.password_min": "Pelo menos 8 caracteres",
 
     "premium.title": "Seja Premium",
     "premium.choose_plan": "Escolha Seu Plano",
@@ -903,6 +910,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.loading": "Carregando...",
     "common.save": "Salvar",
     "common.cancel": "Cancelar",
+    "common.ok": "OK",
     "common.edit": "Editar",
     "common.delete": "Excluir",
     "common.language": "Idioma",
@@ -1077,6 +1085,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "profile.updated": "¡Perfil actualizado!",
     "profile.photo_updated": "¡Foto actualizada!",
     "profile.photo_added": "¡Foto agregada!",
+    "profile.password_too_short": "La contraseña debe tener al menos 8 caracteres",
+    "profile.passwords_dont_match": "Las contraseñas no coinciden",
+    "profile.password_min": "Al menos 8 caracteres",
 
     "premium.title": "Hazte Premium",
     "premium.choose_plan": "Elige Tu Plan",
@@ -1339,6 +1350,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.loading": "Cargando...",
     "common.save": "Guardar",
     "common.cancel": "Cancelar",
+    "common.ok": "OK",
     "common.edit": "Editar",
     "common.delete": "Eliminar",
     "common.language": "Idioma",
