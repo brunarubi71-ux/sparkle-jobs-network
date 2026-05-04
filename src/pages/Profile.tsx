@@ -166,11 +166,15 @@ export default function Profile() {
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     const wasEmpty = !(profile as any)?.avatar_url;
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop() || "jpg";
     const path = `${user.id}/avatar.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("avatars").upload(path, file, {
+      upsert: true,
+      contentType: file.type || `image/${ext}`,
+    });
     if (error) {
-      toast.error(t("job.upload_failed"));
+      console.error("[Profile] avatar upload failed:", error);
+      toast.error(`${t("job.upload_failed")}: ${error.message}`);
       return;
     }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -294,8 +298,8 @@ export default function Profile() {
               <Sparkles className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">📸 Add your photo</p>
-              <p className="text-xs text-amber-700">Earn +20 points instantly!</p>
+              <p className="text-sm font-semibold text-amber-900">{t("profile.add_your_photo")}</p>
+              <p className="text-xs text-amber-700">{t("profile.earn_20_points")}</p>
             </div>
             <label className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm">
               Add

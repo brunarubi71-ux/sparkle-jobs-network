@@ -171,8 +171,8 @@ export default function Chat() {
         ) : conversations.length === 0 ? (
           <EmptyState
             icon={MessageCircle}
-            title="No conversations yet 💬"
-            description="Accept a job to start chatting with cleaners and owners!"
+            title={`${t("chat.no_conversations")} 💬`}
+            description={t("chat.no_conversations_hint")}
           />
         ) : (
           conversations.map((conv, i) => {

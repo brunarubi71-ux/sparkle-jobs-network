@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,20 +22,20 @@ interface SubRow {
   created_at: string;
 }
 
-const proBenefits = [
-  { icon: "⚡", text: "7 job applications per week" },
-  { icon: "🎯", text: "Priority job access" },
-  { icon: "👁️", text: "Increased visibility" },
-  { icon: "📅", text: "1 schedule contact per week" },
-  { icon: "🎁", text: "7-day free trial" },
+const PRO_BENEFIT_KEYS: { icon: string; key: string }[] = [
+  { icon: "⚡", key: "premium.benefit.7_apps_week" },
+  { icon: "🎯", key: "premium.benefit.priority_access" },
+  { icon: "👁️", key: "premium.benefit.increased_visibility" },
+  { icon: "📅", key: "premium.benefit.1_contact_week" },
+  { icon: "🎁", key: "premium.seven_day_trial" },
 ];
 
-const premiumBenefits = [
-  { icon: "🚀", text: "Unlimited jobs per week" },
-  { icon: "⭐", text: "Top profile placement" },
-  { icon: "📅", text: "Unlimited schedule contacts" },
-  { icon: "🏅", text: "Premium badge on profile" },
-  { icon: "🎁", text: "7-day free trial" },
+const PREMIUM_BENEFIT_KEYS: { icon: string; key: string }[] = [
+  { icon: "🚀", key: "premium.benefit.unlimited_jobs" },
+  { icon: "⭐", key: "premium.benefit.top_placement" },
+  { icon: "📅", key: "premium.benefit.unlimited_contacts" },
+  { icon: "🏅", key: "premium.benefit.premium_badge" },
+  { icon: "🎁", key: "premium.seven_day_trial" },
 ];
 
 const planLabel: Record<string, string> = { free: "Free", pro: "Pro", premium: "Premium" };
@@ -48,6 +49,9 @@ const PRICES = {
 
 export default function Premium() {
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useLanguage();
+  const proBenefits = PRO_BENEFIT_KEYS.map((b) => ({ icon: b.icon, text: t(b.key) }));
+  const premiumBenefits = PREMIUM_BENEFIT_KEYS.map((b) => ({ icon: b.icon, text: t(b.key) }));
   const [activeSub, setActiveSub] = useState<SubRow | null>(null);
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
   const [billing, setBilling] = useState<Billing>("monthly");
@@ -139,8 +143,8 @@ export default function Premium() {
         >
           <Crown className="w-10 h-10 text-primary-foreground" />
         </motion.div>
-        <h1 className="text-2xl font-bold text-primary-foreground mb-1">My Subscription</h1>
-        <p className="text-primary-foreground/80 text-sm">Manage your Shinely plan</p>
+        <h1 className="text-2xl font-bold text-primary-foreground mb-1">{t("premium.my_subscription")}</h1>
+        <p className="text-primary-foreground/80 text-sm">{t("premium.manage_plan")}</p>
       </div>
 
       <div className="px-4 -mt-12 relative z-10 space-y-4">
@@ -153,11 +157,11 @@ export default function Premium() {
               className="bg-card rounded-2xl p-5 shadow-elevated text-center"
             >
               <div className="inline-flex items-center gap-1.5 bg-accent text-primary text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-3">
-                Free Plan
+                {t("premium.free_plan_label")}
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-1">You've reached your free limit</h2>
+              <h2 className="text-xl font-bold text-foreground mb-1">{t("premium.reached_free_limit")}</h2>
               <p className="text-sm text-muted-foreground">
-                Upgrade to unlock more jobs and earn more
+                {t("premium.upgrade_unlock")}
               </p>
             </motion.div>
 
@@ -174,7 +178,7 @@ export default function Premium() {
                   billing === "monthly" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
                 }`}
               >
-                Monthly
+                {t("premium.monthly")}
               </button>
               <button
                 onClick={() => setBilling("annual")}
@@ -182,8 +186,8 @@ export default function Premium() {
                   billing === "annual" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
                 }`}
               >
-                Annual
-                <span className="ml-1 text-[9px] font-bold opacity-90">save ~17%</span>
+                {t("premium.annual")}
+                <span className="ml-1 text-[9px] font-bold opacity-90">{t("premium.save_annual")}</span>
               </button>
             </motion.div>
 
@@ -197,7 +201,7 @@ export default function Premium() {
               {/* Pro */}
               <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative shadow-[0_0_20px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30">
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                  RECOMMENDED ✓
+                  {t("premium.recommended")} ✓
                 </div>
                 <div className="flex items-center gap-1.5 mb-1 mt-1">
                   <Zap className="w-4 h-4 text-primary" />
@@ -207,7 +211,7 @@ export default function Premium() {
                   ${proPrice.amount}
                   <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
                 </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                <p className="text-[10px] text-primary font-semibold mt-0.5">{t("premium.seven_day_trial")}</p>
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {proBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -220,7 +224,7 @@ export default function Premium() {
                   onClick={() => setCheckoutPriceId(proPrice.id)}
                   className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
                 >
-                  Start with Pro →
+                  {t("premium.start_with_pro")}
                 </Button>
               </div>
 
@@ -234,7 +238,7 @@ export default function Premium() {
                   ${premiumPrice.amount}
                   <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
                 </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                <p className="text-[10px] text-primary font-semibold mt-0.5">{t("premium.seven_day_trial")}</p>
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {premiumBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -247,7 +251,7 @@ export default function Premium() {
                   onClick={() => setCheckoutPriceId(premiumPrice.id)}
                   className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
                 >
-                  Go Premium →
+                  {t("premium.go_premium")}
                 </Button>
               </div>
             </motion.div>
@@ -264,14 +268,14 @@ export default function Premium() {
                 <div>
                   <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full mb-2">
                     <Crown className="w-3 h-3" />
-                    Active
+                    {t("premium.active")}
                   </div>
                   <h2 className="text-2xl font-bold text-foreground">{planLabel[currentTier]}</h2>
                 </div>
                 {activeSub?.current_period_end && (
                   <div className="text-right">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {activeSub.status === "trialing" ? "Trial ends" : "Next billing"}
+                      {activeSub.status === "trialing" ? t("premium.trial_ends") : t("premium.next_billing")}
                     </p>
                     <p className="text-sm font-semibold text-foreground">
                       {format(new Date(activeSub.current_period_end), "MMM d, yyyy")}
@@ -282,7 +286,7 @@ export default function Premium() {
 
               <div className="space-y-2 mb-5 pt-4 border-t border-border">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Your benefits
+                  {t("premium.your_benefits")}
                 </p>
                 {userBenefits.map((b) => (
                   <div key={b.text} className="flex items-center gap-2">
@@ -303,7 +307,7 @@ export default function Premium() {
                 {portalLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "Manage Subscription"
+                  t("premium.manage_subscription")
                 )}
               </Button>
             </motion.div>
@@ -316,7 +320,7 @@ export default function Premium() {
                 className="rounded-2xl gradient-primary p-4 shadow-card"
               >
                 <p className="text-sm font-bold text-primary-foreground mb-3">
-                  ✨ Unlock even more with Premium
+                  {t("premium.unlock_more_premium")}
                 </p>
                 <div className="rounded-2xl bg-card/95 p-4">
                   <div className="flex items-center gap-1.5 mb-1">
