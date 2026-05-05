@@ -532,7 +532,7 @@ export default function PostJob() {
           </div>
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
-          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
+          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} translate="no" />
           <div className="space-y-3">
             <div>
               <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
@@ -664,15 +664,15 @@ export default function PostJob() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.alarm_instructions")}</Label>
-            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
+            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} translate="no" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.parking_instructions")}</Label>
-            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
+            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} translate="no" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.additional_notes")}</Label>
-            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
+            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} translate="no" />
           </div>
         </div>
 
