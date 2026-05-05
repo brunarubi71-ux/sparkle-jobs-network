@@ -398,6 +398,7 @@ export default function PostJob() {
         amountCents: Math.round(totalCharged * 100),
         title: form.title,
       });
+      sessionStorage.removeItem(DRAFT_KEY);
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
     } catch (err: any) {
