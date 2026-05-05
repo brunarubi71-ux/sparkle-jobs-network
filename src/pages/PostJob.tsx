@@ -45,14 +45,23 @@ export default function PostJob() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [editLoading, setEditLoading] = useState(isEditMode);
-  const [form, setForm] = useState({
-    title: "", cleaning_type: "residential", price: "",
-    bedrooms: "1", bathrooms: "1", address: "", city: "",
-    zip_code: "", latitude: "", longitude: "",
-    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
-    door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
-    alarm_instructions: "", parking_instructions: "", door_access_info: "",
-    guest_stay_length: "", number_of_guests: "",
+  const DRAFT_KEY = "shinely_post_job_draft";
+  const [form, setForm] = useState(() => {
+    const defaults = {
+      title: "", cleaning_type: "residential", price: "",
+      bedrooms: "1", bathrooms: "1", address: "", city: "",
+      zip_code: "", latitude: "", longitude: "",
+      urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
+      alarm_instructions: "", parking_instructions: "", door_access_info: "",
+      guest_stay_length: "", number_of_guests: "",
+    };
+    if (isEditMode) return defaults;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+    } catch {}
+    return defaults;
   });
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [zipLookupHint, setZipLookupHint] = useState<string | null>(null);
