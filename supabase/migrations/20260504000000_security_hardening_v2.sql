@@ -245,7 +245,7 @@ SELECT
   worker_type,
   has_transportation,
   jobs_completed,
-  experience,
+  experience_years,
   specialties,
   languages,
   regions,
@@ -253,13 +253,10 @@ SELECT
   is_premium,
   premium_status,
   identity_status,
-  badges,
   points,
-  total_points_earned,
-  level,
-  current_tier,
   business_type,
   years_in_business,
+  company_name,
   language,
   created_at
 FROM public.profiles;
@@ -312,10 +309,6 @@ SELECT
   owner_confirmed_completion,
   completion_photos,
   completion_notes,
-  started_at,
-  completed_at,
-  accepted_at,
-  applied_at,
   date_time,
   created_at
 FROM public.jobs;
