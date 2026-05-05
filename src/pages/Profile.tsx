@@ -583,7 +583,34 @@ export default function Profile() {
           <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
 
-        {/* Terms */}
+        {/* Delete Account */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full flex items-center justify-center gap-1.5 text-xs text-destructive/70 hover:text-destructive pt-2 transition-colors">
+              <Trash2 className="w-3 h-3" />
+              Delete account
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is <strong>permanent and cannot be undone</strong>. All your data — jobs, messages, reviews, wallet balance, and profile — will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting…" : "Yes, delete my account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <button
           onClick={() => setTermsOpen(true)}
           className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline pt-1 pb-2"
