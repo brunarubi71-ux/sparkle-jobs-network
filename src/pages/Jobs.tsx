@@ -236,7 +236,7 @@ export default function Jobs() {
         .in("status", ["open", "applied"])
         .order("created_at", { ascending: false });
       if (error) throw error;
-      let rawJobs = (data as Job[]) || [];
+      let rawJobs = (data as unknown as Job[]) || [];
 
       // Count accepted applications per job to know how many spots remain
       const jobIds = rawJobs.map(j => j.id);

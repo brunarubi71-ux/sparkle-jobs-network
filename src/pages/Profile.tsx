@@ -55,7 +55,7 @@ export default function Profile() {
     enabled: !!user?.id && isWorkerRole,
     queryFn: async () => {
       const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
-        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id).eq("is_hidden", false),
+        (supabase.from("reviews").select("rating").eq("reviewed_id", user!.id) as any).eq("is_hidden", false),
         supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
         supabase
           .from("jobs")
@@ -129,10 +129,10 @@ export default function Profile() {
     if (!user || !profile) return;
 
     // Always pull fresh "My Rating" = avg of reviews where reviewed_id = current user
-    const { data: received } = await supabase
+    const { data: received } = await (supabase
       .from("reviews")
       .select("rating, review_text, created_at, id")
-      .eq("reviewed_id", user.id)
+      .eq("reviewed_id", user.id) as any)
       .eq("is_hidden", false)
       .order("created_at", { ascending: false });
     const list = received || [];

@@ -109,8 +109,8 @@ export default function Chat() {
           .order("created_at", { ascending: false }),
       ]);
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p as ProfileLite]));
-      const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.title as string]));
+      const profileMap = new Map<string, ProfileLite>((profiles || []).map((p: any) => [p.id, p as ProfileLite] as [string, ProfileLite]));
+      const jobMap = new Map<string, string>((jobs || []).map((j: any) => [j.id, j.title as string] as [string, string]));
       const lastMsgMap = new Map<string, { text: string; at: string; sender: string }>();
       (messages || []).forEach((m: any) => {
         if (!lastMsgMap.has(m.conversation_id)) {
@@ -124,7 +124,7 @@ export default function Chat() {
         return {
           ...c,
           otherUser: profileMap.get(otherId) || null,
-          jobTitle: c.job_id ? jobMap.get(c.job_id) || null : null,
+          jobTitle: (c.job_id ? jobMap.get(c.job_id) || null : null) as string | null,
           lastMessage: last?.text || null,
           lastMessageAt: last?.at || null,
           lastMessageSenderId: last?.sender || null,
