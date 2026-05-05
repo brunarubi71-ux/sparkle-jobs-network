@@ -5,6 +5,7 @@ import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home } fr
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface IdentityVerificationModalProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface IdentityVerificationModalProps {
 
 export default function IdentityVerificationModal({ open, onOpenChange, onSubmitted }: IdentityVerificationModalProps) {
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useLanguage();
   const isOwner = profile?.role === "owner";
 
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -35,10 +37,16 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
   };
 
   const uploadFile = async (file: File, kind: string) => {
-    const ext = file.name.split(".").pop() || "jpg";
+    const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_BYTES) {
+      throw new Error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`);
+    }
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
     const path = `${user!.id}/${kind}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("identity-docs").upload(path, file, { upsert: true });
-    if (error) throw error;
+    const { error } = await supabase.storage
+      .from("identity-docs")
+      .upload(path, file, { upsert: true, contentType: file.type || undefined });
+    if (error) throw new Error(`Upload ${kind} failed: ${error.message}`);
     return path;
   };
 
@@ -77,9 +85,12 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
       await refreshProfile();
       setSubmitted(true);
       onSubmitted?.();
+      // Auto-close after 2.5s so the user returns to whatever they were doing
+      setTimeout(() => handleClose(false), 2500);
     } catch (err) {
       console.error("[IdentityVerification] submit error:", err);
-      toast.error("Failed to submit documents. Please try again.");
+      const msg = err instanceof Error ? err.message : "Failed to submit documents.";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -113,11 +124,15 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             <div className="w-14 h-14 rounded-full bg-emerald-100 mx-auto flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
-            <p className="text-sm font-medium text-foreground">Documents submitted!</p>
-            <p className="text-xs text-muted-foreground px-4">
-              Your documents are under review. You'll be notified within 24 hours.
+            <p className="text-base font-bold text-emerald-700">
+              {t("identity.submitted_title") || "Documents submitted!"}
             </p>
-            <Button onClick={() => handleClose(false)} className="w-full rounded-xl mt-4">Close</Button>
+            <p className="text-xs text-muted-foreground px-4">
+              {t("identity.submitted_body") || "Your documents are under review. You'll be notified within 24 hours. Your job draft has been saved."}
+            </p>
+            <Button onClick={() => handleClose(false)} className="w-full rounded-xl mt-4">
+              {t("common.continue") || "Continue"}
+            </Button>
           </div>
         ) : (
           <div className="space-y-4 py-2">
