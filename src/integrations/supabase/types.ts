@@ -745,7 +745,11 @@ export type Database = {
       reviews: {
         Row: {
           created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
+          is_hidden: boolean
           job_id: string
           rating: number
           review_text: string | null
@@ -754,7 +758,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           job_id: string
           rating: number
           review_text?: string | null
@@ -763,7 +771,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           job_id?: string
           rating?: number
           review_text?: string | null
@@ -1027,7 +1039,6 @@ export type Database = {
           team_size_required: number | null
           title: string | null
           urgency: string | null
-          zip_code: string | null
         }
         Insert: {
           allow_solo_start?: boolean | null
@@ -1059,7 +1070,6 @@ export type Database = {
           team_size_required?: number | null
           title?: string | null
           urgency?: string | null
-          zip_code?: string | null
         }
         Update: {
           allow_solo_start?: boolean | null
@@ -1091,7 +1101,6 @@ export type Database = {
           team_size_required?: number | null
           title?: string | null
           urgency?: string | null
-          zip_code?: string | null
         }
         Relationships: []
       }
@@ -1102,6 +1111,7 @@ export type Database = {
           bio: string | null
           business_type: string | null
           city: string | null
+          company_name: string | null
           created_at: string | null
           experience_years: number | null
           full_name: string | null
@@ -1126,6 +1136,7 @@ export type Database = {
           bio?: string | null
           business_type?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string | null
           experience_years?: number | null
           full_name?: string | null
@@ -1150,6 +1161,7 @@ export type Database = {
           bio?: string | null
           business_type?: string | null
           city?: string | null
+          company_name?: string | null
           created_at?: string | null
           experience_years?: number | null
           full_name?: string | null
@@ -1172,6 +1184,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_moderate_review: {
+        Args: { _action: string; _reason?: string; _review_id: string }
+        Returns: undefined
+      }
       award_points: {
         Args: { p_points: number; p_reason: string; p_user_id: string }
         Returns: number
