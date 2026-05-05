@@ -385,6 +385,7 @@ export default function PostJob() {
           return;
         }
         await refreshProfile();
+        sessionStorage.removeItem(DRAFT_KEY);
         toast.success("Job posted successfully! 🎉");
         try { await awardPoints(user.id, "job_posted"); } catch {}
         navigate("/my-jobs");
