@@ -45,14 +45,23 @@ export default function PostJob() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [editLoading, setEditLoading] = useState(isEditMode);
-  const [form, setForm] = useState({
-    title: "", cleaning_type: "residential", price: "",
-    bedrooms: "1", bathrooms: "1", address: "", city: "",
-    zip_code: "", latitude: "", longitude: "",
-    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
-    door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
-    alarm_instructions: "", parking_instructions: "", door_access_info: "",
-    guest_stay_length: "", number_of_guests: "",
+  const DRAFT_KEY = "shinely_post_job_draft";
+  const [form, setForm] = useState(() => {
+    const defaults = {
+      title: "", cleaning_type: "residential", price: "",
+      bedrooms: "1", bathrooms: "1", address: "", city: "",
+      zip_code: "", latitude: "", longitude: "",
+      urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
+      alarm_instructions: "", parking_instructions: "", door_access_info: "",
+      guest_stay_length: "", number_of_guests: "",
+    };
+    if (isEditMode) return defaults;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+    } catch {}
+    return defaults;
   });
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [zipLookupHint, setZipLookupHint] = useState<string | null>(null);
@@ -111,6 +120,12 @@ export default function PostJob() {
       setEditLoading(false);
     })();
   }, [isEditMode, editJobId, user, navigate]);
+
+  // Persist draft to sessionStorage (skip in edit mode)
+  useEffect(() => {
+    if (isEditMode) return;
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch {}
+  }, [form, isEditMode]);
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -370,6 +385,7 @@ export default function PostJob() {
           return;
         }
         await refreshProfile();
+        sessionStorage.removeItem(DRAFT_KEY);
         toast.success("Job posted successfully! 🎉");
         try { await awardPoints(user.id, "job_posted"); } catch {}
         navigate("/my-jobs");
@@ -382,6 +398,7 @@ export default function PostJob() {
         amountCents: Math.round(totalCharged * 100),
         title: form.title,
       });
+      sessionStorage.removeItem(DRAFT_KEY);
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
     } catch (err: any) {
@@ -511,7 +528,7 @@ export default function PostJob() {
           </div>
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
-          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
+          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           <div className="space-y-3">
             <div>
               <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
@@ -643,15 +660,15 @@ export default function PostJob() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.alarm_instructions")}</Label>
-            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.parking_instructions")}</Label>
-            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.additional_notes")}</Label>
-            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
         </div>
 

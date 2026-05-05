@@ -1184,9 +1184,27 @@ export type Database = {
       }
     }
     Functions: {
+      _caller_is_job_applicant: { Args: { p_job_id: string }; Returns: boolean }
+      admin_adjust_wallet: {
+        Args: { _amount: number; _reason: string; _user_id: string }
+        Returns: number
+      }
       admin_moderate_review: {
         Args: { _action: string; _reason?: string; _review_id: string }
         Returns: undefined
+      }
+      admin_override_subscription: {
+        Args: {
+          _action: string
+          _days?: number
+          _reason?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      admin_reset_violations: {
+        Args: { _reason?: string; _user_id: string }
+        Returns: number
       }
       award_points: {
         Args: { p_points: number; p_reason: string; p_user_id: string }
