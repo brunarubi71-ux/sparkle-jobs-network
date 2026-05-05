@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText, KeyRound,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Trash2,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
