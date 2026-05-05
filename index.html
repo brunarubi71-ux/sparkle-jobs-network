@@ -57,16 +57,60 @@
     </div>
     <style>@keyframes shinely-spin{to{transform:rotate(360deg)}}</style>
     <script>
-      // If the JS bundle hasn't replaced this fallback within 12s, show a
-      // diagnostic so the screen isn't just a perpetual spinner. Helps
-      // distinguish "JS never loaded" from "JS crashed silently".
+      // Inline error catcher — runs BEFORE the module bundle so that even
+      // if a top-level import throws, we capture it and surface it to the
+      // user. The module-bundle's addEventListener registers too late
+      // because the throw happens during module evaluation.
       window.__shinely_boot_at = Date.now();
+      window.__shinely_boot_errors = [];
+
+      function shinelyShowError(label, err) {
+        try {
+          var root = document.getElementById("root");
+          if (!root) return;
+          var msg = "";
+          if (err && err.stack) msg = err.name + ": " + err.message + "\n\n" + err.stack;
+          else if (err && err.message) msg = err.name + ": " + err.message;
+          else msg = String(err);
+          root.innerHTML =
+            '<div style="min-height:100vh;background:#F5F0FF;color:#1a1a1a;padding:24px 16px;font-family:system-ui,-apple-system,sans-serif;">' +
+              '<div style="max-width:640px;margin:0 auto;">' +
+                '<h1 style="font-size:22px;font-weight:700;margin:0 0 8px;color:#7c3aed;">Shinely — falha ao iniciar</h1>' +
+                '<p style="font-size:14px;color:#555;margin:0 0 16px;">' + label + ". Tira print desta tela para o suporte.</p>" +
+                '<pre id="__shinely_err_pre" style="background:#fff;border:1px solid #e5d8fb;border-radius:12px;padding:12px;font-size:11px;line-height:1.4;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#b91c1c;"></pre>' +
+                '<button id="__shinely_reset" style="margin-top:16px;padding:10px 16px;border-radius:12px;background:#7c3aed;color:white;font-weight:600;font-size:14px;border:none;cursor:pointer;">Limpar dados e tentar de novo</button>' +
+              "</div>" +
+            "</div>";
+          var pre = document.getElementById("__shinely_err_pre");
+          if (pre) pre.textContent = msg;
+          var btn = document.getElementById("__shinely_reset");
+          if (btn) {
+            btn.addEventListener("click", function () {
+              try { localStorage.clear(); } catch (e) {}
+              try { sessionStorage.clear(); } catch (e) {}
+              window.location.reload();
+            });
+          }
+        } catch (e) {
+          try { document.body.innerText = "Shinely failed to start: " + String(err); } catch (e2) {}
+        }
+      }
+      window.__shinelyShowError = shinelyShowError;
+
+      window.addEventListener("error", function (event) {
+        // Errors from external scripts (e.g. analytics) report null event.error
+        // and a generic message. Skip those — only surface real app errors.
+        if (event.error) shinelyShowError("Erro JavaScript não tratado", event.error);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        shinelyShowError("Promise rejeitada sem tratamento", event.reason);
+      });
+
       setTimeout(function () {
+        var marker = document.getElementById("__shinely_boot_marker");
+        if (!marker) return;
         var status = document.getElementById("__shinely_boot_status");
         var detail = document.getElementById("__shinely_boot_detail");
-        var marker = document.getElementById("__shinely_boot_marker");
-        if (!marker) return; // App rendered (it replaced #root contents)
-        if (marker.dataset && marker.dataset.replaced === "1") return;
         if (status) status.textContent = "Não conseguimos iniciar o Shinely.";
         if (detail) {
           detail.textContent =
