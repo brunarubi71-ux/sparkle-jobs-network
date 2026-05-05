@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText, KeyRound,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Trash2,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
@@ -38,6 +38,8 @@ export default function Profile() {
   const [editOpen, setEditOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRatingReceived, setAvgRatingReceived] = useState(0);
@@ -200,6 +202,33 @@ export default function Profile() {
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+        },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete account");
+      }
+      await signOut();
+      navigate("/auth");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete account");
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
   };
 
   if (!profile) return null;
@@ -553,6 +582,47 @@ export default function Profile() {
         >
           <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
+
+        {/* Delete account */}
+        <Button
+          variant="ghost"
+          className="w-full h-10 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="w-3 h-3 mr-2" /> {t("profile.delete_account") || "Delete account"}
+        </Button>
+
+        {/* Delete confirmation dialog */}
+        {deleteOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-card rounded-2xl p-6 max-w-sm w-full shadow-xl">
+              <h2 className="text-lg font-bold text-foreground mb-2">
+                {t("profile.delete_account_title") || "Delete account?"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {t("profile.delete_account_warning") || "This action is permanent and cannot be undone. All your data, jobs, and payment history will be erased."}
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setDeleteOpen(false)}
+                  disabled={deleting}
+                >
+                  {t("common.cancel") || "Cancel"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-xl"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting…" : (t("profile.delete_confirm") || "Yes, delete")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Terms */}
         <button
