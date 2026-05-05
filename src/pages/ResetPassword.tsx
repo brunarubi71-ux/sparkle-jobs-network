@@ -13,6 +13,7 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +22,25 @@ export default function ResetPassword() {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Supabase puts auth errors (expired/invalid token) in the URL hash:
+    //   #error=access_denied&error_code=otp_expired&error_description=...
+    // We need to surface those instead of staying on a blank loader.
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    if (hash.includes("error=") || hash.includes("error_code=")) {
+      const params = new URLSearchParams(hash.replace(/^#/, ""));
+      const code = params.get("error_code") || params.get("error") || "unknown";
+      const desc = params.get("error_description") || "";
+      setLinkError(
+        code === "otp_expired"
+          ? t("auth.reset_link_expired") ||
+              "This reset link has expired or was already used. Please request a new one."
+          : (desc.replace(/\+/g, " ") || (t("auth.reset_link_invalid") ||
+              "This reset link is invalid or has expired. Please request a new one."))
+      );
+      setReady(true);
+      return;
+    }
 
     const check = async () => {
       const { data } = await supabase.auth.getSession();
@@ -42,7 +62,7 @@ export default function ResetPassword() {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +105,18 @@ export default function ResetPassword() {
           </h1>
         </div>
 
-        {!hasRecoverySession ? (
+        {linkError ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 text-center">{linkError}</p>
+            <Button
+              type="button"
+              className="w-full gradient-primary text-white"
+              onClick={() => navigate("/auth", { replace: true })}
+            >
+              {t("auth.back_to_login") || "Back to login"}
+            </Button>
+          </div>
+        ) : !hasRecoverySession ? (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 text-center">
               {t("auth.reset_link_invalid") ||
