@@ -90,7 +90,7 @@ export default function MyJobs() {
             .single();
           applicants.push({
             ...app,
-            cleaner_name: profile?.full_name || "Cleaner",
+            cleaner_name: (profile as any)?.full_name || "Cleaner",
             worker_type: ((profile as any)?.worker_type === "helper" ? "helper" : "cleaner") as "cleaner" | "helper",
             avatar_url: (profile as any)?.avatar_url ?? null,
           });

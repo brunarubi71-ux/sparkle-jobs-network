@@ -55,7 +55,7 @@ export default function Profile() {
     enabled: !!user?.id && isWorkerRole,
     queryFn: async () => {
       const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
-        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id).eq("is_hidden", false),
+        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id).eq("is_hidden" as any, false),
         supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
         supabase
           .from("jobs")
@@ -133,7 +133,7 @@ export default function Profile() {
       .from("reviews")
       .select("rating, review_text, created_at, id")
       .eq("reviewed_id", user.id)
-      .eq("is_hidden", false)
+      .eq("is_hidden" as any, false)
       .order("created_at", { ascending: false });
     const list = received || [];
     setReviewCountReceived(list.length);

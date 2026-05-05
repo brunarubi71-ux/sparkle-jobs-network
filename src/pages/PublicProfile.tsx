@@ -63,14 +63,14 @@ export default function PublicProfile() {
     setProfile(p);
     if (!p) return;
 
-    const isOwnerProfile = p.role === "owner";
+    const isOwnerProfile = (p as any).role === "owner";
 
     // Reviews + jobs completed (in parallel)
     const reviewsPromise = supabase
       .from("reviews")
       .select("id, rating, review_text, created_at, reviewer_id")
       .eq("reviewed_id", id!)
-      .eq("is_hidden", false)
+      .eq("is_hidden" as any, false)
       .order("created_at", { ascending: false })
       .limit(5);
 
@@ -99,7 +99,7 @@ export default function PublicProfile() {
       .from("reviews")
       .select("rating")
       .eq("reviewed_id", id!)
-      .eq("is_hidden", false);
+      .eq("is_hidden" as any, false);
 
     const [
       { data: latestReviews },
