@@ -39,7 +39,43 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <div style="padding:32px;font-family:system-ui;background:#F5F0FF;min-height:100vh;">
+          <h1 style="color:#7c3aed">Shinely</h1>
+          <p>JavaScript precisa estar habilitado para usar o Shinely.</p>
+        </div>
+      </noscript>
+      <div id="__shinely_boot_marker" style="display:none">booting</div>
+      <div id="__shinely_boot_fallback" style="position:fixed;inset:0;background:#F5F0FF;display:flex;align-items:center;justify-content:center;z-index:1;">
+        <div style="text-align:center;font-family:system-ui;color:#1a1a1a;">
+          <div style="width:48px;height:48px;border:4px solid #ddd;border-top-color:#7c3aed;border-radius:50%;animation:shinely-spin 1s linear infinite;margin:0 auto 16px;"></div>
+          <div id="__shinely_boot_status" style="font-size:13px;color:#7c3aed;font-weight:600;">Carregando Shinely…</div>
+          <div id="__shinely_boot_detail" style="font-size:11px;color:#888;margin-top:8px;max-width:520px;padding:0 16px;"></div>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes shinely-spin{to{transform:rotate(360deg)}}</style>
+    <script>
+      // If the JS bundle hasn't replaced this fallback within 12s, show a
+      // diagnostic so the screen isn't just a perpetual spinner. Helps
+      // distinguish "JS never loaded" from "JS crashed silently".
+      window.__shinely_boot_at = Date.now();
+      setTimeout(function () {
+        var status = document.getElementById("__shinely_boot_status");
+        var detail = document.getElementById("__shinely_boot_detail");
+        var marker = document.getElementById("__shinely_boot_marker");
+        if (!marker) return; // App rendered (it replaced #root contents)
+        if (marker.dataset && marker.dataset.replaced === "1") return;
+        if (status) status.textContent = "Não conseguimos iniciar o Shinely.";
+        if (detail) {
+          detail.textContent =
+            "User agent: " + (navigator.userAgent || "?") +
+            " | Time: " + new Date().toISOString() +
+            " | URL: " + window.location.href;
+        }
+      }, 12000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
