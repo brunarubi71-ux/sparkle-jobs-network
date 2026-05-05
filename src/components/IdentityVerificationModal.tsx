@@ -5,6 +5,9 @@ import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home } fr
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 interface IdentityVerificationModalProps {
   open: boolean;
@@ -14,6 +17,7 @@ interface IdentityVerificationModalProps {
 
 export default function IdentityVerificationModal({ open, onOpenChange, onSubmitted }: IdentityVerificationModalProps) {
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useLanguage();
   const isOwner = profile?.role === "owner";
 
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -32,6 +36,19 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
   const handleClose = (val: boolean) => {
     if (!val) reset();
     onOpenChange(val);
+  };
+
+  const validateFileSize = (file: File): boolean => {
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t("identity.file_too_large"));
+      return false;
+    }
+    return true;
+  };
+
+  const handleFileChange = (setter: (f: File | null) => void) => (file: File | null) => {
+    if (file && !validateFileSize(file)) return;
+    setter(file);
   };
 
   const uploadFile = async (file: File, kind: string) => {
@@ -77,9 +94,11 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
       await refreshProfile();
       setSubmitted(true);
       onSubmitted?.();
-    } catch (err) {
+      // Auto-close after 2.5s
+      setTimeout(() => handleClose(false), 2500);
+    } catch (err: any) {
       console.error("[IdentityVerification] submit error:", err);
-      toast.error("Failed to submit documents. Please try again.");
+      toast.error(err?.message || "Failed to submit documents. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -113,9 +132,9 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             <div className="w-14 h-14 rounded-full bg-emerald-100 mx-auto flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
-            <p className="text-sm font-medium text-foreground">Documents submitted!</p>
+            <p className="text-sm font-medium text-foreground">{t("identity.submitted_title")}</p>
             <p className="text-xs text-muted-foreground px-4">
-              Your documents are under review. You'll be notified within 24 hours.
+              {t("identity.submitted_body")}
             </p>
             <Button onClick={() => handleClose(false)} className="w-full rounded-xl mt-4">Close</Button>
           </div>
@@ -133,7 +152,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
               label={isOwner ? "📄 Upload ID" : "Document Photo"}
               hint={isOwner ? "ID, License or Passport" : (docFile ? "Tap to replace" : "ID, License or Passport")}
               file={docFile}
-              onChange={setDocFile}
+              onChange={handleFileChange(setDocFile)}
             />
 
             {/* 2. Owner only: proof of address */}
@@ -143,7 +162,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
                 label="🏠 Proof of Address"
                 hint="Utility bill, lease or bank statement (must show your name & address)"
                 file={addressFile}
-                onChange={setAddressFile}
+                onChange={handleFileChange(setAddressFile)}
               />
             )}
 
@@ -153,7 +172,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
               label={isOwner ? "🤳 Selfie with ID" : "Selfie with Document"}
               hint="Hold your ID next to your face"
               file={selfieFile}
-              onChange={setSelfieFile}
+              onChange={handleFileChange(setSelfieFile)}
               capture
             />
 
