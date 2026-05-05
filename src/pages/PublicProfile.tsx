@@ -66,11 +66,11 @@ export default function PublicProfile() {
     const isOwnerProfile = (p as any).role === "owner";
 
     // Reviews + jobs completed (in parallel)
-    const reviewsPromise = supabase
+    const reviewsPromise = (supabase
       .from("reviews")
       .select("id, rating, review_text, created_at, reviewer_id")
-      .eq("reviewed_id", id!)
-      .eq("is_hidden" as any, false)
+      .eq("reviewed_id", id!) as any)
+      .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(5);
 
@@ -95,11 +95,11 @@ export default function PublicProfile() {
       : Promise.resolve({ data: [] as PortfolioPhoto[] });
 
     // Total review count for accurate avg
-    const allRatingsPromise = supabase
+    const allRatingsPromise = (supabase
       .from("reviews")
       .select("rating")
-      .eq("reviewed_id", id!)
-      .eq("is_hidden" as any, false);
+      .eq("reviewed_id", id!) as any)
+      .eq("is_hidden", false);
 
     const [
       { data: latestReviews },
