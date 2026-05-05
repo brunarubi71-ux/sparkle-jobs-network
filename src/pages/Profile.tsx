@@ -207,21 +207,8 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-        },
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete account");
-      }
+      const { error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+      if (error) throw error;
       await signOut();
       navigate("/auth");
     } catch (err) {
