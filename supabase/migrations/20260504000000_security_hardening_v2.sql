@@ -233,7 +233,8 @@ GRANT EXECUTE ON FUNCTION public.credit_wallet(uuid, numeric, text, uuid) TO aut
 --    and other sensitive fields. The client should query this view (instead
 --    of profiles directly) whenever it needs to display info about a user
 --    other than the current user.
-CREATE OR REPLACE VIEW public.public_profiles
+DROP VIEW IF EXISTS public.public_profiles;
+CREATE VIEW public.public_profiles
 WITH (security_invoker = false) AS
 SELECT
   id,
@@ -279,7 +280,8 @@ USING (auth.uid() = id OR public.is_admin(auth.uid()));
 --    Excludes the precise street address, exact lat/long, and the financial
 --    breakdown (platform_fee, total_amount, cleaner_earnings).  Distance
 --    can still be computed using rounded coordinates (~1km granularity).
-CREATE OR REPLACE VIEW public.public_jobs
+DROP VIEW IF EXISTS public.public_jobs;
+CREATE VIEW public.public_jobs
 WITH (security_invoker = false) AS
 SELECT
   id,
