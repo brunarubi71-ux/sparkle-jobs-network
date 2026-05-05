@@ -121,6 +121,12 @@ export default function PostJob() {
     })();
   }, [isEditMode, editJobId, user, navigate]);
 
+  // Persist draft to sessionStorage (skip in edit mode)
+  useEffect(() => {
+    if (isEditMode) return;
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch {}
+  }, [form, isEditMode]);
+
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
 
   const handleZipBlur = async () => {
