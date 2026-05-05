@@ -214,6 +214,24 @@ export default function Profile() {
     navigate("/auth");
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+      if (error) {
+        toast.error(error.message || "Failed to delete account");
+        return;
+      }
+      await signOut();
+      navigate("/auth");
+      toast.success("Account deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (!profile) return null;
 
   const isOwner = profile.role === "owner";
