@@ -111,9 +111,11 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
               <ShieldCheck className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <DialogTitle className="text-foreground">Verify Your Identity</DialogTitle>
+              <DialogTitle className="text-foreground">{t("identity.title") || "Verify Your Identity"}</DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isOwner ? "Required before posting your first job" : "Required before applying to jobs"}
+                {isOwner
+                  ? (t("identity.subtitle_owner") || "Required before posting your first job")
+                  : (t("identity.subtitle_cleaner") || "Required before applying to jobs")}
               </p>
             </div>
           </div>
@@ -138,15 +140,17 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
           <div className="space-y-4 py-2">
             <p className="text-xs text-muted-foreground">
               {isOwner
-                ? "We verify Owners to keep cleaners safe. All documents are encrypted and only seen by our review team."
-                : "Upload a clear photo of your ID document and a selfie holding it. Accepted: ID, Driver's License, or Passport."}
+                ? (t("identity.intro_owner") || "We verify Owners to keep cleaners safe. All documents are encrypted and only seen by our review team.")
+                : (t("identity.intro_cleaner") || "Upload a clear photo of your ID document and a selfie holding it. Accepted: ID, Driver's License, or Passport.")}
             </p>
 
             {/* 1. ID Document */}
             <UploadField
               icon={isOwner ? FileText : Upload}
-              label={isOwner ? "📄 Upload ID" : "Document Photo"}
-              hint={isOwner ? "ID, License or Passport" : (docFile ? "Tap to replace" : "ID, License or Passport")}
+              label={isOwner ? (t("identity.id_label_owner") || "📄 Upload ID") : (t("identity.id_label_cleaner") || "Document Photo")}
+              hint={t("identity.id_hint") || "ID, License or Passport"}
+              tapHint={t("identity.tap_replace") || "Tap to replace"}
+              tapToUpload={t("identity.tap_upload") || "Tap to upload"}
               file={docFile}
               onChange={setDocFile}
             />
@@ -155,8 +159,10 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             {isOwner && (
               <UploadField
                 icon={Home}
-                label="🏠 Proof of Address"
-                hint="Utility bill, lease or bank statement (must show your name & address)"
+                label={t("identity.address_label") || "🏠 Proof of Address"}
+                hint={t("identity.address_hint") || "Utility bill, lease or bank statement (must show your name & address)"}
+                tapHint={t("identity.tap_replace") || "Tap to replace"}
+                tapToUpload={t("identity.tap_upload") || "Tap to upload"}
                 file={addressFile}
                 onChange={setAddressFile}
               />
@@ -165,8 +171,10 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             {/* 3. Selfie */}
             <UploadField
               icon={Camera}
-              label={isOwner ? "🤳 Selfie with ID" : "Selfie with Document"}
-              hint="Hold your ID next to your face"
+              label={isOwner ? (t("identity.selfie_label_owner") || "🤳 Selfie with ID") : (t("identity.selfie_label_cleaner") || "Selfie with Document")}
+              hint={t("identity.selfie_hint") || "Hold your ID next to your face"}
+              tapHint={t("identity.tap_replace") || "Tap to replace"}
+              tapToUpload={t("identity.tap_upload") || "Tap to upload"}
               file={selfieFile}
               onChange={setSelfieFile}
               capture
@@ -177,7 +185,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
               disabled={!allReady || submitting}
               className="w-full h-11 rounded-xl gradient-primary text-primary-foreground"
             >
-              {submitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>) : "Submit for Review"}
+              {submitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("identity.uploading") || "Uploading..."}</>) : (t("identity.submit") || "Submit for Review")}
             </Button>
           </div>
         )}
@@ -187,7 +195,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
 }
 
 function UploadField({
-  icon: Icon, label, hint, file, onChange, capture,
+  icon: Icon, label, hint, file, onChange, capture, tapHint, tapToUpload,
 }: {
   icon: any;
   label: string;
@@ -195,14 +203,16 @@ function UploadField({
   file: File | null;
   onChange: (f: File | null) => void;
   capture?: boolean;
+  tapHint?: string;
+  tapToUpload?: string;
 }) {
   return (
     <label className="block">
       <span className="text-xs font-medium text-foreground mb-1.5 block">{label}</span>
       <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
         <Icon className={`w-5 h-5 mx-auto mb-1.5 ${file ? "text-primary" : "text-muted-foreground"}`} />
-        <p className="text-xs font-medium text-foreground">{file ? file.name : "Tap to upload"}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">{file ? "Tap to replace" : hint}</p>
+        <p className="text-xs font-medium text-foreground">{file ? file.name : (tapToUpload || "Tap to upload")}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{file ? (tapHint || "Tap to replace") : hint}</p>
         <input
           type="file"
           accept="image/*"
