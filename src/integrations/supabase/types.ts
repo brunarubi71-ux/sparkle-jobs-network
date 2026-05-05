@@ -44,6 +44,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "public_jobs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       disputes: {
@@ -119,6 +126,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "public_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -198,6 +212,13 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "job_private_details_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "public_jobs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       jobs: {
@@ -244,6 +265,7 @@ export type Database = {
           title: string
           total_amount: number | null
           urgency: string
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
@@ -288,6 +310,7 @@ export type Database = {
           title: string
           total_amount?: number | null
           urgency?: string
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
@@ -332,6 +355,7 @@ export type Database = {
           title?: string
           total_amount?: number | null
           urgency?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
@@ -861,7 +885,180 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_jobs: {
+        Row: {
+          allow_solo_start: boolean | null
+          bathrooms: number | null
+          bedrooms: number | null
+          city: string | null
+          cleaners_required: number | null
+          cleaning_type: string | null
+          completion_notes: string | null
+          completion_photos: string[] | null
+          created_at: string | null
+          date_time: string | null
+          description: string | null
+          escrow_status: string | null
+          guest_stay_length: number | null
+          helpers_required: number | null
+          hired_cleaner_id: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          main_property_photo: string | null
+          number_of_guests: number | null
+          owner_confirmed_completion: boolean | null
+          owner_id: string | null
+          pending_review_at: string | null
+          price: number | null
+          property_photos: string[] | null
+          status: string | null
+          team_size_required: number | null
+          title: string | null
+          urgency: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          allow_solo_start?: boolean | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          cleaners_required?: number | null
+          cleaning_type?: string | null
+          completion_notes?: string | null
+          completion_photos?: string[] | null
+          created_at?: string | null
+          date_time?: string | null
+          description?: string | null
+          escrow_status?: string | null
+          guest_stay_length?: number | null
+          helpers_required?: number | null
+          hired_cleaner_id?: string | null
+          id?: string | null
+          latitude?: never
+          longitude?: never
+          main_property_photo?: string | null
+          number_of_guests?: number | null
+          owner_confirmed_completion?: boolean | null
+          owner_id?: string | null
+          pending_review_at?: string | null
+          price?: number | null
+          property_photos?: string[] | null
+          status?: string | null
+          team_size_required?: number | null
+          title?: string | null
+          urgency?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          allow_solo_start?: boolean | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          cleaners_required?: number | null
+          cleaning_type?: string | null
+          completion_notes?: string | null
+          completion_photos?: string[] | null
+          created_at?: string | null
+          date_time?: string | null
+          description?: string | null
+          escrow_status?: string | null
+          guest_stay_length?: number | null
+          helpers_required?: number | null
+          hired_cleaner_id?: string | null
+          id?: string | null
+          latitude?: never
+          longitude?: never
+          main_property_photo?: string | null
+          number_of_guests?: number | null
+          owner_confirmed_completion?: boolean | null
+          owner_id?: string | null
+          pending_review_at?: string | null
+          price?: number | null
+          property_photos?: string[] | null
+          status?: string | null
+          team_size_required?: number | null
+          title?: string | null
+          urgency?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      public_profiles: {
+        Row: {
+          availability: string | null
+          avatar_url: string | null
+          bio: string | null
+          business_type: string | null
+          city: string | null
+          created_at: string | null
+          experience_years: number | null
+          full_name: string | null
+          has_transportation: boolean | null
+          id: string | null
+          identity_status: string | null
+          is_premium: boolean | null
+          jobs_completed: number | null
+          language: string | null
+          languages: string[] | null
+          points: number | null
+          premium_status: string | null
+          regions: string[] | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          specialties: string[] | null
+          worker_type: string | null
+          years_in_business: number | null
+        }
+        Insert: {
+          availability?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
+          city?: string | null
+          created_at?: string | null
+          experience_years?: number | null
+          full_name?: string | null
+          has_transportation?: boolean | null
+          id?: string | null
+          identity_status?: string | null
+          is_premium?: boolean | null
+          jobs_completed?: number | null
+          language?: string | null
+          languages?: string[] | null
+          points?: number | null
+          premium_status?: string | null
+          regions?: string[] | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          specialties?: string[] | null
+          worker_type?: string | null
+          years_in_business?: number | null
+        }
+        Update: {
+          availability?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
+          city?: string | null
+          created_at?: string | null
+          experience_years?: number | null
+          full_name?: string | null
+          has_transportation?: boolean | null
+          id?: string | null
+          identity_status?: string | null
+          is_premium?: boolean | null
+          jobs_completed?: number | null
+          language?: string | null
+          languages?: string[] | null
+          points?: number | null
+          premium_status?: string | null
+          regions?: string[] | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          specialties?: string[] | null
+          worker_type?: string | null
+          years_in_business?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       award_points: {
