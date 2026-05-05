@@ -8,6 +8,7 @@ import { NotificationsProvider } from "@/hooks/useNotifications";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
+import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import { AnimatePresence } from "framer-motion";
 
 const Jobs            = lazy(() => import("./pages/Jobs"));
@@ -88,6 +89,7 @@ const App = () => {
   }, [showSplash]);
 
   return (
+  <GlobalErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <BrowserRouter>
@@ -131,6 +133,7 @@ const App = () => {
       </BrowserRouter>
     </LanguageProvider>
   </QueryClientProvider>
+  </GlobalErrorBoundary>
   );
 };
 
