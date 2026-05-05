@@ -7,13 +7,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText, KeyRound,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Trash2,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import EditProfileModal from "@/components/EditProfileModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
@@ -47,6 +58,7 @@ export default function Profile() {
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
   const isWorkerRole = profile?.role === "cleaner";
@@ -200,6 +212,24 @@ export default function Profile() {
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+      if (error) {
+        toast.error(error.message || "Failed to delete account");
+        return;
+      }
+      await signOut();
+      navigate("/auth");
+      toast.success("Account deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!profile) return null;
@@ -500,7 +530,6 @@ export default function Profile() {
           </motion.div>
         )}
 
-
         {/* Manage Subscription (paid users) */}
         {hasActiveSubscription && (
           <Button
@@ -554,7 +583,34 @@ export default function Profile() {
           <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
 
-        {/* Terms */}
+        {/* Delete Account */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full flex items-center justify-center gap-1.5 text-xs text-destructive/70 hover:text-destructive pt-2 transition-colors">
+              <Trash2 className="w-3 h-3" />
+              Delete account
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is <strong>permanent and cannot be undone</strong>. All your data — jobs, messages, reviews, wallet balance, and profile — will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting…" : "Yes, delete my account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <button
           onClick={() => setTermsOpen(true)}
           className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline pt-1 pb-2"
