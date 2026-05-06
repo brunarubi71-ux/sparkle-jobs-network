@@ -28,6 +28,9 @@ export default function PostJob() {
   const isEditMode = !!editJobId;
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [editJobStatus, setEditJobStatus] = useState<string | null>(null);
+  const isEditingDraft = isEditMode && editJobStatus === "draft";
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -117,6 +120,7 @@ export default function PostJob() {
       });
       setExistingMainPhoto(data.main_property_photo ?? "");
       setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
+      setEditJobStatus(data.status ?? null);
       setEditLoading(false);
     })();
   }, [isEditMode, editJobId, user, navigate]);
@@ -254,7 +258,7 @@ export default function PostJob() {
       const helpersReq = parseInt(form.helpers_required) || 0;
       const teamSize = cleanersReq + helpersReq;
 
-      const { error } = await supabase.from("jobs").update({
+      const updatePayload: any = {
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null,
@@ -270,7 +274,10 @@ export default function PostJob() {
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
-      } as any).eq("id", editJobId).eq("owner_id", user.id);
+      };
+      if (isEditingDraft) updatePayload.status = "open";
+
+      const { error } = await supabase.from("jobs").update(updatePayload).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
 
       const { error: privError } = await supabase
@@ -286,7 +293,7 @@ export default function PostJob() {
           door_access_info: form.door_access_info || null,
         }, { onConflict: "job_id" });
       if (privError) throw privError;
-      toast.success("Job updated");
+      toast.success(isEditingDraft ? t("post.draft_published") : "Job updated");
       navigate("/my-jobs");
     } catch (err) {
       console.error("[PostJob] saveEdits error:", err);
@@ -427,6 +434,96 @@ export default function PostJob() {
     }
     submitJob("wallet");
   };
+
+  const handleSaveDraft = async () => {
+    if (!user) return;
+    if (!form.title.trim()) {
+      toast.error(t("post.draft_title_required"));
+      return;
+    }
+    setDraftSaving(true);
+    try {
+      const price = parseFloat(form.price) || 0;
+      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const cleanerEarnings = price;
+      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
+      let mainPhotoUrl: string | null = null;
+      if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
+      else if (existingMainPhoto) mainPhotoUrl = existingMainPhoto;
+
+      const additionalUrls: string[] = [...existingPhotos];
+      for (const file of photoFiles) additionalUrls.push(await uploadFile(file, "additional"));
+
+      const payload: any = {
+        owner_id: user.id,
+        title: form.title,
+        cleaning_type: form.cleaning_type,
+        price,
+        bedrooms: parseInt(form.bedrooms),
+        bathrooms: parseInt(form.bathrooms),
+        address: form.address || null,
+        city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
+        description: form.description || null,
+        total_amount: totalCharged,
+        platform_fee: platformFee,
+        cleaner_earnings: cleanerEarnings,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq,
+        helpers_required: helpersReq,
+        main_property_photo: mainPhotoUrl,
+        property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        status: "draft",
+      };
+
+      let jobId = editJobId;
+      if (isEditMode && isEditingDraft) {
+        const { error } = await supabase.from("jobs").update(payload).eq("id", editJobId!).eq("owner_id", user.id);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase.from("jobs").insert(payload).select("id").single();
+        if (error) throw error;
+        jobId = inserted.id;
+      }
+
+      // Save private details
+      const hasPrivateData =
+        form.door_code || form.supply_code || form.lockbox_code || form.gate_code ||
+        form.alarm_instructions || form.parking_instructions || form.door_access_info;
+      if (hasPrivateData && jobId) {
+        await supabase.from("job_private_details" as any).upsert({
+          job_id: jobId,
+          door_code: form.door_code || null,
+          supply_code: form.supply_code || null,
+          lockbox_code: form.lockbox_code || null,
+          gate_code: form.gate_code || null,
+          alarm_instructions: form.alarm_instructions || null,
+          parking_instructions: form.parking_instructions || null,
+          door_access_info: form.door_access_info || null,
+        }, { onConflict: "job_id" });
+      }
+
+      sessionStorage.removeItem(DRAFT_KEY);
+      toast.success(t("post.draft_saved"));
+      navigate("/my-jobs");
+    } catch (err: any) {
+      console.error("[PostJob] saveDraft error:", err);
+      toast.error(err?.message || t("post.error"));
+    } finally {
+      setDraftSaving(false);
+    }
+  };
+
+  const showDraftButton = !isEditMode || isEditingDraft;
 
   const isAirbnb = form.cleaning_type === "airbnb";
 
@@ -689,14 +786,32 @@ export default function PostJob() {
           </motion.div>
         )}
 
-        <Button type="submit" disabled={loading || uploadingPhotos || editLoading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
+        <Button type="submit" disabled={loading || uploadingPhotos || editLoading || draftSaving} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
           <PlusCircle className="w-4 h-4 mr-2" />
           {uploadingPhotos
             ? t("post.uploading_photos")
             : loading
-              ? (isEditMode ? "Saving..." : t("post.posting"))
-              : (isEditMode ? "Save changes" : t("post.submit"))}
+              ? (isEditingDraft ? t("post.publishing") : isEditMode ? "Saving..." : t("post.posting"))
+              : (isEditingDraft ? t("post.publish_draft") : isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
+
+        {showDraftButton && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={draftSaving || loading}
+            onClick={handleSaveDraft}
+            className="w-full h-10 rounded-xl text-sm font-medium"
+          >
+            {draftSaving ? t("post.posting") : t("post.save_draft")}
+          </Button>
+        )}
+
+        {ownerNeedsVerification && !isEditMode && (
+          <p className="text-xs text-muted-foreground text-center px-4">
+            {t("post.draft_hint")}
+          </p>
+        )}
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
 

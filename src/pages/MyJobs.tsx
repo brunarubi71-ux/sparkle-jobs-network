@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles, Pencil } from "lucide-react";
+import { MapPin, Bed, Bath, Users, Star, Eye, CheckCircle, XCircle, ImageIcon, AlertTriangle, Clock, Shield, Briefcase, Sparkles, Pencil, Trash2, FileEdit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -50,6 +50,7 @@ interface JobWithApplicants {
 const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
 const IN_PROGRESS_STATUSES = ["in_progress"];
 const APPROVAL_STATUSES = ["pending_review"];
+const DRAFT_STATUSES = ["draft"];
 
 export default function MyJobs() {
   const { user } = useAuth();
@@ -194,6 +195,18 @@ export default function MyJobs() {
   const approvalJobs = useMemo(() => jobs.filter(j => APPROVAL_STATUSES.includes(j.status)), [jobs]);
   const completedJobs = useMemo(() => jobs.filter(j => j.status === "completed"), [jobs]);
   const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
+  const draftJobs = useMemo(() => jobs.filter(j => DRAFT_STATUSES.includes(j.status)), [jobs]);
+
+  const deleteDraft = async (jobId: string) => {
+    if (!confirm(t("myjobs.delete_draft_confirm"))) return;
+    const { error } = await supabase.from("jobs").delete().eq("id", jobId).eq("owner_id", user!.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("myjobs.draft_deleted"));
+    fetchJobs();
+  };
 
   const statusConfig: Record<string, { color: string; label: string }> = {
     pending_payment: { color: "bg-yellow-100 text-yellow-800", label: "Pending Payment" },
@@ -206,6 +219,7 @@ export default function MyJobs() {
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review") },
     completed: { color: "bg-green-100 text-green-700", label: "Completed" },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled") },
+    draft: { color: "bg-gray-100 text-gray-700", label: t("status.draft") },
   };
 
   const JobCard = ({ job, index }: { job: JobWithApplicants; index: number }) => {
@@ -515,6 +529,9 @@ export default function MyJobs() {
             <TabsTrigger value="cancelled" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
               {t("myjobs.tab_cancelled")} ({cancelledJobs.length})
             </TabsTrigger>
+            <TabsTrigger value="drafts" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_drafts")} ({draftJobs.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="space-y-3">
@@ -531,6 +548,44 @@ export default function MyJobs() {
           </TabsContent>
           <TabsContent value="cancelled" className="space-y-3">
             {renderList(cancelledJobs, t("myjobs.no_cancelled"))}
+          </TabsContent>
+          <TabsContent value="drafts" className="space-y-3">
+            {loading ? (
+              Array.from({ length: 2 }).map((_, i) => <ShimmerCard key={i} />)
+            ) : draftJobs.length === 0 ? (
+              <EmptyState icon={FileEdit} title={t("myjobs.no_drafts")} description="" />
+            ) : (
+              draftJobs.map((job, i) => (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="bg-card rounded-2xl p-4 shadow-card border border-border"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground truncate">{job.title || t("myjobs.untitled_draft")}</p>
+                      {job.price > 0 && <p className="text-xl font-bold text-primary">${job.price}</p>}
+                    </div>
+                    <Badge className="bg-gray-100 text-gray-700 border-0 text-[10px] font-bold">{t("status.draft")}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                    {job.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.city}</span>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => navigate(`/post-job?edit=${job.id}`)}
+                      className="flex-1 h-9 text-xs gradient-primary text-primary-foreground rounded-xl">
+                      <Pencil className="w-3 h-3 mr-1" /> {t("myjobs.continue_draft")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => deleteDraft(job.id)}
+                      className="h-9 text-xs text-destructive border-destructive/30 rounded-xl">
+                      <Trash2 className="w-3 h-3 mr-1" /> {t("myjobs.delete")}
+                    </Button>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
