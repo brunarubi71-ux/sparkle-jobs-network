@@ -42,6 +42,8 @@ export default function PostJob() {
   const [existingMainPhoto, setExistingMainPhoto] = useState<string>("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [editJobStatus, setEditJobStatus] = useState<string>("");
+  const isEditingDraft = isEditMode && editJobStatus === "draft";
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [editLoading, setEditLoading] = useState(isEditMode);
@@ -115,6 +117,7 @@ export default function PostJob() {
         guest_stay_length: data.guest_stay_length != null ? String(data.guest_stay_length) : "",
         number_of_guests: data.number_of_guests != null ? String(data.number_of_guests) : "",
       });
+      setEditJobStatus(data.status ?? "");
       setExistingMainPhoto(data.main_property_photo ?? "");
       setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
       setEditLoading(false);
@@ -131,6 +134,83 @@ export default function PostJob() {
 
   const clearDraft = () => {
     try { sessionStorage.removeItem(FORM_DRAFT_KEY); } catch { /* ignore */ }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!user) return;
+    if (!form.title.trim()) {
+      toast.error(t("post.draft_title_required") || "Adicione um título antes de salvar");
+      return;
+    }
+    setLoading(true);
+    try {
+      let mainPhotoUrl = existingMainPhoto || "";
+      if (mainPhotoFile) {
+        try { mainPhotoUrl = await uploadFile(mainPhotoFile, "main"); } catch { /* photos optional for drafts */ }
+      }
+      const additionalUrls: string[] = [...existingPhotos];
+      for (const f of photoFiles) {
+        try { additionalUrls.push(await uploadFile(f, "additional")); } catch { /* ignore */ }
+      }
+
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+      const price = parseFloat(form.price) || 0;
+
+      const draftPayload: any = {
+        owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type, price,
+        bedrooms: parseInt(form.bedrooms) || 1, bathrooms: parseInt(form.bathrooms) || 1,
+        address: form.address || null, city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
+        description: form.description || null,
+        cleaners_required: cleanersReq, helpers_required: helpersReq,
+        team_size_required: Math.max(1, teamSize),
+        main_property_photo: mainPhotoUrl || null,
+        property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        status: "draft",
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+      };
+
+      let draftId: string;
+      if (isEditMode && editJobId) {
+        const { error } = await supabase.from("jobs").update(draftPayload).eq("id", editJobId).eq("owner_id", user.id);
+        if (error) throw error;
+        draftId = editJobId;
+      } else {
+        const { data, error } = await supabase.from("jobs").insert(draftPayload).select("id").single();
+        if (error) throw error;
+        draftId = data!.id;
+      }
+
+      const hasPrivateData =
+        form.door_code || form.supply_code || form.lockbox_code || form.gate_code ||
+        form.alarm_instructions || form.parking_instructions || form.door_access_info;
+      if (hasPrivateData) {
+        await supabase.from("job_private_details" as any).upsert({
+          job_id: draftId,
+          door_code: form.door_code || null,
+          supply_code: form.supply_code || null,
+          lockbox_code: form.lockbox_code || null,
+          gate_code: form.gate_code || null,
+          alarm_instructions: form.alarm_instructions || null,
+          parking_instructions: form.parking_instructions || null,
+          door_access_info: form.door_access_info || null,
+        }, { onConflict: "job_id" });
+      }
+
+      clearDraft();
+      toast.success(t("post.draft_saved") || "Rascunho salvo!");
+      navigate("/my-jobs");
+    } catch (err: any) {
+      toast.error(err?.message || t("post.error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleZipBlur = async () => {
@@ -258,7 +338,7 @@ export default function PostJob() {
       const helpersReq = parseInt(form.helpers_required) || 0;
       const teamSize = cleanersReq + helpersReq;
 
-      const { error } = await supabase.from("jobs").update({
+      const updatePayload: any = {
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null,
@@ -274,7 +354,13 @@ export default function PostJob() {
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
-      } as any).eq("id", editJobId).eq("owner_id", user.id);
+      };
+      // Publish: when editing a draft, transition to 'open' (skip payment for now —
+      // owner already validated identity and form). Future: route through Stripe.
+      if (isEditingDraft) {
+        updatePayload.status = "open";
+      }
+      const { error } = await supabase.from("jobs").update(updatePayload).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
 
       const { error: privError } = await supabase
@@ -290,7 +376,7 @@ export default function PostJob() {
           door_access_info: form.door_access_info || null,
         }, { onConflict: "job_id" });
       if (privError) throw privError;
-      toast.success("Job updated");
+      toast.success(isEditingDraft ? (t("post.draft_published") || "Trabalho publicado!") : "Job updated");
       navigate("/my-jobs");
     } catch (err) {
       console.error("[PostJob] saveEdits error:", err);
@@ -698,9 +784,26 @@ export default function PostJob() {
           {uploadingPhotos
             ? t("post.uploading_photos")
             : loading
-              ? (isEditMode ? "Saving..." : t("post.posting"))
-              : (isEditMode ? "Save changes" : t("post.submit"))}
+              ? (isEditingDraft ? (t("post.publishing") || "Publicando...") : isEditMode ? "Saving..." : t("post.posting"))
+              : (isEditingDraft ? (t("post.publish_draft") || "Publicar trabalho") : isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
+
+        {(!isEditMode || isEditingDraft) && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading || uploadingPhotos || editLoading}
+            onClick={handleSaveDraft}
+            className="w-full h-11 rounded-xl border-primary/30 text-primary hover:bg-primary/5 font-medium"
+          >
+            {t("post.save_draft") || "Salvar Rascunho"}
+          </Button>
+        )}
+        {ownerNeedsVerification && !isEditMode && (
+          <p className="text-xs text-center text-muted-foreground px-4">
+            {t("post.draft_hint") || "Sua identidade está em revisão. Salve seu trabalho como rascunho e publique quando aprovado."}
+          </p>
+        )}
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
 

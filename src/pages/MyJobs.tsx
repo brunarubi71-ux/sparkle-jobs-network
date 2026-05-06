@@ -50,6 +50,7 @@ interface JobWithApplicants {
 const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
 const IN_PROGRESS_STATUSES = ["in_progress"];
 const APPROVAL_STATUSES = ["pending_review"];
+const DRAFT_STATUSES = ["draft"];
 
 export default function MyJobs() {
   const { user } = useAuth();
@@ -194,6 +195,15 @@ export default function MyJobs() {
   const approvalJobs = useMemo(() => jobs.filter(j => APPROVAL_STATUSES.includes(j.status)), [jobs]);
   const completedJobs = useMemo(() => jobs.filter(j => j.status === "completed"), [jobs]);
   const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
+  const draftJobs = useMemo(() => jobs.filter(j => DRAFT_STATUSES.includes(j.status)), [jobs]);
+
+  const deleteDraft = async (jobId: string) => {
+    if (!confirm(t("myjobs.delete_draft_confirm") || "Excluir este rascunho?")) return;
+    const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("myjobs.draft_deleted") || "Rascunho excluído");
+    fetchJobs();
+  };
 
   const statusConfig: Record<string, { color: string; label: string }> = {
     pending_payment: { color: "bg-yellow-100 text-yellow-800", label: "Pending Payment" },
@@ -515,6 +525,9 @@ export default function MyJobs() {
             <TabsTrigger value="cancelled" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
               {t("myjobs.tab_cancelled")} ({cancelledJobs.length})
             </TabsTrigger>
+            <TabsTrigger value="drafts" className="flex-1 min-w-0 rounded-xl text-[10px] font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card px-2">
+              {t("myjobs.tab_drafts") || "Rascunhos"} ({draftJobs.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="space-y-3">
@@ -531,6 +544,43 @@ export default function MyJobs() {
           </TabsContent>
           <TabsContent value="cancelled" className="space-y-3">
             {renderList(cancelledJobs, t("myjobs.no_cancelled"))}
+          </TabsContent>
+          <TabsContent value="drafts" className="space-y-3">
+            {draftJobs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">
+                {t("myjobs.no_drafts") || "Nenhum rascunho salvo"}
+              </p>
+            ) : (
+              draftJobs.map((job) => (
+                <div key={job.id} className="bg-card rounded-2xl shadow-card p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{job.title || t("myjobs.untitled_draft") || "(sem título)"}</h3>
+                      {job.city && <p className="text-xs text-muted-foreground mt-0.5">{job.city}</p>}
+                      {job.price > 0 && <p className="text-sm text-primary font-bold mt-1">${Number(job.price).toFixed(2)}</p>}
+                    </div>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold whitespace-nowrap">
+                      {t("status.draft") || "Rascunho"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => navigate(`/post-job?edit=${job.id}`)}
+                      className="flex-1 rounded-xl gradient-primary text-primary-foreground text-xs h-9"
+                    >
+                      {t("myjobs.continue_draft") || "Continuar"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => deleteDraft(job.id)}
+                      className="rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-9 px-3"
+                    >
+                      {t("myjobs.delete") || "Excluir"}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
