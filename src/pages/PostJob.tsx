@@ -258,7 +258,7 @@ export default function PostJob() {
       const helpersReq = parseInt(form.helpers_required) || 0;
       const teamSize = cleanersReq + helpersReq;
 
-      const { error } = await supabase.from("jobs").update({
+      const updatePayload: any = {
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         address: form.address || null, city: form.city || null,
@@ -274,7 +274,10 @@ export default function PostJob() {
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
         guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
-      } as any).eq("id", editJobId).eq("owner_id", user.id);
+      };
+      if (isEditingDraft) updatePayload.status = "open";
+
+      const { error } = await supabase.from("jobs").update(updatePayload).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
 
       const { error: privError } = await supabase
