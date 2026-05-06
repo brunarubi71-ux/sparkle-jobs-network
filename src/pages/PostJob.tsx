@@ -120,6 +120,7 @@ export default function PostJob() {
       });
       setExistingMainPhoto(data.main_property_photo ?? "");
       setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
+      setEditJobStatus(data.status ?? null);
       setEditLoading(false);
     })();
   }, [isEditMode, editJobId, user, navigate]);
