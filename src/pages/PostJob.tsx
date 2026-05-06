@@ -435,6 +435,96 @@ export default function PostJob() {
     submitJob("wallet");
   };
 
+  const handleSaveDraft = async () => {
+    if (!user) return;
+    if (!form.title.trim()) {
+      toast.error(t("post.draft_title_required"));
+      return;
+    }
+    setDraftSaving(true);
+    try {
+      const price = parseFloat(form.price) || 0;
+      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const cleanerEarnings = price;
+      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const cleanersReq = parseInt(form.cleaners_required) || 0;
+      const helpersReq = parseInt(form.helpers_required) || 0;
+      const teamSize = cleanersReq + helpersReq;
+
+      let mainPhotoUrl: string | null = null;
+      if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
+      else if (existingMainPhoto) mainPhotoUrl = existingMainPhoto;
+
+      const additionalUrls: string[] = [...existingPhotos];
+      for (const file of photoFiles) additionalUrls.push(await uploadFile(file, "additional"));
+
+      const payload: any = {
+        owner_id: user.id,
+        title: form.title,
+        cleaning_type: form.cleaning_type,
+        price,
+        bedrooms: parseInt(form.bedrooms),
+        bathrooms: parseInt(form.bathrooms),
+        address: form.address || null,
+        city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
+        description: form.description || null,
+        total_amount: totalCharged,
+        platform_fee: platformFee,
+        cleaner_earnings: cleanerEarnings,
+        team_size_required: Math.max(1, teamSize),
+        cleaners_required: cleanersReq,
+        helpers_required: helpersReq,
+        main_property_photo: mainPhotoUrl,
+        property_photos: additionalUrls.length > 0 ? additionalUrls : null,
+        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
+        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        status: "draft",
+      };
+
+      let jobId = editJobId;
+      if (isEditMode && isEditingDraft) {
+        const { error } = await supabase.from("jobs").update(payload).eq("id", editJobId!).eq("owner_id", user.id);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase.from("jobs").insert(payload).select("id").single();
+        if (error) throw error;
+        jobId = inserted.id;
+      }
+
+      // Save private details
+      const hasPrivateData =
+        form.door_code || form.supply_code || form.lockbox_code || form.gate_code ||
+        form.alarm_instructions || form.parking_instructions || form.door_access_info;
+      if (hasPrivateData && jobId) {
+        await supabase.from("job_private_details" as any).upsert({
+          job_id: jobId,
+          door_code: form.door_code || null,
+          supply_code: form.supply_code || null,
+          lockbox_code: form.lockbox_code || null,
+          gate_code: form.gate_code || null,
+          alarm_instructions: form.alarm_instructions || null,
+          parking_instructions: form.parking_instructions || null,
+          door_access_info: form.door_access_info || null,
+        }, { onConflict: "job_id" });
+      }
+
+      sessionStorage.removeItem(DRAFT_KEY);
+      toast.success(t("post.draft_saved"));
+      navigate("/my-jobs");
+    } catch (err: any) {
+      console.error("[PostJob] saveDraft error:", err);
+      toast.error(err?.message || t("post.error"));
+    } finally {
+      setDraftSaving(false);
+    }
+  };
+
+  const showDraftButton = !isEditMode || isEditingDraft;
+
   const isAirbnb = form.cleaning_type === "airbnb";
 
   return (
