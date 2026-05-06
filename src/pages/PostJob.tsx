@@ -293,7 +293,7 @@ export default function PostJob() {
           door_access_info: form.door_access_info || null,
         }, { onConflict: "job_id" });
       if (privError) throw privError;
-      toast.success("Job updated");
+      toast.success(isEditingDraft ? t("post.draft_published") : "Job updated");
       navigate("/my-jobs");
     } catch (err) {
       console.error("[PostJob] saveEdits error:", err);
