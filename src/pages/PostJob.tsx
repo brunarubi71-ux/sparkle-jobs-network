@@ -28,6 +28,9 @@ export default function PostJob() {
   const isEditMode = !!editJobId;
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [editJobStatus, setEditJobStatus] = useState<string | null>(null);
+  const isEditingDraft = isEditMode && editJobStatus === "draft";
   const [identityOpen, setIdentityOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
