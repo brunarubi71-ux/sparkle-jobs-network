@@ -1,23 +1,52 @@
 {
-  "name": "Shinely",
+  "id": "/",
+  "name": "Shinely — Premium Cleaning Jobs",
   "short_name": "Shinely",
-  "description": "Premium Cleaning Jobs Marketplace",
+  "description": "Premium cleaning jobs marketplace. Post jobs, get hired, get paid — fast and secure.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#F5F0FF",
   "theme_color": "#A855F7",
+  "categories": ["business", "lifestyle", "productivity"],
   "icons": [
     {
       "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Shinely home"
+    }
+  ],
+  "prefer_related_applications": false
 }
+
