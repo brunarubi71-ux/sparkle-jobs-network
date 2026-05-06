@@ -219,6 +219,7 @@ export default function MyJobs() {
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review") },
     completed: { color: "bg-green-100 text-green-700", label: "Completed" },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled") },
+    draft: { color: "bg-gray-100 text-gray-700", label: t("status.draft") },
   };
 
   const JobCard = ({ job, index }: { job: JobWithApplicants; index: number }) => {
