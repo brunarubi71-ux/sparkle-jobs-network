@@ -195,6 +195,18 @@ export default function MyJobs() {
   const approvalJobs = useMemo(() => jobs.filter(j => APPROVAL_STATUSES.includes(j.status)), [jobs]);
   const completedJobs = useMemo(() => jobs.filter(j => j.status === "completed"), [jobs]);
   const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
+  const draftJobs = useMemo(() => jobs.filter(j => DRAFT_STATUSES.includes(j.status)), [jobs]);
+
+  const deleteDraft = async (jobId: string) => {
+    if (!confirm(t("myjobs.delete_draft_confirm"))) return;
+    const { error } = await supabase.from("jobs").delete().eq("id", jobId).eq("owner_id", user!.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("myjobs.draft_deleted"));
+    fetchJobs();
+  };
 
   const statusConfig: Record<string, { color: string; label: string }> = {
     pending_payment: { color: "bg-yellow-100 text-yellow-800", label: "Pending Payment" },
