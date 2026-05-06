@@ -227,13 +227,16 @@ export default function Jobs() {
       // Fetch jobs that are still accepting workers:
       // - "open" jobs (no one accepted yet)
       // - "applied" jobs (partially filled team jobs — helpers may still be needed)
+      // Use public_jobs view: address/precise lat-long/financials are
+      // hidden until the user is hired. Coordinates here are rounded to
+      // ~1km granularity so we can still compute distance.
       const { data, error } = await supabase
-        .from("jobs")
+        .from("public_jobs" as any)
         .select("*")
         .in("status", ["open", "applied"])
         .order("created_at", { ascending: false });
       if (error) throw error;
-      let rawJobs = (data as Job[]) || [];
+      let rawJobs = (data as unknown as Job[]) || [];
 
       // Count accepted applications per job to know how many spots remain
       const jobIds = rawJobs.map(j => j.id);
@@ -248,7 +251,7 @@ export default function Jobs() {
         const workerTypeMap = new Map<string, "cleaner" | "helper">();
         if (workerIds.length > 0) {
           const { data: workerProfiles } = await supabase
-            .from("profiles")
+            .from("public_profiles" as any)
             .select("id, worker_type")
             .in("id", workerIds);
           (workerProfiles || []).forEach((p: any) =>
@@ -290,7 +293,7 @@ export default function Jobs() {
       const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();
       if (ownerIds.length > 0) {
         const { data: ownerProfiles } = await supabase
-          .from("profiles")
+          .from("public_profiles" as any)
           .select("id, identity_status, full_name, avatar_url")
           .in("id", ownerIds);
         (ownerProfiles || []).forEach((p: any) => {

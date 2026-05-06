@@ -58,7 +58,7 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
       // Award points to the reviewer (depends on the role of the person being reviewed)
       try {
         const { data: reviewedProfile } = await supabase
-          .from("profiles")
+          .from("public_profiles" as any)
           .select("role, worker_type, points")
           .eq("id", reviewedId)
           .maybeSingle();

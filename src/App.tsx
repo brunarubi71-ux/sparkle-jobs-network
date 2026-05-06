@@ -8,6 +8,7 @@ import { NotificationsProvider } from "@/hooks/useNotifications";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
+import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import { AnimatePresence } from "framer-motion";
 
 const Jobs            = lazy(() => import("./pages/Jobs"));
@@ -23,6 +24,7 @@ const SellSchedule    = lazy(() => import("./pages/SellSchedule"));
 const JobDetails      = lazy(() => import("./pages/JobDetails"));
 const PublicProfile   = lazy(() => import("./pages/PublicProfile"));
 const Auth            = lazy(() => import("./pages/Auth"));
+const ResetPassword   = lazy(() => import("./pages/ResetPassword"));
 const AdminLogin      = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard  = lazy(() => import("./pages/AdminDashboard"));
 const NotFound        = lazy(() => import("./pages/NotFound"));
@@ -87,6 +89,7 @@ const App = () => {
   }, [showSplash]);
 
   return (
+  <GlobalErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <BrowserRouter>
@@ -99,6 +102,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/cancellation" element={<Cancellation />} />
@@ -129,6 +133,7 @@ const App = () => {
       </BrowserRouter>
     </LanguageProvider>
   </QueryClientProvider>
+  </GlobalErrorBoundary>
   );
 };
 

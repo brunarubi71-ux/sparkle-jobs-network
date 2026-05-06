@@ -84,13 +84,13 @@ export default function MyJobs() {
         const applicants = [];
         for (const app of apps || []) {
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("public_profiles" as any)
             .select("full_name, worker_type, avatar_url")
             .eq("id", app.cleaner_id)
             .single();
           applicants.push({
             ...app,
-            cleaner_name: profile?.full_name || "Cleaner",
+            cleaner_name: (profile as any)?.full_name || "Cleaner",
             worker_type: ((profile as any)?.worker_type === "helper" ? "helper" : "cleaner") as "cleaner" | "helper",
             avatar_url: (profile as any)?.avatar_url ?? null,
           });

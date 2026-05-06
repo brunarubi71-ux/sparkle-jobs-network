@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/shinely-logo.png";
 
@@ -22,12 +23,36 @@ export default function Auth() {
   const [hasTransportation, setHasTransportation] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signUp, signIn } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+
+  const friendlyAuthError = (raw: string): string => {
+    const msg = (raw || "").toLowerCase();
+    if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
+      return t("auth.error_invalid_credentials") || "Incorrect email or password.";
+    }
+    if (msg.includes("email not confirmed")) {
+      return t("auth.error_email_not_confirmed") || "Please confirm your email before logging in. Check your inbox.";
+    }
+    if (msg.includes("user already registered") || msg.includes("already been registered")) {
+      return t("auth.error_email_taken") || "An account with this email already exists. Try logging in.";
+    }
+    if (msg.includes("password should be at least") || msg.includes("weak password")) {
+      return t("auth.error_weak_password") || "Password must be at least 8 characters.";
+    }
+    if (msg.includes("rate limit") || msg.includes("too many")) {
+      return t("auth.error_rate_limit") || "Too many attempts. Please wait a minute and try again.";
+    }
+    if (msg.includes("network") || msg.includes("fetch")) {
+      return t("auth.error_network") || "Network error. Please check your connection.";
+    }
+    return raw || (t("auth.error_generic") || "Something went wrong. Please try again.");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +75,7 @@ export default function Auth() {
         navigate("/", { replace: true });
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(friendlyAuthError(err?.message));
     } finally {
       setLoading(false);
     }
@@ -258,7 +283,11 @@ export default function Auth() {
 
           {!isSignUp && (
             <div className="text-right">
-              <button type="button" className="text-xs text-primary font-medium hover:underline">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-xs text-primary font-medium hover:underline"
+              >
                 {t("auth.forgot_password")}
               </button>
             </div>
@@ -351,6 +380,8 @@ export default function Auth() {
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+
+      <ForgotPasswordModal open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
 
       <div className="relative z-10 mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
         <Link to="/terms" className="hover:text-white hover:underline">Terms</Link>

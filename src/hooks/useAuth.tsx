@@ -116,7 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         has_transportation: hasTransportation ?? true,
         worker_type: workerType,
       }).eq("id", data.user.id);
-      await supabase.rpc("seed_sample_data", { p_user_id: data.user.id });
     }
   };
 

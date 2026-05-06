@@ -64,36 +64,23 @@ export async function awardPoints(userId: string, reason: PointReason): Promise<
   const points = POINT_VALUES[reason];
   if (!points) return 0;
 
-  if (ONCE_PER_USER.includes(reason)) {
-    const { data: existing } = await supabase
-      .from("point_history")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("reason", reason)
-      .maybeSingle();
-    if (existing) return 0;
-  }
+  // Use secure RPC — handles duplicate checks and atomic increment server-side
+  const { data, error } = await supabase.rpc("award_points", {
+    p_user_id: userId,
+    p_points: points,
+    p_reason: reason,
+  });
 
-  // Insert history row
-  await supabase.from("point_history").insert({ user_id: userId, points, reason });
-
-  // Increment profile.points
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("points")
-    .eq("id", userId)
-    .maybeSingle();
-  const current = (profile as any)?.points ?? 0;
-  await supabase.from("profiles").update({ points: current + points } as any).eq("id", userId);
+  const awarded = error ? 0 : (data as number) ?? 0;
 
   // Broadcast for in-app toast
-  if (typeof window !== "undefined") {
+  if (awarded > 0 && typeof window !== "undefined") {
     window.dispatchEvent(
-      new CustomEvent("shinely:points-awarded", { detail: { points, reason } })
+      new CustomEvent("shinely:points-awarded", { detail: { points: awarded, reason } })
     );
   }
 
-  return points;
+  return awarded;
 }
 
 // ───────────────────────── Badges ─────────────────────────

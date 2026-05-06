@@ -10,7 +10,7 @@
 
     <title translate="no">Shinely</title>
     <meta name="description" content="Shinely connects cleaners and helpers with premium cleaning jobs near you. Post a job, get hired, get paid — fast and secure." />
-    <link rel="canonical" href="https://shinelyapp.lovable.app/" />
+    <link rel="canonical" href="https://shinelyapp.com/" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
@@ -25,7 +25,10 @@
     <meta property="og:site_name" content="Shinely" />
     <meta property="og:title" content="Shinely — Premium Cleaning Jobs Marketplace" />
     <meta property="og:description" content="Connect with premium cleaning jobs near you. Post, get hired, get paid — fast and secure." />
-    <meta property="og:url" content="https://shinelyapp.lovable.app/" />
+    <meta property="og:url" content="https://shinelyapp.com/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="es_ES" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/58e17df9-d8bc-42ff-b1b0-4e412499fc77/id-preview-5e008e12--354ff4b4-a81e-4676-844d-5133041fbe1a.lovable.app-1776447079121.png" />
 
     <!-- Twitter -->
@@ -36,7 +39,87 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <div style="padding:32px;font-family:system-ui;background:#F5F0FF;min-height:100vh;">
+          <h1 style="color:#7c3aed">Shinely</h1>
+          <p>JavaScript precisa estar habilitado para usar o Shinely.</p>
+        </div>
+      </noscript>
+      <div id="__shinely_boot_marker" style="display:none">booting</div>
+      <div id="__shinely_boot_fallback" style="position:fixed;inset:0;background:#F5F0FF;display:flex;align-items:center;justify-content:center;z-index:1;">
+        <div style="text-align:center;font-family:system-ui;color:#1a1a1a;">
+          <div style="width:48px;height:48px;border:4px solid #ddd;border-top-color:#7c3aed;border-radius:50%;animation:shinely-spin 1s linear infinite;margin:0 auto 16px;"></div>
+          <div id="__shinely_boot_status" style="font-size:13px;color:#7c3aed;font-weight:600;">Carregando Shinely…</div>
+          <div id="__shinely_boot_detail" style="font-size:11px;color:#888;margin-top:8px;max-width:520px;padding:0 16px;"></div>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes shinely-spin{to{transform:rotate(360deg)}}</style>
+    <script>
+      // Inline error catcher — runs BEFORE the module bundle so that even
+      // if a top-level import throws, we capture it and surface it to the
+      // user. The module-bundle's addEventListener registers too late
+      // because the throw happens during module evaluation.
+      window.__shinely_boot_at = Date.now();
+      window.__shinely_boot_errors = [];
+
+      function shinelyShowError(label, err) {
+        try {
+          var root = document.getElementById("root");
+          if (!root) return;
+          var msg = "";
+          if (err && err.stack) msg = err.name + ": " + err.message + "\n\n" + err.stack;
+          else if (err && err.message) msg = err.name + ": " + err.message;
+          else msg = String(err);
+          root.innerHTML =
+            '<div style="min-height:100vh;background:#F5F0FF;color:#1a1a1a;padding:24px 16px;font-family:system-ui,-apple-system,sans-serif;">' +
+              '<div style="max-width:640px;margin:0 auto;">' +
+                '<h1 style="font-size:22px;font-weight:700;margin:0 0 8px;color:#7c3aed;">Shinely — falha ao iniciar</h1>' +
+                '<p style="font-size:14px;color:#555;margin:0 0 16px;">' + label + ". Tira print desta tela para o suporte.</p>" +
+                '<pre id="__shinely_err_pre" style="background:#fff;border:1px solid #e5d8fb;border-radius:12px;padding:12px;font-size:11px;line-height:1.4;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#b91c1c;"></pre>' +
+                '<button id="__shinely_reset" style="margin-top:16px;padding:10px 16px;border-radius:12px;background:#7c3aed;color:white;font-weight:600;font-size:14px;border:none;cursor:pointer;">Limpar dados e tentar de novo</button>' +
+              "</div>" +
+            "</div>";
+          var pre = document.getElementById("__shinely_err_pre");
+          if (pre) pre.textContent = msg;
+          var btn = document.getElementById("__shinely_reset");
+          if (btn) {
+            btn.addEventListener("click", function () {
+              try { localStorage.clear(); } catch (e) {}
+              try { sessionStorage.clear(); } catch (e) {}
+              window.location.reload();
+            });
+          }
+        } catch (e) {
+          try { document.body.innerText = "Shinely failed to start: " + String(err); } catch (e2) {}
+        }
+      }
+      window.__shinelyShowError = shinelyShowError;
+
+      window.addEventListener("error", function (event) {
+        // Errors from external scripts (e.g. analytics) report null event.error
+        // and a generic message. Skip those — only surface real app errors.
+        if (event.error) shinelyShowError("Erro JavaScript não tratado", event.error);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        shinelyShowError("Promise rejeitada sem tratamento", event.reason);
+      });
+
+      setTimeout(function () {
+        var marker = document.getElementById("__shinely_boot_marker");
+        if (!marker) return;
+        var status = document.getElementById("__shinely_boot_status");
+        var detail = document.getElementById("__shinely_boot_detail");
+        if (status) status.textContent = "Não conseguimos iniciar o Shinely.";
+        if (detail) {
+          detail.textContent =
+            "User agent: " + (navigator.userAgent || "?") +
+            " | Time: " + new Date().toISOString() +
+            " | URL: " + window.location.href;
+        }
+      }, 12000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

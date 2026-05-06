@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { containsContactInfo } from "@/lib/contactFilter";
+import { lookupZip, detectZipCountry } from "@/lib/zipLookup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -44,14 +45,26 @@ export default function PostJob() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [editLoading, setEditLoading] = useState(isEditMode);
-  const [form, setForm] = useState({
-    title: "", cleaning_type: "residential", price: "",
-    bedrooms: "1", bathrooms: "1", address: "", city: "",
-    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
-    door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
-    alarm_instructions: "", parking_instructions: "", door_access_info: "",
-    guest_stay_length: "", number_of_guests: "",
+  const DRAFT_KEY = "shinely_post_job_draft";
+  const [form, setForm] = useState(() => {
+    const defaults = {
+      title: "", cleaning_type: "residential", price: "",
+      bedrooms: "1", bathrooms: "1", address: "", city: "",
+      zip_code: "", latitude: "", longitude: "",
+      urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
+      alarm_instructions: "", parking_instructions: "", door_access_info: "",
+      guest_stay_length: "", number_of_guests: "",
+    };
+    if (isEditMode) return defaults;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+    } catch {}
+    return defaults;
   });
+  const [zipLookupLoading, setZipLookupLoading] = useState(false);
+  const [zipLookupHint, setZipLookupHint] = useState<string | null>(null);
 
   // Load existing job in edit mode
   useEffect(() => {
@@ -85,6 +98,9 @@ export default function PostJob() {
         bathrooms: data.bathrooms != null ? String(data.bathrooms) : "1",
         address: data.address ?? "",
         city: data.city ?? "",
+        zip_code: data.zip_code ?? "",
+        latitude: data.latitude != null ? String(data.latitude) : "",
+        longitude: data.longitude != null ? String(data.longitude) : "",
         urgency: data.urgency ?? "scheduled",
         description: data.description ?? "",
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
@@ -105,7 +121,52 @@ export default function PostJob() {
     })();
   }, [isEditMode, editJobId, user, navigate]);
 
+  // Persist draft to sessionStorage (skip in edit mode)
+  useEffect(() => {
+    if (isEditMode) return;
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch {}
+  }, [form, isEditMode]);
+
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+
+  const handleZipBlur = async () => {
+    const raw = form.zip_code.trim();
+    if (!raw) {
+      setZipLookupHint(null);
+      return;
+    }
+    const country = detectZipCountry(raw);
+    if (!country) {
+      setZipLookupHint(t("post.zip_invalid") || "Enter a 5-digit ZIP (US) or 8-digit CEP (BR).");
+      return;
+    }
+    setZipLookupLoading(true);
+    setZipLookupHint(null);
+    try {
+      const result = await lookupZip(raw);
+      if (!result) {
+        setZipLookupHint(t("post.zip_not_found") || "Postal code not found.");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        zip_code: result.zip,
+        // Only auto-fill the city/address when they're still empty so we
+        // don't overwrite something the user already typed by hand.
+        city: f.city || `${result.city}${result.state ? `, ${result.state}` : ""}`,
+        address: f.address || result.street || "",
+        latitude: result.latitude != null ? String(result.latitude) : f.latitude,
+        longitude: result.longitude != null ? String(result.longitude) : f.longitude,
+      }));
+      const placeLabel = `${result.city}${result.state ? ", " + result.state : ""}`;
+      setZipLookupHint(`📍 ${placeLabel}`);
+    } catch (err) {
+      console.error("[PostJob] zip lookup failed:", err);
+      setZipLookupHint(t("post.zip_lookup_failed") || "Could not look up postal code. Please type the address manually.");
+    } finally {
+      setZipLookupLoading(false);
+    }
+  };
 
   const handleMainPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -196,7 +257,11 @@ export default function PostJob() {
       const { error } = await supabase.from("jobs").update({
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        address: form.address || null, city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -232,8 +297,12 @@ export default function PostJob() {
     }
   };
 
+  const submittingRef = useRef(false);
+
   const submitJob = async (paymentMethod: "card" | "wallet") => {
     if (!user || !mainPhotoFile) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setConfirmOpen(false);
     setLoading(true);
     setUploadingPhotos(true);
@@ -261,7 +330,11 @@ export default function PostJob() {
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        address: form.address || null, city: form.city || null,
+        zip_code: form.zip_code || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
+        urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -300,6 +373,7 @@ export default function PostJob() {
       if (paymentMethod === "wallet") {
         // Atomic debit (handles concurrent updates and insufficient funds in one statement)
         const { error: debitError } = await supabase.rpc("debit_wallet", {
+          p_user_id: user!.id,
           p_amount: totalCharged,
           p_description: `Job posted: ${form.title}`,
           p_job_id: insertedJob?.id || null,
@@ -311,6 +385,7 @@ export default function PostJob() {
           return;
         }
         await refreshProfile();
+        sessionStorage.removeItem(DRAFT_KEY);
         toast.success("Job posted successfully! 🎉");
         try { await awardPoints(user.id, "job_posted"); } catch {}
         navigate("/my-jobs");
@@ -323,16 +398,26 @@ export default function PostJob() {
         amountCents: Math.round(totalCharged * 100),
         title: form.title,
       });
+      sessionStorage.removeItem(DRAFT_KEY);
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-    } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
+    } catch (err: any) {
+      console.error("PostJob submit failed:", err);
+      toast.error(err?.message || t("post.error"));
+    } finally {
+      setLoading(false);
+      setUploadingPhotos(false);
+      submittingRef.current = false;
+    }
   };
 
   const handlePayCard = () => {
+    if (submittingRef.current) return;
     submitJob("card");
   };
 
   const handlePayWallet = () => {
+    if (submittingRef.current) return;
     const price = parseFloat(form.price) || 0;
     const fee = Math.round(price * 0.1 * 100) / 100;
     const total = Math.round((price + fee) * 100) / 100;
@@ -420,9 +505,30 @@ export default function PostJob() {
               <Input placeholder="1" type="number" value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className="rounded-xl h-12" />
             </div>
           </div>
+          <div className="space-y-1">
+            <div className="flex gap-2">
+              <Input
+                placeholder={t("post.zip_code") || "ZIP / CEP"}
+                value={form.zip_code}
+                onChange={(e) => update("zip_code", e.target.value)}
+                onBlur={handleZipBlur}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                className="rounded-xl h-12 flex-1"
+              />
+              {zipLookupLoading && (
+                <div className="flex items-center text-xs text-muted-foreground px-2">
+                  {t("post.zip_looking_up") || "Looking up…"}
+                </div>
+              )}
+            </div>
+            {zipLookupHint && (
+              <p className="text-xs text-muted-foreground px-1">{zipLookupHint}</p>
+            )}
+          </div>
           <Input placeholder={t("post.address")} value={form.address} onChange={(e) => update("address", e.target.value)} className="rounded-xl h-12" />
           <Input placeholder={t("post.city")} value={form.city} onChange={(e) => update("city", e.target.value)} className="rounded-xl h-12" />
-          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
+          <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           <div className="space-y-3">
             <div>
               <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
@@ -554,15 +660,15 @@ export default function PostJob() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.alarm_instructions")}</Label>
-            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.alarm_placeholder")} value={form.alarm_instructions} onChange={(e) => update("alarm_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.parking_instructions")}</Label>
-            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.parking_placeholder")} value={form.parking_instructions} onChange={(e) => update("parking_instructions", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t("post.additional_notes")}</Label>
-            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" />
+            <Textarea placeholder={t("post.additional_notes_placeholder")} value={form.door_access_info} onChange={(e) => update("door_access_info", e.target.value)} className="rounded-xl min-h-[60px]" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} />
           </div>
         </div>
 

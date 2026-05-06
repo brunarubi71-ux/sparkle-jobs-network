@@ -59,29 +59,29 @@ export default function PublicProfile() {
   }, [id]);
 
   const fetchAll = async () => {
-    const { data: p } = await supabase.from("profiles").select("*").eq("id", id!).single();
+    const { data: p } = await supabase.from("public_profiles" as any).select("*").eq("id", id!).single();
     setProfile(p);
     if (!p) return;
 
-    const isOwnerProfile = p.role === "owner";
+    const isOwnerProfile = (p as any).role === "owner";
 
     // Reviews + jobs completed (in parallel)
-    const reviewsPromise = supabase
+    const reviewsPromise = (supabase
       .from("reviews")
       .select("id, rating, review_text, created_at, reviewer_id")
-      .eq("reviewed_id", id!)
+      .eq("reviewed_id", id!) as any)
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(5);
 
     const jobsCountPromise = isOwnerProfile
       ? supabase
-          .from("jobs")
+          .from("public_jobs" as any)
           .select("id", { count: "exact", head: true })
           .eq("owner_id", id!)
           .eq("status", "completed")
       : supabase
-          .from("jobs")
+          .from("public_jobs" as any)
           .select("id", { count: "exact", head: true })
           .eq("hired_cleaner_id", id!)
           .eq("status", "completed");
@@ -95,10 +95,10 @@ export default function PublicProfile() {
       : Promise.resolve({ data: [] as PortfolioPhoto[] });
 
     // Total review count for accurate avg
-    const allRatingsPromise = supabase
+    const allRatingsPromise = (supabase
       .from("reviews")
       .select("rating")
-      .eq("reviewed_id", id!)
+      .eq("reviewed_id", id!) as any)
       .eq("is_hidden", false);
 
     const [
@@ -124,7 +124,7 @@ export default function PublicProfile() {
     if (revs.length > 0) {
       const reviewerIds = Array.from(new Set(revs.map((r) => r.reviewer_id)));
       const { data: reviewers } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("id, full_name, avatar_url")
         .in("id", reviewerIds);
       const map = new Map((reviewers || []).map((u: any) => [u.id, u]));

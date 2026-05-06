@@ -8,6 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
+import { LANGUAGE_FLAGS, LANGUAGE_LABELS, normalizeLanguage } from "@/lib/translate";
+import type { Language } from "@/i18n/translations";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { detectContactInfo } from "@/lib/contactFilter";
 
@@ -28,6 +30,7 @@ interface ProfileLite {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  language: Language | null;
 }
 
 interface ConversationView extends Conversation {
@@ -95,9 +98,9 @@ export default function Chat() {
       const conversationIds = conversationsRaw.map((c) => c.id);
 
       const [{ data: profiles }, { data: jobs }, { data: messages }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, avatar_url").in("id", otherUserIds),
+        supabase.from("public_profiles" as any).select("id, full_name, avatar_url, language").in("id", otherUserIds),
         jobIds.length
-          ? supabase.from("jobs").select("id, title").in("id", jobIds)
+          ? supabase.from("public_jobs" as any).select("id, title").in("id", jobIds)
           : Promise.resolve({ data: [] as { id: string; title: string }[] }),
         supabase
           .from("messages")
@@ -106,8 +109,8 @@ export default function Chat() {
           .order("created_at", { ascending: false }),
       ]);
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p as ProfileLite]));
-      const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.title as string]));
+      const profileMap = new Map<string, ProfileLite>((profiles || []).map((p: any) => [p.id, p as ProfileLite] as [string, ProfileLite]));
+      const jobMap = new Map<string, string>((jobs || []).map((j: any) => [j.id, j.title as string] as [string, string]));
       const lastMsgMap = new Map<string, { text: string; at: string; sender: string }>();
       (messages || []).forEach((m: any) => {
         if (!lastMsgMap.has(m.conversation_id)) {
@@ -121,7 +124,7 @@ export default function Chat() {
         return {
           ...c,
           otherUser: profileMap.get(otherId) || null,
-          jobTitle: c.job_id ? jobMap.get(c.job_id) || null : null,
+          jobTitle: (c.job_id ? jobMap.get(c.job_id) || null : null) as string | null,
           lastMessage: last?.text || null,
           lastMessageAt: last?.at || null,
           lastMessageSenderId: last?.sender || null,
@@ -171,8 +174,8 @@ export default function Chat() {
         ) : conversations.length === 0 ? (
           <EmptyState
             icon={MessageCircle}
-            title="No conversations yet 💬"
-            description="Accept a job to start chatting with cleaners and owners!"
+            title={`${t("chat.no_conversations")} 💬`}
+            description={t("chat.no_conversations_hint")}
           />
         ) : (
           conversations.map((conv, i) => {
@@ -213,8 +216,13 @@ export default function Chat() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm truncate text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
-                      {conv.otherUser?.full_name || t("chat.conversation")}
+                    <p className={`text-sm truncate text-foreground flex items-center gap-1 ${isUnread ? "font-bold" : "font-semibold"}`}>
+                      <span className="truncate">{conv.otherUser?.full_name || t("chat.conversation")}</span>
+                      {conv.otherUser?.language && (
+                        <span className="text-xs flex-shrink-0" title={LANGUAGE_LABELS[normalizeLanguage(conv.otherUser.language)]}>
+                          {LANGUAGE_FLAGS[normalizeLanguage(conv.otherUser.language)]}
+                        </span>
+                      )}
                     </p>
                     <span className="text-[10px] text-muted-foreground flex-shrink-0">
                       {formatDistanceToNow(new Date(conv.lastMessageAt || conv.created_at), { addSuffix: true })}

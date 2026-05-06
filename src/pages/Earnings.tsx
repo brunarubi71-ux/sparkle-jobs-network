@@ -199,8 +199,8 @@ export default function Earnings() {
         {!loading && jobs.length === 0 && (
           <EmptyState
             icon={DollarSign}
-            title="No earnings yet"
-            description="Complete your first job to start earning. Your stats will show up here."
+            title={t("earnings.no_earnings_title")}
+            description={t("earnings.no_earnings_desc")}
           />
         )}
 

@@ -5,14 +5,26 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Crown, Star, LogOut, Camera, FileText,
+  Crown, Star, LogOut, Camera, FileText, KeyRound,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Trash2,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import EditProfileModal from "@/components/EditProfileModal";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import BottomNav from "@/components/BottomNav";
@@ -35,6 +47,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -45,6 +58,7 @@ export default function Profile() {
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
   const isWorkerRole = profile?.role === "cleaner";
@@ -53,7 +67,7 @@ export default function Profile() {
     enabled: !!user?.id && isWorkerRole,
     queryFn: async () => {
       const [reviewsRes, profileRes, jobsCountRes] = await Promise.all([
-        supabase.from("reviews").select("rating").eq("reviewed_id", user!.id).eq("is_hidden", false),
+        (supabase.from("reviews").select("rating").eq("reviewed_id", user!.id) as any).eq("is_hidden", false),
         supabase.from("profiles").select("jobs_completed, total_earnings").eq("id", user!.id).maybeSingle(),
         supabase
           .from("jobs")
@@ -127,10 +141,10 @@ export default function Profile() {
     if (!user || !profile) return;
 
     // Always pull fresh "My Rating" = avg of reviews where reviewed_id = current user
-    const { data: received } = await supabase
+    const { data: received } = await (supabase
       .from("reviews")
       .select("rating, review_text, created_at, id")
-      .eq("reviewed_id", user.id)
+      .eq("reviewed_id", user.id) as any)
       .eq("is_hidden", false)
       .order("created_at", { ascending: false });
     const list = received || [];
@@ -164,11 +178,15 @@ export default function Profile() {
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     const wasEmpty = !(profile as any)?.avatar_url;
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop() || "jpg";
     const path = `${user.id}/avatar.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("avatars").upload(path, file, {
+      upsert: true,
+      contentType: file.type || `image/${ext}`,
+    });
     if (error) {
-      toast.error(t("job.upload_failed"));
+      console.error("[Profile] avatar upload failed:", error);
+      toast.error(`${t("job.upload_failed")}: ${error.message}`);
       return;
     }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -194,6 +212,24 @@ export default function Profile() {
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+      if (error) {
+        toast.error(error.message || "Failed to delete account");
+        return;
+      }
+      await signOut();
+      navigate("/auth");
+      toast.success("Account deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!profile) return null;
@@ -292,8 +328,8 @@ export default function Profile() {
               <Sparkles className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">📸 Add your photo</p>
-              <p className="text-xs text-amber-700">Earn +20 points instantly!</p>
+              <p className="text-sm font-semibold text-amber-900">{t("profile.add_your_photo")}</p>
+              <p className="text-xs text-amber-700">{t("profile.earn_20_points")}</p>
             </div>
             <label className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm">
               Add
@@ -494,7 +530,6 @@ export default function Profile() {
           </motion.div>
         )}
 
-
         {/* Manage Subscription (paid users) */}
         {hasActiveSubscription && (
           <Button
@@ -530,6 +565,15 @@ export default function Profile() {
           <LanguageSwitcher variant="inline" />
         </div>
 
+        {/* Change password */}
+        <Button
+          variant="outline"
+          className="w-full h-12 rounded-xl border-border text-muted-foreground"
+          onClick={() => setPasswordOpen(true)}
+        >
+          <KeyRound className="w-4 h-4 mr-2" /> {t("profile.change_password") || "Change password"}
+        </Button>
+
         {/* Logout */}
         <Button
           variant="outline"
@@ -539,7 +583,34 @@ export default function Profile() {
           <LogOut className="w-4 h-4 mr-2" /> {t("profile.logout")}
         </Button>
 
-        {/* Terms */}
+        {/* Delete Account */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full flex items-center justify-center gap-1.5 text-xs text-destructive/70 hover:text-destructive pt-2 transition-colors">
+              <Trash2 className="w-3 h-3" />
+              Delete account
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is <strong>permanent and cannot be undone</strong>. All your data — jobs, messages, reviews, wallet balance, and profile — will be permanently deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting…" : "Yes, delete my account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <button
           onClick={() => setTermsOpen(true)}
           className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline pt-1 pb-2"
@@ -556,6 +627,7 @@ export default function Profile() {
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
+      <ChangePasswordModal open={passwordOpen} onOpenChange={setPasswordOpen} />
       <BottomNav />
     </div>
   );
