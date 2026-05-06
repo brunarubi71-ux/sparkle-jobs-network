@@ -786,14 +786,32 @@ export default function PostJob() {
           </motion.div>
         )}
 
-        <Button type="submit" disabled={loading || uploadingPhotos || editLoading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
+        <Button type="submit" disabled={loading || uploadingPhotos || editLoading || draftSaving} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
           <PlusCircle className="w-4 h-4 mr-2" />
           {uploadingPhotos
             ? t("post.uploading_photos")
             : loading
-              ? (isEditMode ? "Saving..." : t("post.posting"))
-              : (isEditMode ? "Save changes" : t("post.submit"))}
+              ? (isEditingDraft ? t("post.publishing") : isEditMode ? "Saving..." : t("post.posting"))
+              : (isEditingDraft ? t("post.publish_draft") : isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
+
+        {showDraftButton && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={draftSaving || loading}
+            onClick={handleSaveDraft}
+            className="w-full h-10 rounded-xl text-sm font-medium"
+          >
+            {draftSaving ? t("post.posting") : t("post.save_draft")}
+          </Button>
+        )}
+
+        {ownerNeedsVerification && !isEditMode && (
+          <p className="text-xs text-muted-foreground text-center px-4">
+            {t("post.draft_hint")}
+          </p>
+        )}
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
 
