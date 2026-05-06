@@ -50,6 +50,7 @@ interface JobWithApplicants {
 const ACTIVE_STATUSES = ["pending_payment", "open", "applied", "hired", "accepted"];
 const IN_PROGRESS_STATUSES = ["in_progress"];
 const APPROVAL_STATUSES = ["pending_review"];
+const DRAFT_STATUSES = ["draft"];
 
 export default function MyJobs() {
   const { user } = useAuth();
