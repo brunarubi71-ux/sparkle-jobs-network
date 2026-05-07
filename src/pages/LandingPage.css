@@ -10,6 +10,12 @@
 .lp-nav-links a:hover { color: #7c3aed; }
 .lp-nav-cta { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white !important; border: none; padding: 10px 22px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none !important; transition: opacity .2s, transform .15s; display: inline-block; -webkit-text-fill-color: white !important; }
 .lp-nav-cta:hover { opacity: .9; transform: translateY(-1px); }
+.lp-nav-right { display: flex; align-items: center; gap: 14px; }
+.lp-lang-switcher { display: flex; align-items: center; gap: 2px; }
+.lp-lang-btn { background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: #6b7280; padding: 4px 6px; border-radius: 6px; transition: color .2s, background .2s; }
+.lp-lang-btn:hover { color: #7c3aed; }
+.lp-lang-btn.active { color: #7c3aed; background: #f5f0ff; }
+.lp-lang-sep { color: #d1d5db; font-size: 12px; }
 @media (max-width: 768px) { .lp-nav-links { display: none; } }
 
 /* HERO */
