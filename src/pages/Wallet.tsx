@@ -19,6 +19,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { WalletStripeCheckout } from "@/components/WalletStripeCheckout";
 import { WithdrawDialog } from "@/components/WithdrawDialog";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface WalletTransaction {
   id: string;
@@ -42,6 +43,7 @@ export default function Wallet() {
   const [amountInput, setAmountInput] = useState<string>("");
   const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
 
+  const { t } = useLanguage();
   const isCleaner = profile?.role === "cleaner";
   const canWithdraw = isCleaner && (profile as any)?.stripe_connect_onboarded === true;
 
@@ -66,7 +68,7 @@ export default function Wallet() {
   const handleProceed = () => {
     const parsed = parseFloat(amountInput);
     if (!parsed || parsed < 1) {
-      toast.error("Minimum top-up is $1.00");
+      toast.error(t("wallet.min_topup"));
       return;
     }
     const cents = Math.round(parsed * 100);
@@ -80,7 +82,7 @@ export default function Wallet() {
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">Wallet</h1>
-        <p className="text-primary-foreground/70 text-sm">Manage your balance and transactions</p>
+        <p className="text-primary-foreground/70 text-sm">{t("wallet.subtitle")}</p>
       </div>
 
       <div className="px-4 mt-4 space-y-4">
@@ -114,7 +116,7 @@ export default function Wallet() {
                 disabled={balance === 0}
               >
                 <Banknote className="w-4 h-4 mr-2" />
-                {canWithdraw ? "Withdraw" : "Set up bank"}
+                {canWithdraw ? t("wallet.withdraw") : t("wallet.setup_bank")}
               </Button>
             )}
           </div>

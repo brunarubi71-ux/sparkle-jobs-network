@@ -315,7 +315,7 @@ export default function Jobs() {
       }));
     } catch (err) {
       console.error("[Jobs] fetch error:", err);
-      toast.error("Couldn't load jobs. Please check your connection and try again.");
+      toast.error(t("jobs.load_error"));
     } finally {
       setLoading(false);
     }
@@ -417,12 +417,12 @@ export default function Jobs() {
       const tier = profile.plan_tier ?? "free";
       if (tier === "free") {
         setPaywallContent({
-          title: "You've reached your free limit",
+          title: t("jobs.free_limit_title"),
           message: `Free plan: ${getApplyLimit({ plan_tier: "free" })} job applications per week. Upgrade to Pro for 7/week!`,
         });
       } else if (tier === "pro") {
         setPaywallContent({
-          title: "Weekly limit reached",
+          title: t("jobs.pro_limit_title"),
           message: `Pro plan: ${getApplyLimit({ plan_tier: "pro" })} job applications per week. Upgrade to Premium for unlimited!`,
         });
       } else {
@@ -684,8 +684,8 @@ export default function Jobs() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Sparkles}
-            title="No jobs available near you yet ✨"
-            description="Check back soon — new jobs are posted every day!"
+            title={t("jobs.empty_title")}
+            description={t("jobs.empty_desc")}
           />
         ) : (
           filtered.map((job, index) => {

@@ -275,7 +275,7 @@ export default function Profile() {
           onClick={() => setEditOpen(true)}
           className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground text-xs font-medium transition-colors"
         >
-          <Pencil className="w-3.5 h-3.5" /> Edit Profile
+          <Pencil className="w-3.5 h-3.5" /> {t("profile.edit_profile")}
         </button>
       </div>
 
@@ -292,8 +292,8 @@ export default function Profile() {
               <Sparkles className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">📸 Add your photo</p>
-              <p className="text-xs text-amber-700">Earn +20 points instantly!</p>
+              <p className="text-sm font-semibold text-amber-900">{t("profile.add_photo_title")}</p>
+              <p className="text-xs text-amber-700">{t("profile.add_photo_desc")}</p>
             </div>
             <label className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm">
               Add
@@ -315,21 +315,21 @@ export default function Profile() {
         >
           {isOwner ? (
             <>
-              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label="Jobs Completed" />
-              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
+              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label={t("profile.jobs_completed")} />
+              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label={t("profile.cleaners_hired")} />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
                 value={
                   reviewCountReceived > 0 ? (
                     avgRatingReceived.toFixed(1)
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.no_ratings")}</span>
                   )
                 }
-                label="My Rating"
+                label={t("profile.my_rating")}
                 small={reviewCountReceived === 0}
               />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label={t("profile.member_since")} small />
             </>
           ) : (
             <>
@@ -341,10 +341,10 @@ export default function Profile() {
                   ) : (workerStats?.reviewCount ?? 0) > 0 && workerStats?.avgRating != null ? (
                     workerStats.avgRating.toFixed(1)
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.no_ratings")}</span>
                   )
                 }
-                label="Avg Rating"
+                label={t("profile.avg_rating")}
                 small={(workerStats?.reviewCount ?? 0) === 0 && !workerStatsLoading}
               />
               <StatCard
@@ -356,7 +356,7 @@ export default function Profile() {
                     workerStats?.jobsCompleted ?? 0
                   )
                 }
-                label="Jobs Completed"
+                label={t("profile.jobs_completed")}
               />
               <StatCard
                 icon={<DollarSign className="w-4 h-4" />}
@@ -364,15 +364,15 @@ export default function Profile() {
                   workerStatsLoading ? (
                     <Skeleton className="h-6 w-16" />
                   ) : !workerStats?.totalEarnings ? (
-                    <span className="text-xs font-medium text-muted-foreground">Start earning today! 💰</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.start_earning")}</span>
                   ) : (
                     `$${workerStats.totalEarnings.toFixed(0)}`
                   )
                 }
-                label="Total Earned"
+                label={t("profile.total_earned")}
                 small={!workerStatsLoading && !workerStats?.totalEarnings}
               />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label={t("profile.member_since")} small />
             </>
           )}
         </motion.div>
@@ -391,7 +391,7 @@ export default function Profile() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Identity Verification</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("profile.identity_verification")}</h3>
               </div>
               {identityStatus === "approved" && (
                 <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">
@@ -409,7 +409,7 @@ export default function Profile() {
                 </Badge>
               )}
               {identityStatus === "unverified" && (
-                <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+                <Badge variant="outline" className="text-[10px]">{t("profile.not_verified")}</Badge>
               )}
             </div>
             {(identityStatus === "unverified" || identityStatus === "rejected") && (
@@ -420,13 +420,13 @@ export default function Profile() {
                   size="sm"
                   className="h-9 px-5 rounded-full border-primary text-primary hover:bg-primary/5"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Verify Identity
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> {t("profile.verify_identity")}
                 </Button>
               </div>
             )}
             {identityStatus === "pending" && (
               <p className="text-xs text-muted-foreground mt-2">
-                Your documents are under review. You'll be notified within 24 hours.
+                {t("profile.docs_under_review")}
               </p>
             )}
           </motion.div>
@@ -450,13 +450,13 @@ export default function Profile() {
             transition={{ delay: 0.12 }}
             className="bg-card rounded-2xl shadow-card p-4"
           >
-            <h3 className="text-sm font-semibold text-foreground mb-3">About Me</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">{t("profile.about_me")}</h3>
             <div className="space-y-2">
               {(profile as any)?.bio ? (
                 <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
-                  Add a short bio so owners get to know you.
+                  {t("profile.bio_placeholder")}
                 </p>
               )}
               {(profile as any)?.specialties?.length > 0 && (

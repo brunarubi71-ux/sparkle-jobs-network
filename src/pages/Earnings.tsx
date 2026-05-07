@@ -35,11 +35,11 @@ export default function Earnings() {
           .update({ stripe_connect_onboarded: true } as any)
           .eq("id", user.id);
         await refreshProfile();
-        toast.success("Bank account connected! You can now withdraw your earnings.");
+        toast.success(t("earnings.bank_connected"));
       })();
       setSearchParams({}, { replace: true });
     } else if (connectStatus === "refresh") {
-      toast.info("Onboarding session expired. Please try again.");
+      toast.info(t("earnings.session_expired"));
       setSearchParams({}, { replace: true });
     }
   }, []);
@@ -57,7 +57,7 @@ export default function Earnings() {
         setJobs(data || []);
       } catch (err) {
         console.error("[Earnings] fetch error:", err);
-        toast.error("Couldn't load earnings. Please check your connection.");
+        toast.error(t("earnings.load_error"));
       } finally {
         setLoading(false);
       }
@@ -256,8 +256,8 @@ export default function Earnings() {
         {!loading && jobs.length === 0 && (
           <EmptyState
             icon={DollarSign}
-            title="No earnings yet"
-            description="Complete your first job to start earning. Your stats will show up here."
+            title={t("earnings.empty_title")}
+            description={t("earnings.empty_desc")}
           />
         )}
 

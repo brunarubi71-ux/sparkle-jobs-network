@@ -100,7 +100,7 @@ export default function MyJobs() {
       setJobs(jobsWithApplicants);
     } catch (err) {
       console.error("[MyJobs] fetch error:", err);
-      toast.error("Couldn't load your jobs. Please check your connection and try again.");
+      toast.error(t("myjobs.load_error"));
     } finally {
       setLoading(false);
     }
@@ -161,10 +161,10 @@ export default function MyJobs() {
   const activateJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "open" }).eq("id", jobId);
     if (error) {
-      toast.error("Failed to activate job");
+      toast.error(t("myjobs.activate_error"));
       return;
     }
-    toast.success("Job activated (test mode)");
+    toast.success(t("myjobs.activated"));
     fetchJobs();
   };
 
@@ -196,15 +196,15 @@ export default function MyJobs() {
   const cancelledJobs = useMemo(() => jobs.filter(j => j.status === "cancelled"), [jobs]);
 
   const statusConfig: Record<string, { color: string; label: string }> = {
-    pending_payment: { color: "bg-yellow-100 text-yellow-800", label: "Pending Payment" },
+    pending_payment: { color: "bg-yellow-100 text-yellow-800", label: t("myjobs.status_pending_payment") },
     open: { color: "bg-emerald-100 text-emerald-700", label: t("status.open") },
-    applied: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval" },
-    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting Approval" },
-    hired: { color: "bg-purple-100 text-purple-700", label: "Hired" },
-    accepted: { color: "bg-purple-100 text-purple-700", label: "Hired" },
-    in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress" },
+    applied: { color: "bg-amber-100 text-amber-700", label: t("myjobs.status_awaiting") },
+    pending: { color: "bg-amber-100 text-amber-700", label: t("myjobs.status_awaiting") },
+    hired: { color: "bg-purple-100 text-purple-700", label: t("myjobs.status_hired") },
+    accepted: { color: "bg-purple-100 text-purple-700", label: t("myjobs.status_hired") },
+    in_progress: { color: "bg-blue-100 text-blue-700", label: t("myjobs.status_in_progress") },
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review") },
-    completed: { color: "bg-green-100 text-green-700", label: "Completed" },
+    completed: { color: "bg-green-100 text-green-700", label: t("myjobs.status_completed") },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled") },
   };
 
@@ -354,19 +354,19 @@ export default function MyJobs() {
             <div className="mb-3 space-y-3">
               <div>
                 <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-primary" /> Cleaner ({cleanerApps.length})
+                  <Sparkles className="w-3 h-3 text-primary" /> {t("auth.cleaner")} ({cleanerApps.length})
                 </p>
                 {cleanerApps.length > 0
                   ? cleanerApps.map(renderApp)
-                  : <p className="text-xs text-muted-foreground italic">No Cleaner yet</p>}
+                  : <p className="text-xs text-muted-foreground italic">{t("myjobs.no_cleaner")}</p>}
               </div>
               <div>
                 <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
-                  <Users className="w-3 h-3 text-primary" /> Helpers ({helperApps.length})
+                  <Users className="w-3 h-3 text-primary" /> {t("myjobs.helpers")} ({helperApps.length})
                 </p>
                 {helperApps.length > 0
                   ? helperApps.map(renderApp)
-                  : <p className="text-xs text-muted-foreground italic">No Helpers yet</p>}
+                  : <p className="text-xs text-muted-foreground italic">{t("myjobs.no_helpers")}</p>}
               </div>
             </div>
           );
@@ -474,8 +474,8 @@ export default function MyJobs() {
   const renderEmpty = (message: string) => (
     <EmptyState
       icon={Briefcase}
-      title="No jobs posted yet 🏠"
-      description="Post your first job and find a trusted cleaner today!"
+      title={t("myjobs.no_jobs") + " 🏠"}
+      description={t("myjobs.no_jobs_posted_desc")}
     />
   );
 
