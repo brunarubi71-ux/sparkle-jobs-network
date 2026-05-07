@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import LandingPage from "@/pages/LandingPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -71,6 +72,13 @@ function RoleHome() {
   return <Jobs />;
 }
 
+function HomeRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <LandingPage />;
+  return <RoleHome />;
+}
+
 const SPLASH_KEY = "shinely_splash_shown";
 
 const App = () => {
@@ -108,7 +116,7 @@ const App = () => {
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
+                <Route path="/" element={<HomeRoute />} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
                 <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
