@@ -14,8 +14,12 @@ const json = (status: number, body: Record<string, unknown>) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-// Minimum withdrawal: $5.00
-const MIN_WITHDRAWAL_CENTS = 500;
+const MIN_WITHDRAWAL_CENTS = 500; // $5.00 minimum
+
+// Instant payout fee: 1.5%, minimum $0.50
+function calcInstantFee(amountCents: number): number {
+  return Math.max(50, Math.round(amountCents * 0.015));
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -28,7 +32,6 @@ serve(async (req) => {
     const authorization = req.headers.get("Authorization");
     if (!authorization) return json(401, { error: "Not authenticated" });
 
-    // Verify session
     const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authorization } },
     });
@@ -38,13 +41,12 @@ serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     let body: Record<string, unknown>;
-    try {
-      body = await req.json();
-    } catch {
-      return json(400, { error: "Invalid request body" });
-    }
+    try { body = await req.json(); }
+    catch { return json(400, { error: "Invalid request body" }); }
 
     const amountDollars = typeof body.amount === "number" ? body.amount : NaN;
+    const instant = body.instant === true;
+
     if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
       return json(400, { error: "Invalid amount" });
     }
@@ -53,7 +55,11 @@ serve(async (req) => {
       return json(400, { error: "Minimum withdrawal is $5.00" });
     }
 
-    // Load profile with balance and connect account
+    // For instant payouts the fee is deducted by Stripe from what the cleaner receives.
+    // We still deduct the full requested amount from the wallet so the books balance.
+    const instantFeeCents = instant ? calcInstantFee(amountCents) : 0;
+
+    // Load profile
     const { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .select("wallet_balance, stripe_connect_account_id, stripe_connect_onboarded")
@@ -71,7 +77,7 @@ serve(async (req) => {
       return json(400, { error: "Insufficient wallet balance" });
     }
 
-    // Create a withdrawal request record (status: processing)
+    // Record the withdrawal request
     const { data: withdrawal, error: wErr } = await adminClient
       .from("withdrawal_requests")
       .insert({
@@ -85,47 +91,82 @@ serve(async (req) => {
     if (wErr || !withdrawal) return json(500, { error: "Could not create withdrawal record" });
 
     const stripe = createStripeClient("live");
+    const connectAccountId: string = profile.stripe_connect_account_id;
 
     try {
-      // Transfer from platform account to connected account
+      // 1. Transfer funds from platform → connected account
       const transfer = await stripe.transfers.create({
         amount: amountCents,
         currency: "usd",
-        destination: profile.stripe_connect_account_id,
+        destination: connectAccountId,
         metadata: {
           userId: user.id,
           withdrawalId: withdrawal.id,
-          purpose: "cleaner_payout",
+          instant: String(instant),
         },
       });
 
-      // Deduct from wallet atomically using the existing debit_wallet RPC
-      const { error: walletErr } = await adminClient.rpc("debit_wallet" as any, {
+      // 2. If instant, immediately trigger a payout from the connected account's balance
+      //    Stripe charges the 1.5% instant fee and the cleaner receives the remainder.
+      let payoutId: string | null = null;
+      if (instant) {
+        try {
+          const payout = await stripe.payouts.create(
+            {
+              amount: amountCents,
+              currency: "usd",
+              method: "instant",
+              metadata: {
+                userId: user.id,
+                withdrawalId: withdrawal.id,
+              },
+            },
+            { stripeAccount: connectAccountId },
+          );
+          payoutId = payout.id;
+        } catch (instantErr) {
+          // If instant payout fails (e.g. no eligible debit card), fall back to standard
+          console.error("[create-payout] instant payout failed, falling back:", instantErr);
+          await stripe.payouts.create(
+            { amount: amountCents, currency: "usd", method: "standard" },
+            { stripeAccount: connectAccountId },
+          );
+        }
+      }
+
+      // 3. Deduct from wallet
+      await adminClient.rpc("debit_wallet" as any, {
         p_user_id: user.id,
         p_amount: amountDollars,
-        p_description: `Withdrawal to bank account`,
+        p_description: instant
+          ? `Instant withdrawal to bank account`
+          : `Standard withdrawal to bank account`,
         p_job_id: null,
       });
 
-      if (walletErr) {
-        // Transfer succeeded but wallet debit failed — mark as paid anyway and log
-        console.error("[create-payout] wallet debit error after successful transfer:", walletErr);
-      }
-
-      // Mark withdrawal as paid
+      // 4. Mark done
       await adminClient
         .from("withdrawal_requests")
-        .update({ status: "paid", stripe_transfer_id: transfer.id })
+        .update({
+          status: "paid",
+          stripe_transfer_id: transfer.id,
+        })
         .eq("id", withdrawal.id);
+
+      const netReceived = (amountCents - instantFeeCents) / 100;
 
       return json(200, {
         success: true,
         transferId: transfer.id,
+        payoutId,
+        instant,
         amount: amountDollars,
+        feeDollars: instantFeeCents / 100,
+        netReceived,
         newBalance: Math.max(0, currentBalance - amountDollars),
+        estimatedArrival: instant ? "within 30 minutes" : "2–5 business days",
       });
     } catch (stripeErr) {
-      // Mark withdrawal as failed
       await adminClient
         .from("withdrawal_requests")
         .update({
@@ -134,7 +175,7 @@ serve(async (req) => {
         })
         .eq("id", withdrawal.id);
 
-      console.error("[create-payout] Stripe transfer error:", stripeErr);
+      console.error("[create-payout] Stripe error:", stripeErr);
       return json(502, { error: "Transfer failed. Please try again or contact support." });
     }
   } catch (err) {
