@@ -319,16 +319,23 @@ export default function JobDetails() {
       try {
         const { data: wp } = await supabase
           .from("profiles")
-          .select("jobs_completed, total_earnings, worker_type")
+          .select("jobs_completed, total_earnings, helper_earnings, worker_type")
           .eq("id", workerId)
           .single();
         if (!wp) continue;
+        const isHelper = (wp as any).worker_type === "helper";
         const newJobs = (wp.jobs_completed || 0) + 1;
         const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
-        await supabase.from("profiles").update({
+
+        const profileUpdate: Record<string, unknown> = {
           jobs_completed: newJobs,
           total_earnings: newEarnings,
-        } as any).eq("id", workerId);
+        };
+        // Track helper-specific earnings separately so the Earnings page can display them
+        if (isHelper) {
+          profileUpdate.helper_earnings = Math.round((Number((wp as any).helper_earnings || 0) + perWorker) * 100) / 100;
+        }
+        await supabase.from("profiles").update(profileUpdate as any).eq("id", workerId);
 
         // Atomic credit (handles concurrent updates safely)
         await supabase.rpc("credit_wallet", {

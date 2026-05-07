@@ -182,27 +182,51 @@ export default function Earnings() {
           </motion.div>
         </div>
 
-        {/* Helper Earnings Section */}
+        {/* Helper Earnings breakdown */}
         {isHelper && (
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.28 }}
-            className="bg-card rounded-2xl shadow-card p-4 border-2 border-primary/30"
+            className="bg-card rounded-2xl shadow-card overflow-hidden border-2 border-primary/20"
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Award className="w-4 h-4 text-primary" />
-                Helper Earnings
-              </h3>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-primary/15 text-primary">
-                Helper
+            {/* header stripe */}
+            <div className="gradient-primary px-4 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary-foreground" />
+                <span className="text-sm font-bold text-primary-foreground">Helper Earnings</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-foreground/20 text-primary-foreground">
+                Your role
               </span>
             </div>
-            <p className="text-3xl font-extrabold text-foreground">${helperEarnings.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total earned as a team helper on cleaner-led jobs
-            </p>
+
+            <div className="p-4 space-y-3">
+              {/* total */}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Total earned as Helper</p>
+                <p className="text-4xl font-extrabold text-foreground">${helperEarnings.toFixed(2)}</p>
+              </div>
+
+              {/* breakdown */}
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
+                <div className="text-center py-2">
+                  <p className="text-xs text-muted-foreground mb-0.5">Jobs completed</p>
+                  <p className="text-lg font-bold text-foreground">{jobsCompleted}</p>
+                </div>
+                <div className="text-center py-2 border-l border-border">
+                  <p className="text-xs text-muted-foreground mb-0.5">Avg per job</p>
+                  <p className="text-lg font-bold text-foreground">
+                    ${jobsCompleted > 0 ? (helperEarnings / jobsCompleted).toFixed(0) : "0"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-3 py-2">
+                You earn an equal share of the job payout alongside the Cleaner.
+                Earnings go to your wallet and can be withdrawn to your bank account.
+              </p>
+            </div>
           </motion.div>
         )}
 

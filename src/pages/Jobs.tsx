@@ -27,6 +27,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { canApplyToJob, getApplyLimit, weekStartISO } from "@/lib/paywall";
 import NotificationBell from "@/components/NotificationBell";
 import TrialBanner from "@/components/TrialBanner";
+import { HelperInfoBanner } from "@/components/HelperInfoBanner";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];
@@ -638,6 +639,7 @@ export default function Jobs() {
       </div>
 
       <TrialBanner />
+      {profile?.worker_type === "helper" && <HelperInfoBanner />}
       <div className="space-y-3 px-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
