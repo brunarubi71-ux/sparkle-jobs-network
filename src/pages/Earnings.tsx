@@ -4,9 +4,11 @@ import { motion } from "framer-motion";
 import { DollarSign, TrendingUp, Briefcase, Calendar, ArrowUp, ArrowDown, Award } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import { PayoutSetup } from "@/components/PayoutSetup";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 
 interface JobRow {
   status: string;
@@ -15,10 +17,32 @@ interface JobRow {
 }
 
 export default function Earnings() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Handle return from Stripe Connect onboarding
+  useEffect(() => {
+    const connectStatus = searchParams.get("connect");
+    if (connectStatus === "success") {
+      // Mark onboarding complete in DB and refresh profile
+      (async () => {
+        if (!user) return;
+        await supabase
+          .from("profiles")
+          .update({ stripe_connect_onboarded: true } as any)
+          .eq("id", user.id);
+        await refreshProfile();
+        toast.success("Bank account connected! You can now withdraw your earnings.");
+      })();
+      setSearchParams({}, { replace: true });
+    } else if (connectStatus === "refresh") {
+      toast.info("Onboarding session expired. Please try again.");
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -87,6 +111,15 @@ export default function Earnings() {
       </div>
 
       <div className="px-4 -mt-10 relative z-10 space-y-3">
+        {/* Payout setup — only visible for cleaners/helpers */}
+        {profile?.role === "cleaner" && (
+          <PayoutSetup
+            connectAccountId={(profile as any).stripe_connect_account_id ?? null}
+            onboarded={(profile as any).stripe_connect_onboarded ?? false}
+            onRefresh={refreshProfile}
+          />
+        )}
+
         {/* Total Earnings Hero Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
