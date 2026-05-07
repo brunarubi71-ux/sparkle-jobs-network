@@ -32,6 +32,7 @@ const Wallet          = lazy(() => import("./pages/Wallet"));
 const Terms           = lazy(() => import("./pages/Terms"));
 const Privacy         = lazy(() => import("./pages/Privacy"));
 const Cancellation    = lazy(() => import("./pages/Cancellation"));
+const LandingPage     = lazy(() => import("./pages/LandingPage"));
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,13 @@ function RoleHome() {
   return <Jobs />;
 }
 
+function HomeRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <LandingPage />;
+  return <RoleHome />;
+}
+
 const SPLASH_KEY = "shinely_splash_shown";
 
 const App = () => {
@@ -104,7 +112,7 @@ const App = () => {
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
+                <Route path="/" element={<HomeRoute />} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
                 <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
