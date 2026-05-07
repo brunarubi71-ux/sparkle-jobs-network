@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { Language } from "@/i18n/translations";
 import "./LandingPage.css";
+
+const LANGS: { code: Language; label: string }[] = [
+  { code: "pt", label: "PT" },
+  { code: "es", label: "ES" },
+  { code: "en", label: "EN" },
+];
 
 const FAQS = [
   {
@@ -29,9 +37,37 @@ const FAQS = [
   },
 ];
 
+const PHONE_JOBS = [
+  {
+    title: "Residential Deep Clean",
+    address: "2.3 mi · 1420 Brickell Ave",
+    price: "$180",
+    badge: "Urgent",
+    badgeColor: "#ef4444",
+    badgeBg: "#fef2f2",
+  },
+  {
+    title: "Move-out Cleaning",
+    address: "4.1 mi · 850 Ocean Dr",
+    price: "$220",
+    badge: "New",
+    badgeColor: "#16a34a",
+    badgeBg: "#dcfce7",
+  },
+  {
+    title: "Weekly House Cleaning",
+    address: "1.8 mi · 333 NE 24th St",
+    price: "$260",
+    badge: "Recurring",
+    badgeColor: "#2563eb",
+    badgeBg: "#dbeafe",
+  },
+];
+
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"cleaners" | "owners">("cleaners");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { language, setLanguage } = useLanguage();
 
   return (
     <div className="lp">
@@ -54,9 +90,24 @@ export default function LandingPage() {
             <a href="#faq">FAQ</a>
           </li>
         </ul>
-        <Link to="/auth" className="lp-nav-cta">
-          Get the App
-        </Link>
+        <div className="lp-nav-right">
+          <div className="lp-lang-switcher">
+            {LANGS.map((l, i) => (
+              <span key={l.code}>
+                <button
+                  className={`lp-lang-btn${language === l.code ? " active" : ""}`}
+                  onClick={() => setLanguage(l.code)}
+                >
+                  {l.label}
+                </button>
+                {i < LANGS.length - 1 && <span className="lp-lang-sep">|</span>}
+              </span>
+            ))}
+          </div>
+          <Link to="/auth" className="lp-nav-cta">
+            Get the App
+          </Link>
+        </div>
       </nav>
 
       {/* HERO */}
@@ -102,32 +153,97 @@ export default function LandingPage() {
           <div className="lp-hero-visual">
             <div className="lp-phone-wrap">
               <div className="lp-phone-screen">
+                {/* Phone Header */}
                 <div className="lp-phone-header">
-                  <div className="lp-phone-header-title">Available Jobs Near You</div>
-                  <div className="lp-phone-header-main">Miami, FL ▾</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div className="lp-phone-header-title">✦ Shinely</div>
+                      <div className="lp-phone-header-main">📍 Miami, FL</div>
+                    </div>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: "50%",
+                      background: "rgba(255,255,255,0.25)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 13, color: "white"
+                    }}>👤</div>
+                  </div>
                 </div>
+
+                {/* Search / Filter bar */}
+                <div style={{
+                  padding: "8px 12px",
+                  background: "white",
+                  borderBottom: "1px solid #e5e7eb",
+                }}>
+                  <div style={{
+                    background: "#f3f4f6", borderRadius: 8, padding: "5px 10px",
+                    fontSize: 9, color: "#9ca3af", marginBottom: 6,
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+                    🔍 Search cleaning jobs...
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {["5mi", "10mi", "25mi"].map((d, i) => (
+                      <span key={d} style={{
+                        fontSize: 8, fontWeight: 700,
+                        padding: "2px 8px", borderRadius: 100,
+                        background: i === 1 ? "#7c3aed" : "#f5f0ff",
+                        color: i === 1 ? "white" : "#7c3aed",
+                      }}>{d}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Job Cards */}
                 <div className="lp-phone-jobs">
+                  {PHONE_JOBS.map((job) => (
+                    <div key={job.title} className="lp-phone-job" style={{ position: "relative" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div className="lp-phone-job-title">{job.title}</div>
+                        <span style={{
+                          fontSize: 7, fontWeight: 700,
+                          padding: "1px 6px", borderRadius: 100,
+                          background: job.badgeBg, color: job.badgeColor,
+                          flexShrink: 0,
+                        }}>{job.badge}</span>
+                      </div>
+                      <div className="lp-phone-job-info">📍 {job.address}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                        <div className="lp-phone-job-price">{job.price}</div>
+                        <span style={{
+                          fontSize: 7, fontWeight: 700, color: "white",
+                          background: "#7c3aed", padding: "2px 8px",
+                          borderRadius: 6, cursor: "default",
+                        }}>Apply</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Nav */}
+                <div style={{
+                  marginTop: "auto",
+                  borderTop: "1px solid #e5e7eb",
+                  background: "white",
+                  display: "flex",
+                  justifyContent: "space-around",
+                  padding: "6px 0 8px",
+                }}>
                   {[
-                    {
-                      title: "Residential Deep Clean",
-                      info: "📍 2.3 mi · 3 beds · 2 baths",
-                      price: "$180",
-                      badge: "Urgent",
-                    },
-                    { title: "Move-out Cleaning", info: "📍 4.1 mi · Apartment", price: "$220", badge: "New" },
-                    {
-                      title: "Weekly House Cleaning",
-                      info: "📍 1.8 mi · 4 beds · 3 baths",
-                      price: "$260",
-                      badge: "Recurring",
-                    },
-                    { title: "Airbnb Turnover Clean", info: "📍 3.5 mi · Studio", price: "$95", badge: "New" },
-                  ].map((job) => (
-                    <div key={job.title} className="lp-phone-job">
-                      <div className="lp-phone-job-title">{job.title}</div>
-                      <div className="lp-phone-job-info">{job.info}</div>
-                      <div className="lp-phone-job-price">{job.price}</div>
-                      <div className="lp-phone-job-badge">{job.badge}</div>
+                    { icon: "🔍", label: "Jobs", active: true },
+                    { icon: "📋", label: "My Jobs", active: false },
+                    { icon: "💬", label: "Chat", active: false },
+                    { icon: "👤", label: "Profile", active: false },
+                  ].map((nav) => (
+                    <div key={nav.label} style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                      fontSize: 12, lineHeight: 1,
+                    }}>
+                      <span>{nav.icon}</span>
+                      <span style={{
+                        fontSize: 7, fontWeight: nav.active ? 700 : 500,
+                        color: nav.active ? "#7c3aed" : "#9ca3af",
+                      }}>{nav.label}</span>
                     </div>
                   ))}
                 </div>
