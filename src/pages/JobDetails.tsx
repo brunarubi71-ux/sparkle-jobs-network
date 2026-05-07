@@ -292,7 +292,10 @@ export default function JobDetails() {
       console.error("[JobDetails] job_approved batch failed", e);
     }
 
-    // ----- Payment split: 10% platform fee, 90% split equally among ALL hired workers -----
+    // ----- Payment split -----
+    // Platform keeps 10%. Of the remaining 90%:
+    //   - If the job has BOTH cleaners and helpers: cleaners share 70%, helpers share 30%
+    //   - If the job is cleaner-only: cleaners share 100% of the pool
     const total = Number(job.total_amount || job.price || 0);
     const platformFee = Math.round(total * 0.10 * 100) / 100;
     const workerPool = Math.round((total - platformFee) * 100) / 100;
@@ -310,30 +313,59 @@ export default function JobDetails() {
     } catch {}
 
     const workerIds = Array.from(hiredIds);
-    const perWorker = workerIds.length > 0
-      ? Math.round((workerPool / workerIds.length) * 100) / 100
+
+    // Fetch all workers' types in one query so we can split correctly
+    const { data: workerProfiles } = await supabase
+      .from("profiles")
+      .select("id, jobs_completed, total_earnings, helper_earnings, worker_type")
+      .in("id", workerIds);
+    const profileMap = new Map((workerProfiles || []).map((p: any) => [p.id, p]));
+
+    const cleanerIds = workerIds.filter(id => profileMap.get(id)?.worker_type !== "helper");
+    const helperIds  = workerIds.filter(id => profileMap.get(id)?.worker_type === "helper");
+
+    const hasTeam = cleanerIds.length > 0 && helperIds.length > 0;
+
+    // Cleaners: 70% when there are helpers, 100% when there aren't
+    const cleanerPool = hasTeam
+      ? Math.round(workerPool * 0.70 * 100) / 100
+      : workerPool;
+    const helperPool  = hasTeam
+      ? Math.round(workerPool * 0.30 * 100) / 100
+      : 0;
+
+    const perCleaner = cleanerIds.length > 0
+      ? Math.round((cleanerPool / cleanerIds.length) * 100) / 100
+      : 0;
+    const perHelper  = helperIds.length > 0
+      ? Math.round((helperPool  / helperIds.length)  * 100) / 100
       : 0;
 
     // Update each worker's profile + atomically credit their wallet
     for (const workerId of workerIds) {
       try {
-        const { data: wp } = await supabase
-          .from("profiles")
-          .select("jobs_completed, total_earnings, worker_type")
-          .eq("id", workerId)
-          .single();
+        const wp = profileMap.get(workerId);
         if (!wp) continue;
-        const newJobs = (wp.jobs_completed || 0) + 1;
-        const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
-        await supabase.from("profiles").update({
+        const isHelper = wp.worker_type === "helper";
+        const earned   = isHelper ? perHelper : perCleaner;
+        if (earned <= 0) continue;
+
+        const newJobs     = (wp.jobs_completed || 0) + 1;
+        const newEarnings = Math.round((Number(wp.total_earnings || 0) + earned) * 100) / 100;
+
+        const profileUpdate: Record<string, unknown> = {
           jobs_completed: newJobs,
           total_earnings: newEarnings,
-        } as any).eq("id", workerId);
+        };
+        if (isHelper) {
+          profileUpdate.helper_earnings = Math.round((Number(wp.helper_earnings || 0) + earned) * 100) / 100;
+        }
+        await supabase.from("profiles").update(profileUpdate as any).eq("id", workerId);
 
         // Atomic credit (handles concurrent updates safely)
         await supabase.rpc("credit_wallet", {
           p_user_id: workerId,
-          p_amount: perWorker,
+          p_amount: earned,
           p_description: `Earnings from "${job.title}"`,
           p_job_id: id,
         });
@@ -342,13 +374,13 @@ export default function JobDetails() {
         await sendNotification({
           userId: workerId,
           title: "Payment Received 💰",
-          message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
+          message: `You received $${earned.toFixed(2)} for completing "${job.title}"!`,
           type: "payment_received",
           relatedId: id,
           link: "/wallet",
         });
 
-        const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
+        const workerType = (isHelper ? "helper" : "cleaner") as "helper" | "cleaner";
         const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId).eq("is_hidden", false);
         const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
         await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);

@@ -27,6 +27,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { canApplyToJob, getApplyLimit, weekStartISO } from "@/lib/paywall";
 import NotificationBell from "@/components/NotificationBell";
 import TrialBanner from "@/components/TrialBanner";
+import { HelperInfoBanner } from "@/components/HelperInfoBanner";
 
 type Coordinates = [number, number];
 const DEFAULT_CENTER: Coordinates = [34.0522, -118.2437];
@@ -146,6 +147,7 @@ export default function Jobs() {
   const [locationDenied, setLocationDenied] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
+  const [radiusFilter, setRadiusFilter] = useState<number | null>(null); // miles, null = any
   const [weeklyApplications, setWeeklyApplications] = useState(0);
 
   // Track applications submitted this week to enforce paywall
@@ -356,6 +358,11 @@ export default function Jobs() {
         .join(" ").toLowerCase().includes(search.toLowerCase())
     );
 
+    // Apply radius filter (only when user location is known)
+    if (radiusFilter !== null && userLocation) {
+      result = result.filter(j => j.distanceMiles !== null && j.distanceMiles <= radiusFilter);
+    }
+
     // Note: plan limits never hide jobs from the list. They only restrict APPLY action.
 
     // Apply filter
@@ -388,7 +395,7 @@ export default function Jobs() {
     }
 
     return result;
-  }, [enrichedJobs, search, activeFilter, userLocation, profile?.plan_tier]);
+  }, [enrichedJobs, search, activeFilter, radiusFilter, userLocation, profile?.plan_tier]);
 
   /* ── clear selected if filtered out ── */
   useEffect(() => {
@@ -623,8 +630,40 @@ export default function Jobs() {
         </AnimatePresence>
       </section>
 
+      {/* ── RADIUS FILTER ── */}
+      {userLocation && (
+        <div className="px-4 pt-4 pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap flex-shrink-0">
+              📍 Within:
+            </span>
+            {([5, 10, 25, 50] as const).map((miles) => (
+              <button
+                key={miles}
+                onClick={() => setRadiusFilter(radiusFilter === miles ? null : miles)}
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold border transition-all flex-shrink-0 ${
+                  radiusFilter === miles
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {miles} mi
+              </button>
+            ))}
+            {radiusFilter !== null && (
+              <button
+                onClick={() => setRadiusFilter(null)}
+                className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-destructive hover:text-destructive transition-all flex-shrink-0"
+              >
+                Any distance ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── FILTERS ── */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-2 pb-2">
         <JobFilterChips active={activeFilter} onChange={setActiveFilter} />
       </div>
 
@@ -638,6 +677,7 @@ export default function Jobs() {
       </div>
 
       <TrialBanner />
+      {profile?.worker_type === "helper" && <HelperInfoBanner />}
       <div className="space-y-3 px-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)

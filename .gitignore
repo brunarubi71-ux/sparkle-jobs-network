@@ -26,3 +26,7 @@ dist-ssr
 # Supabase CLI temp files
 supabase/.temp/
 
+# Capacitor — generated web assets (rebuilt by `cap sync`)
+android/app/src/main/assets/public/
+ios/App/App/public/
+
