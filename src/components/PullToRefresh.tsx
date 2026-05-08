@@ -44,6 +44,8 @@ export default function PullToRefresh({ onRefresh, children, threshold = 70 }: P
         setRefreshing(true);
         try {
           await onRefresh();
+        } catch (e) {
+          console.error("[PullToRefresh] onRefresh error:", e);
         } finally {
           setRefreshing(false);
           setPullDistance(0);

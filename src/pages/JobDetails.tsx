@@ -163,10 +163,17 @@ export default function JobDetails() {
       return;
     }
     setStartingJob(true);
-    await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
-    toast.success(t("job.started_success"));
-    await fetchJob();
-    setStartingJob(false);
+    try {
+      const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
+      if (error) throw error;
+      toast.success(t("job.started_success"));
+      await fetchJob();
+    } catch (e) {
+      console.error("[JobDetails] startJob failed:", e);
+      toast.error(t("errors.generic"));
+    } finally {
+      setStartingJob(false);
+    }
   };
 
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -200,13 +207,18 @@ export default function JobDetails() {
 
     if (newUrls.length > 0) {
       const updated = [...completionPhotos, ...newUrls];
-      await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
-      setCompletionPhotos(updated);
-      toast.success(
-        newUrls.length === 1
-          ? t("job.photo_uploaded")
-          : `${newUrls.length} photos uploaded`
-      );
+      const { error: dbError } = await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+      if (dbError) {
+        console.error("[JobDetails] save photos failed:", dbError);
+        toast.error(t("errors.generic"));
+      } else {
+        setCompletionPhotos(updated);
+        toast.success(
+          newUrls.length === 1
+            ? t("job.photo_uploaded")
+            : `${newUrls.length} photos uploaded`
+        );
+      }
     }
     if (failed > 0) toast.error(t("job.upload_failed"));
     setUploading(false);
@@ -224,7 +236,12 @@ export default function JobDetails() {
       delete next[url];
       return next;
     });
-    await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    const { error: dbError } = await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    if (dbError) {
+      console.error("[JobDetails] removeCompletionPhoto DB update failed:", dbError);
+      // Rollback optimistic update
+      setCompletionPhotos(completionPhotos);
+    }
     // Best-effort delete from storage (path is the part after the bucket public URL)
     try {
       const marker = "/property-photos/";
@@ -245,25 +262,37 @@ export default function JobDetails() {
       return;
     }
     setCompleting(true);
-    // Append captions to notes (so they persist without a schema change)
-    const captionLines = completionPhotos
-      .map((url, i) => {
-        const cap = (photoCaptions[url] || "").trim();
-        return cap ? `Photo ${i + 1}: ${cap}` : null;
-      })
-      .filter(Boolean) as string[];
-    const finalNotes = captionLines.length > 0
-      ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
-      : completionNotes;
-    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
-    toast.success(t("job.submitted_review"));
-    await fetchJob();
-    setCompleting(false);
+    try {
+      // Append captions to notes (so they persist without a schema change)
+      const captionLines = completionPhotos
+        .map((url, i) => {
+          const cap = (photoCaptions[url] || "").trim();
+          return cap ? `Photo ${i + 1}: ${cap}` : null;
+        })
+        .filter(Boolean) as string[];
+      const finalNotes = captionLines.length > 0
+        ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
+        : completionNotes;
+      const { error } = await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
+      if (error) throw error;
+      toast.success(t("job.submitted_review"));
+      await fetchJob();
+    } catch (e) {
+      console.error("[JobDetails] submitCompletion failed:", e);
+      toast.error(t("errors.generic"));
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const confirmCompletion = async () => {
     if (!id || !job) return;
-    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
+    const { error: confirmError } = await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
+    if (confirmError) {
+      console.error("[JobDetails] confirmCompletion failed:", confirmError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // ----- "Job Approved 🎉" notifications for ALL hired workers -----
     try {

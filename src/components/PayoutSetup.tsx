@@ -28,7 +28,8 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
 
       if (res.error) throw new Error(res.error.message);
 
-      const { url } = res.data as { url: string };
+      const url = (res.data as { url?: string })?.url;
+      if (!url) throw new Error("No redirect URL returned from Stripe setup.");
       // Open Stripe onboarding in same tab so the return_url brings them back
       window.location.href = url;
     } catch (err) {

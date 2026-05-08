@@ -100,6 +100,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "job.upload_failed": "Upload failed",
     "job.submitted_review": "Submitted for owner review! 🎉",
     "job.upload_one_photo": "Please upload at least one completion photo.",
+    "errors.generic": "Something went wrong. Please try again.",
     "job.completion_confirmed": "Completion confirmed! Payment released.",
     "job.instructions_saved": "Instructions saved!",
 
@@ -609,6 +610,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "job.upload_failed": "Falha no envio",
     "job.submitted_review": "Enviado para revisão! 🎉",
     "job.upload_one_photo": "Envie pelo menos uma foto de conclusão.",
+    "errors.generic": "Algo deu errado. Tente novamente.",
     "job.completion_confirmed": "Conclusão confirmada! Pagamento liberado.",
     "job.instructions_saved": "Instruções salvas!",
 
@@ -894,6 +896,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "protection.repeated_violation": "Violações repetidas detectadas. Sua visibilidade e ranking estão sendo reduzidos.",
     "protection.external_blocked": "Compartilhamento de pagamento externo e redes sociais não é permitido.",
 
+    "status.open": "ABERTA",
     "status.applied": "CANDIDATADA",
     "status.hired": "CONTRATADA",
     "status.accepted": "ACEITA",
@@ -1091,6 +1094,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "job.upload_failed": "Error al subir",
     "job.submitted_review": "¡Enviado para revisión! 🎉",
     "job.upload_one_photo": "Sube al menos una foto de finalización.",
+    "errors.generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "job.completion_confirmed": "¡Finalización confirmada! Pago liberado.",
     "job.instructions_saved": "¡Instrucciones guardadas!",
 
@@ -1366,6 +1370,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "protection.repeated_violation": "Violaciones repetidas detectadas. Tu visibilidad y ranking están siendo reducidos.",
     "protection.external_blocked": "No se permite compartir pagos externos y redes sociales.",
 
+    "status.open": "ABIERTO",
     "status.applied": "APLICADO",
     "status.hired": "CONTRATADO",
     "status.accepted": "ACEPTADO",

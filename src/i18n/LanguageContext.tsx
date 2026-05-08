@@ -28,22 +28,32 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLanguageState(lang);
     localStorage.setItem("shinely_lang", lang);
     // Persist to profile if logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      await supabase.from("profiles").update({ language: lang }).eq("id", session.user.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { error } = await supabase.from("profiles").update({ language: lang }).eq("id", session.user.id);
+        if (error) console.error("[LanguageContext] language persist failed:", error);
+      }
+    } catch (e) {
+      console.error("[LanguageContext] setLanguage error:", e);
     }
   };
 
   // Load from profile on mount
   useEffect(() => {
     const loadFromProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data } = await supabase.from("profiles").select("language").eq("id", session.user.id).single();
-        if (data?.language && ["en", "pt", "es"].includes(data.language)) {
-          setLanguageState(data.language as Language);
-          localStorage.setItem("shinely_lang", data.language);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data, error } = await supabase.from("profiles").select("language").eq("id", session.user.id).maybeSingle();
+          if (error) { console.error("[LanguageContext] load language failed:", error); return; }
+          if (data?.language && ["en", "pt", "es"].includes(data.language)) {
+            setLanguageState(data.language as Language);
+            localStorage.setItem("shinely_lang", data.language);
+          }
         }
+      } catch (e) {
+        console.error("[LanguageContext] loadFromProfile error:", e);
       }
     };
     loadFromProfile();
