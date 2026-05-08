@@ -18,7 +18,9 @@ export default function CheckoutReturn() {
   useEffect(() => {
     // Refresh profile to pick up plan changes from webhook
     if (sessionId) {
-      const timer = setTimeout(() => refreshProfile(), 2000);
+      const timer = setTimeout(() => {
+        refreshProfile().catch((e) => console.error("[CheckoutReturn] refreshProfile failed:", e));
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [sessionId, refreshProfile]);
