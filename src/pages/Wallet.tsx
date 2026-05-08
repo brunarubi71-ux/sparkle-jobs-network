@@ -48,17 +48,25 @@ export default function Wallet() {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [{ data: profileData }, { data: txData }] = await Promise.all([
-        supabase.from("profiles").select("wallet_balance").eq("id", user.id).single() as any,
-        supabase
-          .from("wallet_transactions" as any)
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      setBalance(Number((profileData as any)?.wallet_balance || 0));
-      setTransactions((txData as any) || []);
-      setLoading(false);
+      try {
+        const [profileRes, txRes] = await Promise.all([
+          supabase.from("profiles").select("wallet_balance").eq("id", user.id).maybeSingle() as any,
+          supabase
+            .from("wallet_transactions" as any)
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+        ]);
+        if (profileRes.error) console.error("[Wallet] profile load error:", profileRes.error);
+        if (txRes.error) console.error("[Wallet] transactions load error:", txRes.error);
+        setBalance(Number((profileRes.data as any)?.wallet_balance || 0));
+        setTransactions((txRes.data as any) || []);
+      } catch (e) {
+        console.error("[Wallet] load exception:", e);
+        toast.error("Couldn't load wallet data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [user]);

@@ -107,7 +107,12 @@ export default function MyJobs() {
   };
 
   const hireCleaner = async (jobId: string, cleanerId: string) => {
-    await supabase.from("jobs").update({ status: "hired", hired_cleaner_id: cleanerId }).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ status: "hired", hired_cleaner_id: cleanerId }).eq("id", jobId);
+    if (error) {
+      console.error("[MyJobs] hireCleaner failed:", error);
+      toast.error(t("errors.generic"));
+      return;
+    }
     await supabase.from("job_applications").update({ status: "hired" }).eq("job_id", jobId).eq("cleaner_id", cleanerId);
     const { data: existing } = await supabase.from("conversations").select("id").eq("job_id", jobId).eq("cleaner_id", cleanerId).maybeSingle();
     if (!existing) await supabase.from("conversations").insert({ job_id: jobId, cleaner_id: cleanerId, owner_id: user!.id });
@@ -138,7 +143,12 @@ export default function MyJobs() {
       console.error("[MyJobs] cancel: failed to load affected workers", e);
     }
 
-    await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    const { error: cancelError } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    if (cancelError) {
+      console.error("[MyJobs] cancelJob failed:", cancelError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // Notify all affected workers
     if (affected.size > 0) {
@@ -170,11 +180,16 @@ export default function MyJobs() {
 
   const approveJob = async (jobId: string) => {
     const job = jobs.find((j) => j.id === jobId);
-    await supabase.from("jobs").update({
+    const { error: approveError } = await supabase.from("jobs").update({
       status: "completed",
       owner_confirmed_completion: true,
       escrow_status: "released",
     } as any).eq("id", jobId);
+    if (approveError) {
+      console.error("[MyJobs] approveJob failed:", approveError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // Award points: owner gets owner_job_completed; worker gets job_completed (+ first_job bonus)
     try {

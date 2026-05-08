@@ -23,32 +23,40 @@ export default function BottomNav() {
     }
 
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", user.id)
-        .eq("status", "pending_review");
-      setPendingReviewCount(count || 0);
+      try {
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", user.id)
+          .eq("status", "pending_review");
+        setPendingReviewCount(count || 0);
+      } catch (e) {
+        console.error("[BottomNav] fetchCount error:", e);
+      }
     };
 
     const fetchPendingApplicants = async () => {
-      // Get owner's open jobs
-      const { data: openJobs } = await supabase
-        .from("jobs")
-        .select("id")
-        .eq("owner_id", user.id)
-        .eq("status", "open");
-      const jobIds = (openJobs || []).map((j) => j.id);
-      if (jobIds.length === 0) {
-        setPendingApplicantsCount(0);
-        return;
+      try {
+        // Get owner's open jobs
+        const { data: openJobs } = await supabase
+          .from("jobs")
+          .select("id")
+          .eq("owner_id", user.id)
+          .eq("status", "open");
+        const jobIds = (openJobs || []).map((j) => j.id);
+        if (jobIds.length === 0) {
+          setPendingApplicantsCount(0);
+          return;
+        }
+        const { count } = await supabase
+          .from("job_applications")
+          .select("id", { count: "exact", head: true })
+          .in("job_id", jobIds)
+          .eq("status", "pending");
+        setPendingApplicantsCount(count || 0);
+      } catch (e) {
+        console.error("[BottomNav] fetchPendingApplicants error:", e);
       }
-      const { count } = await supabase
-        .from("job_applications")
-        .select("id", { count: "exact", head: true })
-        .in("job_id", jobIds)
-        .eq("status", "pending");
-      setPendingApplicantsCount(count || 0);
     };
 
     fetchCount();

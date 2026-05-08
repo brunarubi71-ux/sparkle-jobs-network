@@ -30,12 +30,18 @@ export default function Earnings() {
       // Mark onboarding complete in DB and refresh profile
       (async () => {
         if (!user) return;
-        await supabase
-          .from("profiles")
-          .update({ stripe_connect_onboarded: true } as any)
-          .eq("id", user.id);
-        await refreshProfile();
-        toast.success("Bank account connected! You can now withdraw your earnings.");
+        try {
+          const { error } = await supabase
+            .from("profiles")
+            .update({ stripe_connect_onboarded: true } as any)
+            .eq("id", user.id);
+          if (error) throw error;
+          await refreshProfile();
+          toast.success("Bank account connected! You can now withdraw your earnings.");
+        } catch (e) {
+          console.error("[Earnings] connect success handler error:", e);
+          toast.error("Bank account setup may be incomplete. Please check your earnings page.");
+        }
       })();
       setSearchParams({}, { replace: true });
     } else if (connectStatus === "refresh") {
