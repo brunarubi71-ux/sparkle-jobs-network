@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
 
   try {
     switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
       case "customer.subscription.created":
       case "customer.subscription.updated":
         await handleSubscriptionUpsert(event.data.object as Stripe.Subscription);
@@ -124,6 +127,43 @@ Deno.serve(async (req) => {
     return new Response(`Handler Error: ${(err as Error).message}`, { status: 500 });
   }
 });
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.payment_status !== "paid") return;
+
+  const purpose = session.metadata?.purpose;
+  const userId = session.metadata?.userId;
+
+  if (purpose === "job_payment") {
+    const jobId = session.metadata?.jobId;
+    if (!jobId) {
+      console.error("[checkout.completed] job_payment missing jobId in metadata");
+      return;
+    }
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "open" })
+      .eq("id", jobId)
+      .in("status", ["pending_payment", "draft"]);
+    if (error) console.error("[checkout.completed] failed to activate job:", error);
+    else console.log(`[checkout.completed] activated job ${jobId}`);
+  } else if (purpose === "wallet_topup") {
+    if (!userId) {
+      console.error("[checkout.completed] wallet_topup missing userId in metadata");
+      return;
+    }
+    const amountInDollars = session.amount_total ? session.amount_total / 100 : 0;
+    if (amountInDollars <= 0) return;
+    const { error } = await supabase.rpc("credit_wallet", {
+      p_user_id: userId,
+      p_amount: amountInDollars,
+      p_description: "Wallet top-up via Stripe",
+      p_job_id: null,
+    });
+    if (error) console.error("[checkout.completed] failed to credit wallet:", error);
+    else console.log(`[checkout.completed] credited wallet for user ${userId} $${amountInDollars}`);
+  }
+}
 
 async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;

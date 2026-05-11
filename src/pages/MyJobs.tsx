@@ -576,6 +576,7 @@ export default function MyJobs() {
               jobTitle={paymentJob.title}
               customerEmail={user.email || undefined}
               userId={user.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&job_id=${paymentJob.jobId}`}
             />
           )}
         </DialogContent>
