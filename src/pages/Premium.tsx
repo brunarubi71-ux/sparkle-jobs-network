@@ -56,6 +56,8 @@ export default function Premium() {
   const currentTier = (profile?.plan_tier || "free") as "free" | "pro" | "premium";
   const isPaid = currentTier !== "free";
   const isOwner = profile?.role === "owner";
+  // Trial is only for first-time subscribers — once free_trial_started_at is set they've used it.
+  const trialEligible = !(profile as any)?.free_trial_started_at;
 
   useEffect(() => {
     if (isOwner) return;
@@ -203,11 +205,19 @@ export default function Premium() {
                   <Zap className="w-4 h-4 text-primary" />
                   <p className="font-bold text-foreground">Pro</p>
                 </div>
-                <p className="text-lg font-extrabold text-foreground leading-tight">
-                  ${proPrice.amount}
-                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
-                </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                {trialEligible ? (
+                  <>
+                    <p className="text-[11px] text-primary font-bold mt-0.5">7 days free</p>
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      then ${proPrice.amount}{priceSuffix}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-lg font-extrabold text-foreground leading-tight">
+                    ${proPrice.amount}
+                    <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
+                  </p>
+                )}
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {proBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -220,7 +230,7 @@ export default function Premium() {
                   onClick={() => setCheckoutPriceId(proPrice.id)}
                   className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
                 >
-                  Start with Pro →
+                  {trialEligible ? "Try Free 7 Days →" : "Subscribe →"}
                 </Button>
               </div>
 
@@ -230,11 +240,19 @@ export default function Premium() {
                   <Sparkles className="w-4 h-4 text-primary" />
                   <p className="font-bold text-foreground">Premium</p>
                 </div>
-                <p className="text-lg font-extrabold text-foreground leading-tight">
-                  ${premiumPrice.amount}
-                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
-                </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                {trialEligible ? (
+                  <>
+                    <p className="text-[11px] text-primary font-bold mt-0.5">7 days free</p>
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      then ${premiumPrice.amount}{priceSuffix}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-lg font-extrabold text-foreground leading-tight">
+                    ${premiumPrice.amount}
+                    <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
+                  </p>
+                )}
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {premiumBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -247,10 +265,22 @@ export default function Premium() {
                   onClick={() => setCheckoutPriceId(premiumPrice.id)}
                   className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
                 >
-                  Go Premium →
+                  {trialEligible ? "Try Free 7 Days →" : "Go Premium →"}
                 </Button>
               </div>
             </motion.div>
+
+            {/* Trial disclaimer */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center text-[11px] text-muted-foreground px-2"
+            >
+              {trialEligible
+                ? "💳 Card required to start trial. You won't be charged for 7 days. Cancel anytime before the trial ends."
+                : "Cancel anytime. Billed automatically each billing cycle."}
+            </motion.p>
           </>
         ) : (
           <>
