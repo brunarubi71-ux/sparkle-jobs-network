@@ -42,6 +42,7 @@ export default function JobDetails() {
   const [completing, setCompleting] = useState(false);
   const MIN_COMPLETION_PHOTOS = 10;
   const [startingJob, setStartingJob] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
@@ -286,7 +287,9 @@ export default function JobDetails() {
   };
 
   const confirmCompletion = async () => {
-    if (!id || !job) return;
+    if (!id || !job || confirmingPayment) return;
+    setConfirmingPayment(true);
+    try {
     const { error: confirmError } = await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
     if (confirmError) {
       console.error("[JobDetails] confirmCompletion failed:", confirmError);
@@ -437,6 +440,9 @@ export default function JobDetails() {
     setTimeout(() => setShowPaymentSuccess(false), 3000);
     toast.success(t("job.completion_confirmed"));
     await fetchJob();
+    } finally {
+      setConfirmingPayment(false);
+    }
   };
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
@@ -1102,8 +1108,10 @@ export default function JobDetails() {
                 </div>
               )}
               <Button onClick={confirmCompletion}
-                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold">
-                <CheckCircle className="w-4 h-4 mr-2" /> {t("job.approve_payment")}
+                disabled={confirmingPayment}
+                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold disabled:opacity-60">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {confirmingPayment ? t("common.processing") : t("job.approve_payment")}
               </Button>
             </div>
           </motion.div>

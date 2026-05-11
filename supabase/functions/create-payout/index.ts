@@ -134,9 +134,8 @@ serve(async (req) => {
         }
       }
 
-      // 3. Deduct from wallet
-      await adminClient.rpc("debit_wallet" as any, {
-        p_user_id: user.id,
+      // 3. Deduct from wallet — must use authClient so auth.uid() resolves correctly inside the RPC
+      await authClient.rpc("debit_wallet", {
         p_amount: amountDollars,
         p_description: instant
           ? `Instant withdrawal to bank account`
