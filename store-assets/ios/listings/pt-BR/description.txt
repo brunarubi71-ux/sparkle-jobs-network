@@ -1,0 +1,28 @@
+Shinely — Marketplace de Limpeza Premium
+
+Conecte-se com os melhores profissionais de limpeza da sua região ou encontre trabalhos de limpeza pagando bem, de forma rápida e segura.
+
+🧹 PARA QUEM PRECISA DE LIMPEZA (Clientes)
+• Publique um trabalho em minutos — informe o tipo, data, endereço e orçamento
+• Receba propostas de profissionais verificados próximos a você
+• Pague com segurança direto pelo app (via Stripe)
+• Acompanhe o status do serviço em tempo real
+• Avalie o profissional após o serviço
+
+✨ PARA PROFISSIONAIS DE LIMPEZA
+• Cadastre-se gratuitamente e crie seu perfil completo
+• Encontre trabalhos na sua região no mapa interativo
+• Candidate-se com um clique e negocie diretamente com o cliente
+• Receba pagamentos de forma rápida e segura
+• Construa sua reputação com avaliações verificadas
+
+🔒 SEGURANÇA E CONFIANÇA
+• Perfis verificados para clientes e profissionais
+• Pagamentos processados pelo Stripe — nunca armazenamos dados do cartão
+• Sistema de avaliações bidirecional
+• Suporte dedicado via chat
+
+📍 DISPONÍVEL EM TODO O BRASIL
+Shinely conecta você a profissionais ou trabalhos em qualquer cidade.
+
+Baixe agora e comece a brilhar!

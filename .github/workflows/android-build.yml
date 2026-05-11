@@ -1,0 +1,76 @@
+name: Build Android APK
+
+# Runs automatically every time you push code to this branch
+on:
+  push:
+    branches:
+      - claude/test-app-store-prep-4ivXj
+      - main
+  # Also lets you trigger a build manually from the GitHub website
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install Node.js (done automatically in the cloud — you don't need it on your PC)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # 3. Install project dependencies (npm install)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build the web app
+      - name: Build web app
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      # 5. Sync web build into the Android project
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      # 6. Set up Java (required to build Android apps)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # 7. Cache Gradle (speeds up future builds)
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      # 8. Give Gradle execute permission
+      - name: Grant Gradle execute permission
+        run: chmod +x android/gradlew
+
+      # 9. Build the debug APK (no signing required — good for testing)
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: android
+
+      # 10. Upload the APK as a downloadable file
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: shinely-debug-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

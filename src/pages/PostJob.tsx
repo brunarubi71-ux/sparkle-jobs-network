@@ -272,8 +272,8 @@ export default function PostJob() {
         cleaners_required: cleanersReq, helpers_required: helpersReq,
         main_property_photo: mainPhotoUrl,
         property_photos: allAdditional.length > 0 ? allAdditional : null,
-        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
-        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
+        guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
       };
       if (isEditingDraft) updatePayload.status = "open";
 
@@ -350,8 +350,8 @@ export default function PostJob() {
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
         status,
-        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
-        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
+        guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
       } as any).select("id").single();
       if (error) throw error;
 

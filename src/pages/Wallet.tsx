@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Wallet as WalletIcon, Plus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Wallet as WalletIcon, Plus, ArrowDownLeft, ArrowUpRight, Banknote } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import BottomNav from "@/components/BottomNav";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { WalletStripeCheckout } from "@/components/WalletStripeCheckout";
+import { WithdrawDialog } from "@/components/WithdrawDialog";
 import { toast } from "sonner";
 
 interface WalletTransaction {
@@ -31,14 +32,18 @@ interface WalletTransaction {
 const PRESET_AMOUNTS = [100, 200, 300, 500];
 
 export default function Wallet() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [amountInput, setAmountInput] = useState<string>("");
   const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
+
+  const isCleaner = profile?.role === "cleaner";
+  const canWithdraw = isCleaner && (profile as any)?.stripe_connect_onboarded === true;
 
   useEffect(() => {
     if (!user) return;
@@ -93,13 +98,26 @@ export default function Wallet() {
               <p className="text-3xl font-bold text-foreground">${balance.toFixed(2)}</p>
             </div>
           </div>
-          <Button
-            onClick={() => setAddOpen(true)}
-            className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 mt-4"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Funds
-          </Button>
+          <div className={`mt-4 gap-3 ${canWithdraw || isCleaner ? "grid grid-cols-2" : "flex"}`}>
+            <Button
+              onClick={() => setAddOpen(true)}
+              className="h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Funds
+            </Button>
+            {isCleaner && (
+              <Button
+                onClick={() => canWithdraw ? setWithdrawOpen(true) : window.location.href = "/earnings"}
+                variant={canWithdraw ? "outline" : "secondary"}
+                className="h-12 rounded-xl font-semibold border-2"
+                disabled={balance === 0}
+              >
+                <Banknote className="w-4 h-4 mr-2" />
+                {canWithdraw ? "Withdraw" : "Set up bank"}
+              </Button>
+            )}
+          </div>
         </motion.div>
 
         <motion.div
@@ -217,6 +235,13 @@ export default function Wallet() {
           )}
         </DialogContent>
       </Dialog>
+
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        walletBalance={balance}
+        onSuccess={(newBalance) => setBalance(newBalance)}
+      />
 
       <BottomNav />
     </div>

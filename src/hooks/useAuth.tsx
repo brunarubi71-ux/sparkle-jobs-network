@@ -39,6 +39,8 @@ interface Profile {
   worker_type: "cleaner" | "helper";
   helper_earnings?: number | null;
   is_available_now: boolean;
+  stripe_connect_account_id: string | null;
+  stripe_connect_onboarded: boolean;
   created_at: string;
   updated_at: string;
 }
