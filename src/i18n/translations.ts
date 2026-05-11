@@ -1146,7 +1146,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "profile.photo_updated": "¡Foto actualizada!",
     "profile.photo_added": "¡Foto agregada!",
 
-    "premium.title": "Hazte Premium",
+    "premium.title": "Házte Premium",
     "premium.choose_plan": "Elige Tu Plan",
     "premium.grow_business": "Haz crecer tu negocio de limpieza y gana más",
     "premium.daily_limit": "Límite Diario Alcanzado",
@@ -1167,7 +1167,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "premium.earn_more": "Gana más dinero",
     "premium.priority_access": "Acceso prioritario",
     "premium.contact_limit": "Límite de Contactos Alcanzado",
-    "premium.contact_limit_msg": "Usaste tu 1 contacto gratis. Hazte Premium para acceso ilimitado.",
+    "premium.contact_limit_msg": "Usaste tu 1 contacto gratis. Házte Premium para acceso ilimitado.",
     "premium.job_limit_msg": "Alcanzaste tu límite diario. ¡Actualiza para desbloquear más trabajos!",
     "premium.schedule_limit_msg": "Usaste tu acceso a contactos. ¡Actualiza para más contactos!",
     "premium.general_msg": "Actualiza tu plan para desbloquear más funciones y crecer más rápido.",
