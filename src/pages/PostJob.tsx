@@ -144,6 +144,11 @@ export default function PostJob() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    // Wait for profile to finish loading before allowing submission
+    if (!profile) {
+      toast.error("Loading your profile, please try again in a moment.");
+      return;
+    }
     if (ownerNeedsVerification) {
       setIdentityOpen(true);
       return;
@@ -326,7 +331,10 @@ export default function PostJob() {
       });
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-    } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
+    } catch (err: any) {
+      const isRLS = err?.code === "42501" || String(err?.message || "").includes("row-level security") || String(err?.message || "").includes("violates");
+      toast.error(isRLS ? "Identity verification required before posting jobs. Please wait for your documents to be approved." : t("post.error"));
+    } finally { setLoading(false); setUploadingPhotos(false); }
   };
 
   const handlePayCard = () => {
@@ -597,13 +605,15 @@ export default function PostJob() {
           </motion.div>
         )}
 
-        <Button type="submit" disabled={loading || uploadingPhotos || editLoading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
+        <Button type="submit" disabled={loading || uploadingPhotos || editLoading || showOwnerPendingBanner} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 disabled:opacity-50">
           <PlusCircle className="w-4 h-4 mr-2" />
-          {uploadingPhotos
-            ? t("post.uploading_photos")
-            : loading
-              ? (isEditMode ? "Saving..." : t("post.posting"))
-              : (isEditMode ? "Save changes" : t("post.submit"))}
+          {showOwnerPendingBanner
+            ? "Awaiting Identity Approval"
+            : uploadingPhotos
+              ? t("post.uploading_photos")
+              : loading
+                ? (isEditMode ? "Saving..." : t("post.posting"))
+                : (isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
