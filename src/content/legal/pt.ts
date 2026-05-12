@@ -2,7 +2,7 @@ const notice = `> 🌐 *Esta é uma tradução para conveniência. A versão em 
 
 export const TERMS_OF_SERVICE_PT = notice + `# Termos de Serviço da Shinely
 
-_Última atualização: 27 de abril de 2026_
+_Última atualização: 12 de maio de 2026_
 
 Estes Termos de Serviço ("Termos") regem o seu acesso e uso da Shinely ("Plataforma"), operada pela Rubi Solutions Corp. ("Shinely," "nós," "nos" ou "nosso"), uma empresa da Flórida.
 
@@ -62,7 +62,7 @@ A Shinely é uma plataforma tecnológica que conecta Proprietários com Faxineir
 
 **Total = Preço do Serviço + Taxa da Plataforma**
 
-A **Taxa da Plataforma** é atualmente **10% do Preço do Serviço** durante nossa promoção de lançamento (primeiros 60 dias após 27 de abril de 2026), após o que será **15%**. Notificaremos os Usuários sobre mudanças de taxa com pelo menos 30 dias de antecedência.
+A **Taxa da Plataforma** é atualmente **10% do Preço do Serviço**. Notificaremos os Usuários sobre quaisquer mudanças de taxa com pelo menos 30 dias de antecedência.
 
 ### 6.2 Processamento de pagamentos
 
@@ -183,7 +183,7 @@ Email: support@shinelyapp.com
 
 export const PRIVACY_POLICY_PT = notice + `# Política de Privacidade da Shinely
 
-_Última atualização: 27 de abril de 2026_
+_Última atualização: 12 de maio de 2026_
 
 Esta Política de Privacidade explica como a Rubi Solutions Corp. ("Shinely," "nós") coleta, usa e compartilha informações quando você usa a plataforma Shinely ("Plataforma").
 
@@ -299,7 +299,7 @@ Email: privacy@shinelyapp.com
 
 export const CANCELLATION_POLICY_PT = notice + `# Política de Cancelamento e Reembolso da Shinely
 
-_Última atualização: 27 de abril de 2026_
+_Última atualização: 12 de maio de 2026_
 
 Esta Política explica como cancelar um Plano de Assinatura ou um Serviço da Shinely e quais reembolsos (se houver) se aplicam. Faz parte dos nossos [Termos de Serviço](/terms).
 
