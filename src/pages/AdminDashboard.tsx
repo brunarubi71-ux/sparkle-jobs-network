@@ -174,7 +174,7 @@ export default function AdminDashboard() {
   const changeUserRole = async (userId: string, newRole: "cleaner" | "helper" | "owner" | "admin") => {
     const update: any = newRole === "helper"
       ? { role: "cleaner", worker_type: "helper" }
-      : { role: newRole, worker_type: newRole === "cleaner" ? null : undefined };
+      : { role: newRole, worker_type: newRole === "cleaner" ? "cleaner" : undefined };
     const { error } = await supabase.from("profiles").update(update).eq("id", userId);
     if (error) { toast.error("Failed to change role"); return; }
     toast.success(`Role updated to ${newRole}`);
