@@ -171,8 +171,11 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
-  const changeUserRole = async (userId: string, newRole: "cleaner" | "owner" | "admin") => {
-    const { error } = await supabase.from("profiles").update({ role: newRole } as any).eq("id", userId);
+  const changeUserRole = async (userId: string, newRole: "cleaner" | "helper" | "owner" | "admin") => {
+    const update: any = newRole === "helper"
+      ? { role: "cleaner", worker_type: "helper" }
+      : { role: newRole, worker_type: newRole === "cleaner" ? null : undefined };
+    const { error } = await supabase.from("profiles").update(update).eq("id", userId);
     if (error) { toast.error("Failed to change role"); return; }
     toast.success(`Role updated to ${newRole}`);
     setChangeRoleUser(null);
@@ -1206,10 +1209,11 @@ function ChangeRoleModal({
 }: {
   user: any | null;
   onClose: () => void;
-  onConfirm: (id: string, role: "cleaner" | "owner" | "admin") => void;
+  onConfirm: (id: string, role: "cleaner" | "helper" | "owner" | "admin") => void;
 }) {
+  const currentRole = user?.role === "cleaner" && user?.worker_type === "helper" ? "helper" : user?.role;
   const [selected, setSelected] = useState<string>("");
-  useEffect(() => { if (user) setSelected(user.role); }, [user]);
+  useEffect(() => { if (user) setSelected(currentRole); }, [user]);
   if (!user) return null;
   return (
     <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
@@ -1224,6 +1228,7 @@ function ChangeRoleModal({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="cleaner">Cleaner</SelectItem>
+            <SelectItem value="helper">Helper</SelectItem>
             <SelectItem value="owner">Owner</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
@@ -1232,7 +1237,7 @@ function ChangeRoleModal({
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button
             onClick={() => onConfirm(user.id, selected as any)}
-            disabled={selected === user.role}
+            disabled={selected === currentRole}
             className="flex-1 bg-primary text-primary-foreground"
           >
             Update
