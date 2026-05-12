@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useErrorReporter } from "@/hooks/useErrorReporter";
 import { toast } from "sonner";
 
 interface IdentityVerificationModalProps {
@@ -14,6 +15,7 @@ interface IdentityVerificationModalProps {
 
 export default function IdentityVerificationModal({ open, onOpenChange, onSubmitted }: IdentityVerificationModalProps) {
   const { user, profile, refreshProfile } = useAuth();
+  const { reportError } = useErrorReporter();
   const isOwner = profile?.role === "owner";
 
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -80,6 +82,7 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
     } catch (err) {
       console.error("[IdentityVerification] submit error:", err);
       toast.error("Failed to submit documents. Please try again.");
+      await reportError("identity-upload", err as Error);
     } finally {
       setSubmitting(false);
     }
