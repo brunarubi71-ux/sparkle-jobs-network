@@ -73,10 +73,10 @@ export default function AdminDashboard() {
     if (profile) fetchAll();
   }, [profile]);
 
-  // Realtime: new error reports pop in immediately
+  // Realtime: error reports and identity submissions appear immediately
   useEffect(() => {
     const channel = supabase
-      .channel("admin-error-reports")
+      .channel("admin-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "error_reports" }, (payload) => {
         setErrorReports((prev) => [payload.new as any, ...prev]);
         toast(`🚨 New error: ${(payload.new as any).context}`, {
@@ -86,6 +86,16 @@ export default function AdminDashboard() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "error_reports" }, (payload) => {
         setErrorReports((prev) => prev.map((r) => r.id === (payload.new as any).id ? payload.new : r));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, (payload) => {
+        const updated = payload.new as any;
+        setUsers((prev) => prev.map((u) => u.id === updated.id ? { ...u, ...updated } : u));
+        if (updated.identity_status === "pending") {
+          toast(`📋 New identity submission`, {
+            description: `${updated.full_name || updated.email} submitted verification documents`,
+            duration: 8000,
+          });
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

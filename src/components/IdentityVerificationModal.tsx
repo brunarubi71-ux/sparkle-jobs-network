@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home } from "lucide-react";
+import { ShieldCheck, Upload, Camera, CheckCircle2, Loader2, FileText, Home, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useErrorReporter } from "@/hooks/useErrorReporter";
@@ -17,6 +17,9 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
   const { user, profile, refreshProfile } = useAuth();
   const { reportError } = useErrorReporter();
   const isOwner = profile?.role === "owner";
+  const identityStatus = (profile as any)?.identity_status;
+  const isPending = identityStatus === "pending";
+  const isRejected = identityStatus === "rejected";
 
   const [docFile, setDocFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
@@ -105,20 +108,20 @@ export default function IdentityVerificationModal({ open, onOpenChange, onSubmit
             <div>
               <DialogTitle className="text-foreground">Verify Your Identity</DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isOwner ? "Required before posting your first job" : "Required before applying to jobs"}
+                {isPending ? "Under review — we'll notify you within 24h" : isRejected ? "Please re-submit corrected documents" : isOwner ? "Required before posting your first job" : "Required before applying to jobs"}
               </p>
             </div>
           </div>
         </DialogHeader>
 
-        {submitted ? (
+        {submitted || isPending ? (
           <div className="py-6 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 mx-auto flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="w-14 h-14 rounded-full bg-blue-100 mx-auto flex items-center justify-center">
+              <Clock className="w-8 h-8 text-blue-600" />
             </div>
-            <p className="text-sm font-medium text-foreground">Documents submitted!</p>
+            <p className="text-sm font-medium text-foreground">Documents under review</p>
             <p className="text-xs text-muted-foreground px-4">
-              Your documents are under review. You'll be notified within 24 hours.
+              Your documents have been submitted and are being reviewed by our team. You'll be notified within 24 hours.
             </p>
             <Button onClick={() => handleClose(false)} className="w-full rounded-xl mt-4">Close</Button>
           </div>
