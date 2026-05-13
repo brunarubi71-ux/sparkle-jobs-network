@@ -460,7 +460,8 @@ export default function Jobs() {
       setSelectedJob(null);
       setConfirmJob(null);
       toast.success(t("common.job_accepted"));
-      navigate(`/cleaner-my-jobs?tab=active&highlight=${job.id}`);
+      const isTeamJob = ((job.cleaners_required ?? 1) + (job.helpers_required ?? 0)) > 1;
+      navigate(`/cleaner-my-jobs?tab=${isTeamJob ? "active" : "applied"}&highlight=${job.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.failed_apply"));
     } finally {
@@ -479,7 +480,7 @@ export default function Jobs() {
 
   return (
     <PullToRefresh onRefresh={fetchJobs}>
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       {/* ── MAP ── */}
       <section className={`relative ${mapHeight} min-h-[340px] overflow-hidden border-b border-border bg-card transition-all duration-300`}>
         <MapContainer center={mapCenter} zoom={11} zoomControl={false} className="h-full w-full">
@@ -588,7 +589,7 @@ export default function Jobs() {
                     {profile?.role === "cleaner" ? (
                       <>
                         <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(selectedJob).toFixed(2)}</p>
-                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">Your earnings</p>
+                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">{t("jobs.your_earnings")}</p>
                       </>
                     ) : (
                       <p className="text-2xl font-bold text-foreground">${selectedJob.price}</p>
@@ -713,7 +714,7 @@ export default function Jobs() {
                     {profile?.role === "cleaner" ? (
                       <>
                         <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(job).toFixed(2)}</p>
-                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">Your earnings</p>
+                        <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">{t("jobs.your_earnings")}</p>
                       </>
                     ) : (
                       <p className="text-2xl font-bold text-foreground">${job.price}</p>

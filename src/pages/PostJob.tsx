@@ -355,7 +355,7 @@ export default function PostJob() {
   const isAirbnb = form.cleaning_type === "airbnb";
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">{isEditMode ? "Edit job" : t("post.title")}</h1>

@@ -110,12 +110,7 @@ export default function CleanerMyJobs() {
   const fetchTabCounts = async () => {
     if (!user) return;
     try {
-      const [activeRes, completedRes, cancelledRes, appliedRes] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("hired_cleaner_id", user.id)
-          .in("status", ["accepted", "in_progress"]),
+      const [completedRes, cancelledRes, appliedRes, acceptedAppsCountRes] = await Promise.all([
         supabase
           .from("jobs")
           .select("id", { count: "exact", head: true })
@@ -128,22 +123,19 @@ export default function CleanerMyJobs() {
           .eq("status", "cancelled"),
         supabase
           .from("job_applications")
-          .select(`
-            id,
-            status,
-            created_at,
-            job_id,
-            jobs (
-              id, title, price, city, status,
-              cleaners_required, helpers_required
-            )
-          `, { count: "exact" })
+          .select("id", { count: "exact", head: true })
           .eq("cleaner_id", user.id)
           .in("status", APPLIED_APPLICATION_STATUSES),
+        // Count accepted applications (includes helper team spots + hired cleaner spots)
+        supabase
+          .from("job_applications")
+          .select("id", { count: "exact", head: true })
+          .eq("cleaner_id", user.id)
+          .eq("status", "accepted"),
       ]);
 
       setTabCounts({
-        active: activeRes.count ?? 0,
+        active: acceptedAppsCountRes.count ?? 0,
         applied: appliedRes.count ?? 0,
         completed: completedRes.count ?? 0,
         cancelled: cancelledRes.count ?? 0,
@@ -156,7 +148,7 @@ export default function CleanerMyJobs() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const [hiredJobsRes, appliedJobsRes] = await Promise.all([
+      const [hiredJobsRes, appliedJobsRes, acceptedAppsRes] = await Promise.all([
         supabase
           .from("jobs")
           .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
@@ -178,6 +170,22 @@ export default function CleanerMyJobs() {
           .eq("cleaner_id", user!.id)
           .in("status", APPLIED_APPLICATION_STATUSES)
           .order("created_at", { ascending: false }),
+        // Fetch accepted applications not covered by hired_cleaner_id (e.g. helper team spots)
+        supabase
+          .from("job_applications")
+          .select(`
+            id,
+            status,
+            created_at,
+            job_id,
+            jobs (
+              id, title, price, city, status,
+              cleaners_required, helpers_required
+            )
+          `)
+          .eq("cleaner_id", user!.id)
+          .eq("status", "accepted")
+          .order("created_at", { ascending: false }),
       ]);
 
       if (hiredJobsRes.error) throw hiredJobsRes.error;
@@ -185,29 +193,41 @@ export default function CleanerMyJobs() {
       const hired = (hiredJobsRes.data as CleanerJob[]) || [];
       const hiredIds = new Set(hired.map((job) => job.id));
 
-      const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
-        .map((row): CleanerJob | null => {
-          if (!row.jobs || hiredIds.has(row.jobs.id)) return null;
+      const mapApplicationRow = (row: AppliedJobRow): CleanerJob | null => {
+        if (!row.jobs || hiredIds.has(row.jobs.id)) return null;
+        return {
+          id: row.jobs.id,
+          title: row.jobs.title,
+          cleaning_type: null,
+          price: row.jobs.price,
+          bedrooms: null,
+          bathrooms: null,
+          city: row.jobs.city,
+          status: row.status,
+          created_at: row.created_at,
+          date_time: null,
+          cleaners_required: row.jobs.cleaners_required,
+          helpers_required: row.jobs.helpers_required,
+        };
+      };
 
-          return {
-            id: row.jobs.id,
-            title: row.jobs.title,
-            cleaning_type: null,
-            price: row.jobs.price,
-            bedrooms: null,
-            bathrooms: null,
-            city: row.jobs.city,
-            status: row.status,
-            created_at: row.created_at,
-            date_time: null,
-            cleaners_required: row.jobs.cleaners_required,
-            helpers_required: row.jobs.helpers_required,
-          };
-        })
+      const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
+        .map(mapApplicationRow)
         .filter((job): job is CleanerJob => job !== null);
 
-      setJobs([...applied, ...hired]);
-      setTabCounts((current) => ({ ...current, applied: appliedJobsRes.data?.length ?? 0 }));
+      // Accepted team-job applications (helper spots) not already in hired list
+      const appliedIds = new Set(applied.map((j) => j.id));
+      const acceptedTeam = ((acceptedAppsRes.data as AppliedJobRow[]) || [])
+        .map(mapApplicationRow)
+        .filter((job): job is CleanerJob => job !== null && !appliedIds.has(job.id));
+
+      const allJobs = [...applied, ...acceptedTeam, ...hired];
+      setJobs(allJobs);
+      setTabCounts((current) => ({
+        ...current,
+        applied: applied.length,
+        active: allJobs.filter((j) => ACTIVE_STATUSES.includes(j.status)).length,
+      }));
     } catch (e) {
       console.error("[CleanerMyJobs] fetchJobs error:", e);
     } finally {

@@ -203,28 +203,28 @@ export default function Earnings() {
             <div className="gradient-primary px-4 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-primary-foreground" />
-                <span className="text-sm font-bold text-primary-foreground">Helper Earnings</span>
+                <span className="text-sm font-bold text-primary-foreground">{t("earnings.helper_title")}</span>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-foreground/20 text-primary-foreground">
-                Your role
+                {t("earnings.your_role")}
               </span>
             </div>
 
             <div className="p-4 space-y-3">
               {/* total */}
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Total earned as Helper</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t("earnings.total_as_helper")}</p>
                 <p className="text-4xl font-extrabold text-foreground">${helperEarnings.toFixed(2)}</p>
               </div>
 
               {/* breakdown */}
               <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border">
                 <div className="text-center py-2">
-                  <p className="text-xs text-muted-foreground mb-0.5">Jobs completed</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">{t("earnings.total_jobs")}</p>
                   <p className="text-lg font-bold text-foreground">{jobsCompleted}</p>
                 </div>
                 <div className="text-center py-2 border-l border-border">
-                  <p className="text-xs text-muted-foreground mb-0.5">Avg per job</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">{t("earnings.avg_per_job")}</p>
                   <p className="text-lg font-bold text-foreground">
                     ${jobsCompleted > 0 ? (helperEarnings / jobsCompleted).toFixed(0) : "0"}
                   </p>
@@ -232,8 +232,7 @@ export default function Earnings() {
               </div>
 
               <p className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-3 py-2">
-                You earn an equal share of the job payout alongside the Cleaner.
-                Earnings go to your wallet and can be withdrawn to your bank account.
+                {t("earnings.helper_split_info")}
               </p>
             </div>
           </motion.div>
