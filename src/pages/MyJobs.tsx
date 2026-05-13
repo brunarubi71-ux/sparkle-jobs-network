@@ -120,6 +120,48 @@ export default function MyJobs() {
     fetchJobs();
   };
 
+  const hireHelper = async (jobId: string, helperId: string) => {
+    // Accept the helper's application
+    const { error } = await supabase
+      .from("job_applications")
+      .update({ status: "accepted" })
+      .eq("job_id", jobId)
+      .eq("cleaner_id", helperId);
+    if (error) {
+      toast.error(t("errors.generic"));
+      return;
+    }
+
+    // Check if all spots are now filled → flip job status
+    const job = jobs.find((j) => j.id === jobId);
+    if (job) {
+      const totalRequired = (job.cleaners_required ?? 1) + (job.helpers_required ?? 0);
+      const { count: filled } = await supabase
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", jobId)
+        .eq("status", "accepted");
+      if ((filled ?? 0) >= totalRequired) {
+        await supabase.from("jobs").update({ status: "accepted" }).eq("id", jobId);
+      }
+    }
+
+    // Notify the helper
+    try {
+      await sendNotifications([{
+        userId: helperId,
+        title: t("myjobs.helper_hired_notif_title") || "You're hired!",
+        message: t("myjobs.helper_hired_notif_msg") || "The owner accepted you for the team job. Check your active jobs.",
+        type: "job_accepted",
+        relatedId: jobId,
+        link: `/cleaner-my-jobs?tab=active`,
+      }]);
+    } catch {}
+
+    toast.success(t("myjobs.cleaner_hired"));
+    fetchJobs();
+  };
+
   const cancelJob = async (jobId: string) => {
     // Find affected workers (pending or accepted applicants + lead hired cleaner)
     const affected = new Set<string>();
@@ -344,6 +386,12 @@ export default function MyJobs() {
               </button>
               {!isTeam && ["open", "applied"].includes(job.status) && app.status !== "hired" && app.status !== "accepted" && (
                 <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
+                  className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
+                  {t("myjobs.hire")}
+                </Button>
+              )}
+              {isTeam && app.worker_type === "helper" && app.status === "pending" && (
+                <Button size="sm" onClick={() => hireHelper(job.id, app.cleaner_id)}
                   className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
                   {t("myjobs.hire")}
                 </Button>

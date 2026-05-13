@@ -21,6 +21,7 @@ import EmptyState from "@/components/EmptyState";
 import BackToTop from "@/components/BackToTop";
 import PullToRefresh from "@/components/PullToRefresh";
 import { getDistanceMiles, formatDistance, estimateEtaMinutes, formatEta } from "@/lib/distance";
+import { getWorkerShare } from "@/lib/earnings";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -121,11 +122,6 @@ const createPriceIcon = (price: number, active: boolean) =>
     iconAnchor: [38, 20],
   });
 
-/** Worker's estimated earnings: 90% of job price split equally between all workers. */
-const getWorkerEarnings = (job: Pick<Job, "price" | "cleaners_required" | "helpers_required">) => {
-  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
-  return (Number(job.price || 0) * 0.9) / workers;
-};
 
 /* ── component ── */
 export default function Jobs() {
@@ -506,7 +502,7 @@ export default function Jobs() {
             <Marker
               key={job.id}
               position={getJobPosition(job, index, mapCenter)}
-              icon={createPriceIcon(profile?.role === "cleaner" ? getWorkerEarnings(job) : job.price, selectedJob?.id === job.id)}
+              icon={createPriceIcon(profile?.role === "cleaner" ? getWorkerShare(job.price, job.cleaners_required ?? 1, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner") : job.price, selectedJob?.id === job.id)}
               eventHandlers={{ click: () => setSelectedJob(job) }}
             />
           ))}
@@ -588,7 +584,7 @@ export default function Jobs() {
                   <div className="min-w-0">
                     {profile?.role === "cleaner" ? (
                       <>
-                        <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(selectedJob).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-emerald-600">${getWorkerShare(selectedJob.price, selectedJob.cleaners_required ?? 1, selectedJob.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner").toFixed(2)}</p>
                         <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">{t("jobs.your_earnings")}</p>
                       </>
                     ) : (
@@ -713,7 +709,7 @@ export default function Jobs() {
                   <div>
                     {profile?.role === "cleaner" ? (
                       <>
-                        <p className="text-2xl font-bold text-emerald-600">${getWorkerEarnings(job).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-emerald-600">${getWorkerShare(job.price, job.cleaners_required ?? 1, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner").toFixed(2)}</p>
                         <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">{t("jobs.your_earnings")}</p>
                       </>
                     ) : (
@@ -829,6 +825,7 @@ export default function Jobs() {
           currentTier={profile?.plan_tier || "free"}
           cleanersRequired={confirmJob.cleaners_required ?? 1}
           helpersRequired={confirmJob.helpers_required ?? 0}
+          workerType={profile?.worker_type as "cleaner" | "helper"}
         />
       )}
 
