@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Users, Car, DollarSign, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/i18n/LanguageContext";
 
-/**
- * Shown at the top of the Jobs and Dashboard screens for users with worker_type === "helper".
- * Explains their role clearly without requiring them to know anything about the app architecture.
- */
 export function HelperInfoBanner() {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="mx-4 mb-3 rounded-2xl border-2 border-primary/20 bg-primary/5 overflow-hidden">
@@ -21,8 +19,8 @@ export function HelperInfoBanner() {
             <Users className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">You're a Helper</p>
-            <p className="text-xs text-muted-foreground">Tap to learn how it works</p>
+            <p className="text-sm font-bold text-foreground">{t("helper.title")}</p>
+            <p className="text-xs text-muted-foreground">{t("helper.subtitle")}</p>
           </div>
         </div>
         {expanded
@@ -34,7 +32,7 @@ export function HelperInfoBanner() {
       {expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-primary/10 pt-3">
           <p className="text-sm text-foreground font-medium">
-            As a Helper, you join cleaning jobs as part of a team. You don't need a car — the Cleaner leading the job gets you to the location or the client provides access.
+            {t("helper.intro")}
           </p>
 
           <div className="space-y-2.5">
@@ -43,8 +41,8 @@ export function HelperInfoBanner() {
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Browse team jobs</p>
-                <p className="text-xs text-muted-foreground">You only see jobs that need a Helper. Apply with one tap.</p>
+                <p className="text-sm font-semibold text-foreground">{t("helper.browse_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("helper.browse_desc")}</p>
               </div>
             </div>
 
@@ -53,8 +51,8 @@ export function HelperInfoBanner() {
                 <Car className="w-3.5 h-3.5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">No car needed</p>
-                <p className="text-xs text-muted-foreground">Getting to the job is handled — just show up ready to work.</p>
+                <p className="text-sm font-semibold text-foreground">{t("helper.no_car_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("helper.no_car_desc")}</p>
               </div>
             </div>
 
@@ -63,8 +61,8 @@ export function HelperInfoBanner() {
                 <DollarSign className="w-3.5 h-3.5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Equal pay split</p>
-                <p className="text-xs text-muted-foreground">The job earnings are split equally between all workers on the team. What you see listed is what each person earns.</p>
+                <p className="text-sm font-semibold text-foreground">{t("helper.equal_pay_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("helper.equal_pay_desc")}</p>
               </div>
             </div>
           </div>
@@ -75,7 +73,7 @@ export function HelperInfoBanner() {
             className="w-full rounded-xl border-primary/30 text-primary font-semibold mt-1"
             onClick={() => setExpanded(false)}
           >
-            Got it
+            {t("helper.got_it")}
           </Button>
         </div>
       )}
