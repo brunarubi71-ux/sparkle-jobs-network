@@ -28,12 +28,12 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
         body: { returnUrl },
       });
 
-      if (res.error) {
-        const detail = (res.data as any)?.error || res.error.message;
-        throw new Error(detail);
-      }
+      // A função sempre retorna 200; erros vêm em data.error
+      if (res.error) throw new Error(res.error.message);
+      const data = res.data as { url?: string; error?: string } | null;
+      if (data?.error) throw new Error(data.error);
 
-      const url = (res.data as { url?: string })?.url;
+      const url = data?.url;
       if (!url) throw new Error("No redirect URL returned from Stripe setup.");
       window.location.href = url;
     } catch (err) {

@@ -8,9 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const json = (status: number, body: Record<string, unknown>) =>
+const ok = (body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
-    status,
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
@@ -23,13 +23,13 @@ serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authorization = req.headers.get("Authorization");
-    if (!authorization) return json(401, { error: "Not authenticated" });
+    if (!authorization) return ok({ error: "Not authenticated" });
 
     const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authorization } },
     });
     const { data: { user }, error: authError } = await authClient.auth.getUser();
-    if (authError || !user) return json(401, { error: "Session expired" });
+    if (authError || !user) return ok({ error: "Session expired" });
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -42,7 +42,7 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError) return json(500, { error: "Could not load profile" });
+    if (profileError) return ok({ error: "Could not load profile" });
 
     const stripe = createStripeClient("live");
 
@@ -63,8 +63,8 @@ serve(async (req) => {
         });
       } catch (stripeErr: any) {
         const msg = stripeErr?.message || "Stripe account creation failed";
-        console.error("[create-connect-account] stripe.accounts.create:", stripeErr?.code, stripeErr?.type, msg);
-        return json(500, { error: msg });
+        console.error("[create-connect-account] accounts.create:", stripeErr?.code, stripeErr?.type, msg);
+        return ok({ error: msg });
       }
 
       accountId = account.id;
@@ -84,13 +84,13 @@ serve(async (req) => {
       });
     } catch (stripeErr: any) {
       const msg = stripeErr?.message || "Could not create onboarding link";
-      console.error("[create-connect-account] stripe.accountLinks.create:", msg);
-      return json(500, { error: msg });
+      console.error("[create-connect-account] accountLinks.create:", msg);
+      return ok({ error: msg });
     }
 
-    return json(200, { url: accountLink.url, accountId });
+    return ok({ url: accountLink.url, accountId });
   } catch (err) {
     console.error("[create-connect-account] unexpected:", err);
-    return json(500, { error: (err as Error).message || "Internal error" });
+    return ok({ error: (err as Error).message || "Internal error" });
   }
 });
