@@ -198,7 +198,8 @@ Deno.serve(async (req) => {
 
     // For solo jobs the application is PENDING (owner approves).
     // For team jobs the application is auto-ACCEPTED so a spot is reserved.
-    const applicationStatus = isTeamJob ? "accepted" : "pending";
+    // Cleaners on team jobs are auto-accepted; helpers wait for owner approval
+    const applicationStatus = (isTeamJob && workerType !== "helper") ? "accepted" : "pending";
 
     // Create or update the cleaner's application
     const { data: existingApplication } = await admin

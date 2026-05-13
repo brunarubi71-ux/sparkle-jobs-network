@@ -53,12 +53,10 @@ serve(async (req) => {
       try {
         account = await stripe.accounts.create({
           type: "express",
-          country: "BR",
           email: profile.email || user.email || undefined,
           capabilities: {
             transfers: { requested: true },
           },
-          business_type: "individual",
           metadata: { userId: user.id },
         });
       } catch (stripeErr: any) {
