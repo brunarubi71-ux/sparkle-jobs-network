@@ -149,9 +149,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Solo cleaner-only job: classic flow (owner approves a single cleaner)
+    // Solo cleaner-only job: allow multiple applicants while no one is hired yet.
+    // Owner picks one applicant; job closes only after hired_cleaner_id is set.
     if (!isTeamJob) {
-      if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
+      if (!["open", "applied"].includes(jobRow.status) || jobRow.hired_cleaner_id) {
         return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
           status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
