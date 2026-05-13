@@ -404,12 +404,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "OPEN",
     "status.applied": "APPLIED",
-    "status.hired": "HIRED",
+    "status.hired": "Confirmed",
     "status.accepted": "ACCEPTED",
     "status.in_progress": "IN PROGRESS",
     "status.pending_review": "PENDING REVIEW",
     "status.completed": "COMPLETED",
     "status.cancelled": "CANCELLED",
+    "status.awaiting_approval": "Awaiting approval",
 
     // Earnings
     "nav.earnings": "Earnings",
@@ -994,12 +995,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "ABERTA",
     "status.applied": "CANDIDATADA",
-    "status.hired": "CONTRATADA",
+    "status.hired": "Confirmado",
     "status.accepted": "ACEITA",
     "status.in_progress": "EM ANDAMENTO",
     "status.pending_review": "REVISÃO PENDENTE",
     "status.completed": "CONCLUÍDA",
     "status.cancelled": "CANCELADA",
+    "status.awaiting_approval": "Aguardando aprovação",
 
     "nav.earnings": "Ganhos",
     "earnings.title": "Meus Ganhos",
@@ -1564,12 +1566,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "ABIERTO",
     "status.applied": "APLICADO",
-    "status.hired": "CONTRATADO",
+    "status.hired": "Confirmado",
     "status.accepted": "ACEPTADO",
     "status.in_progress": "EN PROGRESO",
     "status.pending_review": "REVISIÓN PENDIENTE",
     "status.completed": "COMPLETADO",
     "status.cancelled": "CANCELADO",
+    "status.awaiting_approval": "Esperando aprobación",
 
     "nav.earnings": "Ganancias",
     "earnings.title": "Mis Ganancias",

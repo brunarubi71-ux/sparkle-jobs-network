@@ -62,14 +62,14 @@ export default function CleanerMyJobs() {
   const highlightJobId = searchParams.get("highlight");
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    applied: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    waiting: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    accepted: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
-    hired: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
-    in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress", icon: "🔧" },
+    pending: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    applied: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    waiting: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    accepted: { color: "bg-purple-100 text-purple-700", label: t("status.hired"), icon: "🤝" },
+    hired: { color: "bg-purple-100 text-purple-700", label: t("status.hired"), icon: "🤝" },
+    in_progress: { color: "bg-blue-100 text-blue-700", label: t("status.in_progress"), icon: "🔧" },
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review"), icon: "⏳" },
-    completed: { color: "bg-green-100 text-green-700", label: "Completed", icon: "✅" },
+    completed: { color: "bg-green-100 text-green-700", label: t("status.completed"), icon: "✅" },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled"), icon: "❌" },
   };
 
