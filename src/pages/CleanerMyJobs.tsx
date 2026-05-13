@@ -12,6 +12,7 @@ import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { format } from "date-fns";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getWorkerShare } from "@/lib/earnings";
 
 interface CleanerJob {
   id: string;
@@ -296,7 +297,16 @@ export default function CleanerMyJobs() {
         <div className="mb-2 flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold text-foreground">{job.title}</p>
-            <p className="text-xl font-bold text-primary">${job.price}</p>
+            {(() => {
+              const workerType = (profile?.worker_type as "cleaner" | "helper") ?? "cleaner";
+              const earnings = getWorkerShare(
+                job.price,
+                job.cleaners_required ?? 1,
+                job.helpers_required ?? 0,
+                workerType
+              );
+              return <p className="text-xl font-bold text-primary">${earnings.toFixed(2)}</p>;
+            })()}
           </div>
           <Badge className={`${status.color} border-0 text-[10px] font-bold`}>
             {status.icon} {status.label}

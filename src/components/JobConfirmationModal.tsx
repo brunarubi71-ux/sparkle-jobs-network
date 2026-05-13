@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle, DollarSign, Shield, Users } from "lucide-re
 import { Dialog, DialogHeader, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getWorkerShare } from "@/lib/earnings";
 
 interface JobConfirmationModalProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface JobConfirmationModalProps {
   /** Team composition. Defaults to a solo cleaner (1 / 0). */
   cleanersRequired?: number;
   helpersRequired?: number;
+  workerType?: "cleaner" | "helper";
 }
 
 export default function JobConfirmationModal({
@@ -27,13 +29,13 @@ export default function JobConfirmationModal({
   jobPrice,
   cleanersRequired = 1,
   helpersRequired = 0,
+  workerType,
 }: JobConfirmationModalProps) {
   const { t } = useLanguage();
 
-  // Platform takes 10% from the owner; workers split the remaining 90% equally.
+  // Platform takes 10% from the owner; workers split using earnings formula.
   const totalWorkers = Math.max(1, (cleanersRequired ?? 0) + (helpersRequired ?? 0));
-  const workerPool = jobPrice * 0.9;
-  const yourShare = Math.round((workerPool / totalWorkers) * 100) / 100;
+  const yourShare = Math.round(getWorkerShare(jobPrice, cleanersRequired ?? 1, helpersRequired ?? 0, workerType ?? "cleaner") * 100) / 100;
   const isTeamJob = totalWorkers > 1;
 
   return (
