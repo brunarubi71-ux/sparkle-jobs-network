@@ -262,7 +262,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (isNewAcceptance) {
+    // Only consume the weekly quota when the application is confirmed (accepted).
+    // Pending applications (helpers waiting for owner approval, solo workers awaiting selection)
+    // do not block the worker from applying elsewhere if they're not yet hired.
+    if (isNewAcceptance && applicationStatus === "accepted") {
       const { error: updateProfileError } = await admin
         .from("profiles")
         .update({ jobs_used_today: usedThisWeek + 1, jobs_used_date: todayIso })
