@@ -118,7 +118,7 @@ export default function PostJob() {
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (photoFiles.length + files.length > 10) {
+    if (photoFiles.length + files.length > 50) {
       toast.error(t("post.max_photos"));
       return;
     }
@@ -447,7 +447,7 @@ export default function PostJob() {
           <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
+              <p className="text-sm font-medium text-foreground mb-2">🚗 {t("post.cleaners_with_car")}</p>
               <Select value={form.cleaners_required} onValueChange={(v) => update("cleaners_required", v)}>
                 <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
                 <SelectContent className="z-[9999]">
@@ -459,7 +459,7 @@ export default function PostJob() {
               </Select>
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground mb-2">🤝 Helpers needed (no car)</p>
+              <p className="text-sm font-medium text-foreground mb-2">🤝 {t("post.helpers_no_car")}</p>
               <Select value={form.helpers_required} onValueChange={(v) => update("helpers_required", v)}>
                 <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
                 <SelectContent className="z-[9999]">
@@ -471,7 +471,7 @@ export default function PostJob() {
               </Select>
             </div>
             {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
-              <p className="text-xs text-destructive">At least 1 worker (Cleaner or Helper) is required.</p>
+              <p className="text-xs text-destructive">{t("post.min_worker_required")}</p>
             )}
           </div>
         </div>
@@ -549,7 +549,7 @@ export default function PostJob() {
             <span className="text-sm text-muted-foreground">{t("post.upload_photos")}</span>
             <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
           </label>
-          <p className="text-xs text-muted-foreground text-center">{t("post.max_photos_label")}</p>
+          <p className="text-xs text-muted-foreground text-center">{t("post.photos_label")}</p>
         </div>
 
         {/* Access & Property Details */}
