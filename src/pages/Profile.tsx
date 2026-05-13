@@ -168,7 +168,8 @@ export default function Profile() {
     const path = `${user.id}/avatar.${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) {
-      toast.error(t("job.upload_failed"));
+      console.error("[uploadAvatar]", error);
+      toast.error(error.message || t("job.upload_failed"));
       return;
     }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -258,7 +259,7 @@ export default function Profile() {
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
           )}
-          {isWorker && identityStatus === "approved" && (
+          {identityStatus === "approved" && (
             <Badge className="bg-emerald-500/90 text-white border-0 text-[10px] hover:bg-emerald-500/90">
               <ShieldCheck className="w-3 h-3 mr-1" /> {t("profile.verified_badge")}
             </Badge>
