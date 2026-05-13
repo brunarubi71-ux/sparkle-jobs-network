@@ -120,21 +120,23 @@ export default function MyJobs() {
     fetchJobs();
   };
 
-  const hireHelper = async (jobId: string, helperId: string) => {
-    // Accept the helper's application
+  const hireTeamWorker = async (jobId: string, workerId: string) => {
     const { error } = await supabase
       .from("job_applications")
       .update({ status: "accepted" })
       .eq("job_id", jobId)
-      .eq("cleaner_id", helperId);
-    if (error) {
-      toast.error(t("errors.generic"));
-      return;
-    }
+      .eq("cleaner_id", workerId);
+    if (error) { toast.error(t("errors.generic")); return; }
 
-    // Check if all spots are now filled → flip job status
     const job = jobs.find((j) => j.id === jobId);
     if (job) {
+      // Set hired_cleaner_id to first accepted cleaner for backwards compat
+      if (!job.hired_cleaner_id) {
+        const app = job.applicants.find(a => a.cleaner_id === workerId);
+        if (app?.worker_type === "cleaner") {
+          await supabase.from("jobs").update({ hired_cleaner_id: workerId }).eq("id", jobId);
+        }
+      }
       const totalRequired = (job.cleaners_required ?? 1) + (job.helpers_required ?? 0);
       const { count: filled } = await supabase
         .from("job_applications")
@@ -146,12 +148,11 @@ export default function MyJobs() {
       }
     }
 
-    // Notify the helper
     try {
       await sendNotifications([{
-        userId: helperId,
+        userId: workerId,
         title: t("myjobs.helper_hired_notif_title") || "You're hired!",
-        message: t("myjobs.helper_hired_notif_msg") || "The owner accepted you for the team job. Check your active jobs.",
+        message: t("myjobs.helper_hired_notif_msg") || "The owner accepted you for the job. Check your active jobs.",
         type: "job_accepted",
         relatedId: jobId,
         link: `/cleaner-my-jobs?tab=active`,
@@ -161,6 +162,8 @@ export default function MyJobs() {
     toast.success(t("myjobs.cleaner_hired"));
     fetchJobs();
   };
+
+  const hireHelper = async (jobId: string, helperId: string) => hireTeamWorker(jobId, helperId);
 
   const cancelJob = async (jobId: string) => {
     // Find affected workers (pending or accepted applicants + lead hired cleaner)
@@ -390,8 +393,8 @@ export default function MyJobs() {
                   {t("myjobs.hire")}
                 </Button>
               )}
-              {isTeam && app.worker_type === "helper" && app.status === "pending" && (
-                <Button size="sm" onClick={() => hireHelper(job.id, app.cleaner_id)}
+              {isTeam && app.status === "pending" && (
+                <Button size="sm" onClick={() => hireTeamWorker(job.id, app.cleaner_id)}
                   className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
                   {t("myjobs.hire")}
                 </Button>

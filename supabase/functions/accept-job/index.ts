@@ -85,20 +85,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Weekly job limits (week starts Monday) ──
+    // ── Weekly job limits: count confirmed (accepted/hired) applications this week ──
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
-    const day = today.getUTCDay(); // 0=Sun..6=Sat
+    const day = today.getUTCDay();
     const diff = day === 0 ? -6 : 1 - day;
     const weekStartDate = new Date(today);
     weekStartDate.setUTCDate(today.getUTCDate() + diff);
     const weekStartIso = weekStartDate.toISOString().slice(0, 10);
 
-    const usedThisWeek =
-      profile.jobs_used_date && profile.jobs_used_date >= weekStartIso
-        ? profile.jobs_used_today ?? 0
-        : 0;
+    const { count: confirmedThisWeek } = await admin
+      .from("job_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("cleaner_id", user.id)
+      .in("status", ["accepted", "hired"])
+      .gte("created_at", weekStartIso);
 
+    const usedThisWeek = confirmedThisWeek ?? 0;
     const tier = profile.plan_tier ?? "free";
     const maxJobsPerWeek =
       tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 5 : 1;
@@ -149,58 +152,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Solo cleaner-only job: allow multiple applicants while no one is hired yet.
-    // Owner picks one applicant; job closes only after hired_cleaner_id is set.
-    if (!isTeamJob) {
-      if (!["open", "applied"].includes(jobRow.status) || jobRow.hired_cleaner_id) {
-        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      // Team jobs: still accept while status is open OR applied (partially filled).
-      if (!["open", "applied"].includes(jobRow.status)) {
-        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Cleaner spot already filled?
-      if (workerType === "cleaner" && cleanersRequired > 0) {
-        const { count: cleanersFilled } = await admin
-          .from("job_applications")
-          .select("id, profiles!inner(worker_type)", { count: "exact", head: true })
-          .eq("job_id", jobId)
-          .eq("status", "accepted")
-          .eq("profiles.worker_type", "cleaner");
-        if ((cleanersFilled ?? 0) >= cleanersRequired) {
-          return new Response(JSON.stringify({ success: false, error: "All Cleaner spots for this team job are filled." }), {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-      if (workerType === "helper") {
-        const { count: helpersFilled } = await admin
-          .from("job_applications")
-          .select("id, profiles!inner(worker_type)", { count: "exact", head: true })
-          .eq("job_id", jobId)
-          .eq("status", "accepted")
-          .eq("profiles.worker_type", "helper");
-        if ((helpersFilled ?? 0) >= helpersRequired) {
-          return new Response(JSON.stringify({ success: false, error: "All Helper spots for this team job are filled." }), {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
+    // All jobs accept applications while status is open or applied.
+    // Owner confirms/selects workers — no auto-accept for anyone.
+    if (!["open", "applied"].includes(jobRow.status) || jobRow.hired_cleaner_id) {
+      return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // For solo jobs the application is PENDING (owner approves).
-    // For team jobs the application is auto-ACCEPTED so a spot is reserved.
-    // Cleaners on team jobs are auto-accepted; helpers wait for owner approval
-    const applicationStatus = (isTeamJob && workerType !== "helper") ? "accepted" : "pending";
+    // All applications start as pending — owner selects from the applicant pool.
+    const applicationStatus = "pending";
 
     // Create or update the cleaner's application
     const { data: existingApplication } = await admin
@@ -233,47 +195,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (isTeamJob) {
-      // Reserve the lead Cleaner spot (first cleaner) on the job for backwards compat
-      if (workerType === "cleaner" && !jobRow.hired_cleaner_id && cleanersRequired > 0) {
-        await admin.from("jobs").update({ hired_cleaner_id: user.id }).eq("id", jobId);
-      }
-
-      // Count filled spots = accepted applications for this job
-      const { count: filledCount } = await admin
-        .from("job_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("job_id", jobId)
-        .eq("status", "accepted");
-
-      const filled = filledCount ?? 0;
-
-      if (filled >= totalRequired) {
-        // Team is complete — flip job to 'accepted'
-        await admin.from("jobs").update({ status: "accepted" }).eq("id", jobId);
-      } else if (jobRow.status === "open") {
-        // Mark as 'applied' so the owner sees activity
-        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
-      }
-    } else {
-      // Solo job: mark as having applicants so the owner sees it in the active queue
-      if (jobRow.status === "open") {
-        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
-      }
-    }
-
-    // Only consume the weekly quota when the application is confirmed (accepted).
-    // Pending applications (helpers waiting for owner approval, solo workers awaiting selection)
-    // do not block the worker from applying elsewhere if they're not yet hired.
-    if (isNewAcceptance && applicationStatus === "accepted") {
-      const { error: updateProfileError } = await admin
-        .from("profiles")
-        .update({ jobs_used_today: usedThisWeek + 1, jobs_used_date: todayIso })
-        .eq("id", user.id);
-
-      if (updateProfileError) {
-        throw new Error(`Could not update usage counters: ${updateProfileError.message}`);
-      }
+    // Mark job as "applied" so the owner sees activity (first application triggers this).
+    if (jobRow.status === "open") {
+      await admin.from("jobs").update({ status: "applied" }).eq("id", jobId);
     }
 
     // Open a conversation between worker and owner so they can chat
