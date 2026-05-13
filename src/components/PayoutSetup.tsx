@@ -28,6 +28,7 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
         body: { returnUrl },
       });
 
+      // A função sempre retorna 200; erros vêm em data.error
       if (res.error) throw new Error(res.error.message);
       const data = res.data as { url?: string; error?: string } | null;
       if (data?.error) throw new Error(data.error);

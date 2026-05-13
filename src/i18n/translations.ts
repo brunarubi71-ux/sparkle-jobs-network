@@ -103,6 +103,13 @@ export const translations: Record<Language, Record<string, string>> = {
     "errors.generic": "Something went wrong. Please try again.",
     "job.completion_confirmed": "Completion confirmed! Payment released.",
     "job.instructions_saved": "Instructions saved!",
+    "job.team_status": "Team completion status",
+    "job.submitted": "Done",
+    "job.not_yet_submitted": "Pending",
+    "job.your_part_submitted": "Your part is submitted!",
+    "job.waiting_others": "Waiting for {count} member(s) to finish...",
+    "job.team_submitted_waiting": "Submitted! Waiting for other team members.",
+    "job.all_team_submitted": "Everyone finished! Awaiting owner review.",
 
     // Confirm
     "confirm.title": "Confirm Job Acceptance",
@@ -410,12 +417,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "OPEN",
     "status.applied": "APPLIED",
-    "status.hired": "HIRED",
+    "status.hired": "Confirmed",
     "status.accepted": "ACCEPTED",
     "status.in_progress": "IN PROGRESS",
     "status.pending_review": "PENDING REVIEW",
     "status.completed": "COMPLETED",
     "status.cancelled": "CANCELLED",
+    "status.awaiting_approval": "Awaiting approval",
 
     // Earnings
     "nav.earnings": "Earnings",
@@ -740,6 +748,13 @@ export const translations: Record<Language, Record<string, string>> = {
     "errors.generic": "Algo deu errado. Tente novamente.",
     "job.completion_confirmed": "Conclusão confirmada! Pagamento liberado.",
     "job.instructions_saved": "Instruções salvas!",
+    "job.team_status": "Status de conclusão da equipe",
+    "job.submitted": "Finalizado",
+    "job.not_yet_submitted": "Pendente",
+    "job.your_part_submitted": "Sua parte foi enviada!",
+    "job.waiting_others": "Aguardando {count} membro(s) finalizarem...",
+    "job.team_submitted_waiting": "Enviado! Aguardando outros membros da equipe.",
+    "job.all_team_submitted": "Todos finalizaram! Aguardando revisão da owner.",
 
     "confirm.title": "Confirmar Aceitação",
     "confirm.message": "Tem certeza que deseja aceitar esta vaga?",
@@ -1031,12 +1046,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "ABERTA",
     "status.applied": "CANDIDATADA",
-    "status.hired": "CONTRATADA",
+    "status.hired": "Confirmado",
     "status.accepted": "ACEITA",
     "status.in_progress": "EM ANDAMENTO",
     "status.pending_review": "REVISÃO PENDENTE",
     "status.completed": "CONCLUÍDA",
     "status.cancelled": "CANCELADA",
+    "status.awaiting_approval": "Aguardando aprovação",
 
     "nav.earnings": "Ganhos",
     "earnings.title": "Meus Ganhos",
@@ -1351,6 +1367,13 @@ export const translations: Record<Language, Record<string, string>> = {
     "errors.generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "job.completion_confirmed": "¡Finalización confirmada! Pago liberado.",
     "job.instructions_saved": "¡Instrucciones guardadas!",
+    "job.team_status": "Estado de finalización del equipo",
+    "job.submitted": "Finalizado",
+    "job.not_yet_submitted": "Pendiente",
+    "job.your_part_submitted": "¡Tu parte fue enviada!",
+    "job.waiting_others": "Esperando {count} miembro(s) más...",
+    "job.team_submitted_waiting": "¡Enviado! Esperando a los demás miembros.",
+    "job.all_team_submitted": "¡Todos finalizaron! Esperando revisión del propietario.",
 
     "confirm.title": "Confirmar Aceptación",
     "confirm.message": "¿Estás seguro de aceptar este trabajo?",
@@ -1632,12 +1655,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     "status.open": "ABIERTO",
     "status.applied": "APLICADO",
-    "status.hired": "CONTRATADO",
+    "status.hired": "Confirmado",
     "status.accepted": "ACEPTADO",
     "status.in_progress": "EN PROGRESO",
     "status.pending_review": "REVISIÓN PENDIENTE",
     "status.completed": "COMPLETADO",
     "status.cancelled": "CANCELADO",
+    "status.awaiting_approval": "Esperando aprobación",
 
     "nav.earnings": "Ganancias",
     "earnings.title": "Mis Ganancias",
