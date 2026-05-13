@@ -1,6 +1,6 @@
 export const TERMS_OF_SERVICE_EN = `# Shinely Terms of Service
 
-_Last updated: April 27, 2026_
+_Last updated: May 12, 2026_
 
 These Terms of Service ("Terms") govern your access to and use of Shinely (the "Platform"), operated by Rubi Solutions Corp. ("Shinely," "we," "us," or "our"), a Florida corporation.
 
@@ -69,7 +69,7 @@ When an Owner books a Job, the total amount the Owner pays is:
 
 **Total = Job Price + Platform Fee**
 
-The **Job Price** is the amount paid to the Cleaner (and Helper, if any). The **Platform Fee** is paid by the Owner to Shinely and is currently **10% of the Job Price** during our launch promotion (the first 60 days following April 27, 2026), after which it will be **15%**. We will notify Users of fee changes at least 30 days in advance.
+The **Job Price** is the amount paid to the Cleaner (and Helper, if any). The **Platform Fee** is paid by the Owner to Shinely and is currently **10% of the Job Price**. We will notify Users of any fee changes at least 30 days in advance.
 
 ### 6.2 Payment processing
 
@@ -210,7 +210,7 @@ Email: support@shinelyapp.com
 
 export const PRIVACY_POLICY_EN = `# Shinely Privacy Policy
 
-_Last updated: April 27, 2026_
+_Last updated: May 12, 2026_
 
 This Privacy Policy explains how Rubi Solutions Corp. ("Shinely," "we," "us") collects, uses, and shares information when you use the Shinely platform (the "Platform"). By using Shinely, you agree to the practices described in this Policy.
 
@@ -344,7 +344,7 @@ Email: privacy@shinelyapp.com
 
 export const CANCELLATION_POLICY_EN = `# Shinely Cancellation & Refund Policy
 
-_Last updated: April 27, 2026_
+_Last updated: May 12, 2026_
 
 This Cancellation & Refund Policy explains how to cancel a Shinely Subscription Plan or a Job, and what refunds (if any) apply. It is part of our [Terms of Service](/terms).
 

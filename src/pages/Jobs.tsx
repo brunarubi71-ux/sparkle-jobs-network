@@ -635,7 +635,7 @@ export default function Jobs() {
         <div className="px-4 pt-4 pb-1">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap flex-shrink-0">
-              📍 Within:
+              📍 {t("jobs.filter.within")}
             </span>
             {([5, 10, 25, 50] as const).map((miles) => (
               <button
@@ -655,7 +655,7 @@ export default function Jobs() {
                 onClick={() => setRadiusFilter(null)}
                 className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-destructive hover:text-destructive transition-all flex-shrink-0"
               >
-                Any distance ✕
+                {t("jobs.filter.any_distance")}
               </button>
             )}
           </div>
@@ -684,8 +684,8 @@ export default function Jobs() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Sparkles}
-            title="No jobs available near you yet ✨"
-            description="Check back soon — new jobs are posted every day!"
+            title={t("jobs.no_jobs")}
+            description={t("jobs.check_back")}
           />
         ) : (
           filtered.map((job, index) => {

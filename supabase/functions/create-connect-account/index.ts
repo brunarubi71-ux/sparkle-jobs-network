@@ -58,6 +58,7 @@ serve(async (req) => {
         country: "BR",
         email: profile.email || user.email || undefined,
         capabilities: {
+          card_payments: { requested: true },
           transfers: { requested: true },
         },
         business_type: "individual",

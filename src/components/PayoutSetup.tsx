@@ -3,6 +3,7 @@ import { Landmark, CheckCircle2, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Props {
   connectAccountId: string | null;
@@ -13,12 +14,13 @@ interface Props {
 
 export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
 
   const handleSetup = async () => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please sign in again"); return; }
+      if (!session) { toast.error(t("errors.session_expired") || "Please sign in again"); return; }
 
       const returnUrl = `${window.location.origin}/earnings`;
 
@@ -26,14 +28,16 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
         body: { returnUrl },
       });
 
-      if (res.error) throw new Error(res.error.message);
+      if (res.error) {
+        const detail = (res.data as any)?.error || res.error.message;
+        throw new Error(detail);
+      }
 
       const url = (res.data as { url?: string })?.url;
       if (!url) throw new Error("No redirect URL returned from Stripe setup.");
-      // Open Stripe onboarding in same tab so the return_url brings them back
       window.location.href = url;
     } catch (err) {
-      toast.error((err as Error).message || "Could not start setup. Try again.");
+      toast.error((err as Error).message || t("errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -44,8 +48,8 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
       <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
         <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-emerald-800">Bank account connected</p>
-          <p className="text-xs text-emerald-600 mt-0.5">Withdrawals will be sent to your registered bank account.</p>
+          <p className="text-sm font-semibold text-emerald-800">{t("payout.connected_title")}</p>
+          <p className="text-xs text-emerald-600 mt-0.5">{t("payout.connected_desc")}</p>
         </div>
         <Button
           size="sm"
@@ -54,7 +58,7 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
           onClick={handleSetup}
           disabled={loading}
         >
-          {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Update"}
+          {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : t("payout.update_btn")}
         </Button>
       </div>
     );
@@ -67,11 +71,8 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
           <Landmark className="w-5 h-5 text-amber-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-amber-900">Set up your bank account to receive payments</p>
-          <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-            You need to link a bank account before you can withdraw your earnings.
-            It takes about 2 minutes — Stripe handles it securely.
-          </p>
+          <p className="text-sm font-semibold text-amber-900">{t("payout.setup_title")}</p>
+          <p className="text-xs text-amber-700 mt-1 leading-relaxed">{t("payout.setup_desc")}</p>
           <Button
             onClick={handleSetup}
             disabled={loading}
@@ -82,7 +83,7 @@ export function PayoutSetup({ connectAccountId, onboarded, onRefresh }: Props) {
             ) : (
               <ExternalLink className="w-4 h-4" />
             )}
-            {loading ? "Opening Stripe..." : "Connect bank account"}
+            {loading ? t("payout.opening") : t("payout.connect_btn")}
           </Button>
         </div>
       </div>

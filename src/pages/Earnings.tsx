@@ -10,17 +10,18 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-interface JobRow {
-  status: string;
-  cleaner_earnings: number | null;
+interface EarningRow {
+  amount: number;
   created_at: string;
+  description: string;
+  job_id: string | null;
 }
 
 export default function Earnings() {
   const { user, profile, refreshProfile } = useAuth();
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [jobs, setJobs] = useState<JobRow[]>([]);
+  const [jobs, setJobs] = useState<EarningRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Handle return from Stripe Connect onboarding
@@ -55,12 +56,14 @@ export default function Earnings() {
     (async () => {
       try {
         const { data, error } = await supabase
-          .from("jobs")
-          .select("status, cleaner_earnings, created_at")
-          .eq("hired_cleaner_id", user.id)
-          .eq("status", "completed");
+          .from("wallet_transactions")
+          .select("amount, created_at, description, job_id")
+          .eq("user_id", user.id)
+          .eq("type", "credit")
+          .not("job_id", "is", null)
+          .order("created_at", { ascending: false });
         if (error) throw error;
-        setJobs(data || []);
+        setJobs((data as EarningRow[]) || []);
       } catch (err) {
         console.error("[Earnings] fetch error:", err);
         toast.error("Couldn't load earnings. Please check your connection.");
@@ -76,7 +79,7 @@ export default function Earnings() {
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const prevWeekStart = new Date(weekAgo.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const total = jobs.reduce((s, j) => s + (j.cleaner_earnings || 0), 0);
+    const total = jobs.reduce((s, j) => s + (j.amount || 0), 0);
     const thisWeek = jobs.filter(j => new Date(j.created_at) >= weekAgo);
     const prevWeek = jobs.filter(j => {
       const d = new Date(j.created_at);
@@ -84,9 +87,9 @@ export default function Earnings() {
     });
     const thisMonth = jobs.filter(j => new Date(j.created_at) >= monthAgo);
 
-    const weeklyEarnings = thisWeek.reduce((s, j) => s + (j.cleaner_earnings || 0), 0);
-    const prevWeekEarnings = prevWeek.reduce((s, j) => s + (j.cleaner_earnings || 0), 0);
-    const monthlyEarnings = thisMonth.reduce((s, j) => s + (j.cleaner_earnings || 0), 0);
+    const weeklyEarnings = thisWeek.reduce((s, j) => s + (j.amount || 0), 0);
+    const prevWeekEarnings = prevWeek.reduce((s, j) => s + (j.amount || 0), 0);
+    const monthlyEarnings = thisMonth.reduce((s, j) => s + (j.amount || 0), 0);
     const avgPerJob = jobs.length > 0 ? total / jobs.length : 0;
 
     const weeklyTrend = prevWeekEarnings > 0
@@ -244,14 +247,14 @@ export default function Earnings() {
             <div className="space-y-2">
               {jobs.slice(0, 5).map((j, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{t("earnings.completed_job")}</p>
+                  <div className="flex-1 mr-3">
+                    <p className="text-sm font-medium text-foreground truncate">{j.description || t("earnings.completed_job")}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(j.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className="text-sm font-bold text-green-500">
-                    +${(j.cleaner_earnings || 0).toFixed(2)}
+                  <span className="text-sm font-bold text-green-500 shrink-0">
+                    +${(j.amount || 0).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -262,8 +265,8 @@ export default function Earnings() {
         {!loading && jobs.length === 0 && (
           <EmptyState
             icon={DollarSign}
-            title="No earnings yet"
-            description="Complete your first job to start earning. Your stats will show up here."
+            title={t("earnings.empty_title")}
+            description={t("earnings.empty_desc")}
           />
         )}
 

@@ -8,6 +8,7 @@ import { NotificationsProvider } from "@/hooks/useNotifications";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
+import SupportAlertBanner from "@/components/SupportAlertBanner";
 import { AnimatePresence } from "framer-motion";
 
 const Jobs            = lazy(() => import("./pages/Jobs"));
@@ -103,6 +104,7 @@ const App = () => {
           <TooltipProvider>
             <Sonner />
             <PointsToast />
+            <SupportAlertBanner />
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Suspense fallback={<PageLoader />}>
               <Routes>
