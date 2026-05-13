@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { Lock, Trophy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   evaluateBadges,
   getBadgesForAudience,
-  getDisplayName,
   nextBadge,
   type PointBadge,
 } from "@/lib/points";
@@ -14,7 +14,6 @@ interface Props {
   role: string;
   workerType?: string;
   identityApproved: boolean;
-  /** When true, hide locked badges (used on PublicProfile). */
   publicView?: boolean;
 }
 
@@ -25,6 +24,7 @@ export default function PointsBadgesSection({
   identityApproved,
   publicView = false,
 }: Props) {
+  const { t } = useLanguage();
   const badges: PointBadge[] = getBadgesForAudience(role, workerType);
   const evaluated = evaluateBadges(badges, points, identityApproved);
   const visible = publicView ? evaluated.filter((b) => b.unlocked) : evaluated;
@@ -34,12 +34,21 @@ export default function PointsBadgesSection({
 
   const progress = next ? Math.min(100, Math.round((points / next.threshold) * 100)) : 100;
 
+  const getTranslatedName = (badge: PointBadge) => {
+    const baseName = t(`badge.name.${badge.id}`) || badge.name;
+    if (badge.audience === "worker" && ["rising", "top", "elite", "legend"].includes(badge.id)) {
+      const suffix = workerType === "helper" ? t("badge.suffix.helper") : t("badge.suffix.cleaner");
+      return `${baseName} ${suffix}`;
+    }
+    return baseName;
+  };
+
   return (
     <div className="bg-card rounded-2xl shadow-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Trophy className="w-4 h-4 text-primary" />
-          {publicView ? "Badges" : "Your Badges"}
+          {publicView ? "Badges" : t("badge.ui.your_badges")}
         </h3>
         {!publicView && (
           <div className="text-xs font-bold text-primary">
@@ -52,7 +61,7 @@ export default function PointsBadgesSection({
         <div className="mb-4">
           <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
             <span>
-              Next: {next.emoji} {getDisplayName(next, workerType)}
+              {t("badge.ui.next")} {next.emoji} {getTranslatedName(next)}
             </span>
             <span>
               {points}/{next.threshold}
@@ -64,7 +73,7 @@ export default function PointsBadgesSection({
 
       <div className="grid grid-cols-3 gap-2">
         {visible.map((b, idx) => {
-          const name = getDisplayName(b, workerType);
+          const name = getTranslatedName(b);
           return (
             <motion.div
               key={b.id}
@@ -92,8 +101,8 @@ export default function PointsBadgesSection({
                   </div>
                   <div className="text-[9px] text-muted-foreground mt-1">
                     {b.pointsRemaining > 0
-                      ? `${b.pointsRemaining} more pts`
-                      : "Verify identity"}
+                      ? `${b.pointsRemaining} ${t("badge.ui.more_pts")}`
+                      : t("badge.ui.verify_identity")}
                   </div>
                 </>
               )}
