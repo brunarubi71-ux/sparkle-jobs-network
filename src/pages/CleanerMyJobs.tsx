@@ -81,25 +81,18 @@ export default function CleanerMyJobs() {
   useEffect(() => {
     if (!user) return;
     fetchJobs();
-    fetchTabCounts();
 
     const channel = supabase
       .channel(`cleaner-myjobs-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "job_applications", filter: `cleaner_id=eq.${user.id}` },
-        () => {
-          fetchJobs();
-          fetchTabCounts();
-        }
+        () => { fetchJobs(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jobs", filter: `hired_cleaner_id=eq.${user.id}` },
-        () => {
-          fetchJobs();
-          fetchTabCounts();
-        }
+        () => { fetchJobs(); }
       )
       .subscribe();
 
@@ -107,44 +100,6 @@ export default function CleanerMyJobs() {
       supabase.removeChannel(channel);
     };
   }, [user]);
-
-  const fetchTabCounts = async () => {
-    if (!user) return;
-    try {
-      const [completedRes, cancelledRes, appliedRes, acceptedAppsCountRes] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("hired_cleaner_id", user.id)
-          .eq("status", "completed"),
-        supabase
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("hired_cleaner_id", user.id)
-          .eq("status", "cancelled"),
-        supabase
-          .from("job_applications")
-          .select("id", { count: "exact", head: true })
-          .eq("cleaner_id", user.id)
-          .in("status", APPLIED_APPLICATION_STATUSES),
-        // Count accepted applications (includes helper team spots + hired cleaner spots)
-        supabase
-          .from("job_applications")
-          .select("id", { count: "exact", head: true })
-          .eq("cleaner_id", user.id)
-          .eq("status", "accepted"),
-      ]);
-
-      setTabCounts({
-        active: acceptedAppsCountRes.count ?? 0,
-        applied: appliedRes.count ?? 0,
-        completed: completedRes.count ?? 0,
-        cancelled: cancelledRes.count ?? 0,
-      });
-    } catch (e) {
-      console.error("[CleanerMyJobs] fetchTabCounts error:", e);
-    }
-  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -224,11 +179,12 @@ export default function CleanerMyJobs() {
 
       const allJobs = [...applied, ...acceptedTeam, ...hired];
       setJobs(allJobs);
-      setTabCounts((current) => ({
-        ...current,
+      setTabCounts({
         applied: applied.length,
         active: allJobs.filter((j) => ACTIVE_STATUSES.includes(j.status)).length,
-      }));
+        completed: hired.filter((j) => j.status === "completed").length,
+        cancelled: hired.filter((j) => j.status === "cancelled").length,
+      });
     } catch (e) {
       console.error("[CleanerMyJobs] fetchJobs error:", e);
     } finally {
