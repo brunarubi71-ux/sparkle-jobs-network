@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
@@ -23,6 +23,13 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { awardPoints } from "@/lib/points";
 import NotificationBell from "@/components/NotificationBell";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 function formatMemberSince(iso?: string) {
   if (!iso) return "—";
@@ -45,6 +52,8 @@ export default function Profile() {
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [showPhotoGuide, setShowPhotoGuide] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
   const isWorkerRole = profile?.role === "cleaner";
@@ -161,12 +170,21 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarClick = () => setShowPhotoGuide(true);
+
+  const handlePhotoGuideConfirm = () => {
+    setShowPhotoGuide(false);
+    setTimeout(() => avatarInputRef.current?.click(), 150);
+  };
+
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     const wasEmpty = !(profile as any)?.avatar_url;
-    const ext = file.name.split(".").pop();
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
     const path = `${user.id}/avatar.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    // Remove existing file first to avoid RLS upsert issues
+    await supabase.storage.from("avatars").remove([path]);
+    const { error } = await supabase.storage.from("avatars").upload(path, file);
     if (error) {
       console.error("[uploadAvatar]", error);
       toast.error(error.message || t("job.upload_failed"));
@@ -218,30 +236,33 @@ export default function Profile() {
           animate={{ scale: 1, opacity: 1 }}
           className="w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative border-[3px] border-white"
         >
+          {/* Single hidden file input controlled by ref */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files?.[0]) { uploadAvatar(e.target.files[0]); e.target.value = ""; } }}
+          />
           {avatarUrl ? (
             <>
               <img src={avatarUrl} className="w-full h-full object-cover" alt="Profile" />
-              {/* Click avatar to change */}
-              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleAvatarClick}
+                className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center"
+              >
                 <Camera className="w-6 h-6 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-                />
-              </label>
+              </button>
             </>
           ) : (
-            <label className="w-full h-full flex items-center justify-center cursor-pointer">
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              className="w-full h-full flex items-center justify-center cursor-pointer"
+            >
               <Camera className="w-9 h-9 text-primary-foreground/90" />
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-              />
-            </label>
+            </button>
           )}
         </motion.div>
 
@@ -296,15 +317,13 @@ export default function Profile() {
               <p className="text-sm font-semibold text-amber-900">📸 {t("profile.add_photo_title")}</p>
               <p className="text-xs text-amber-700">{t("profile.add_photo_bonus")}</p>
             </div>
-            <label className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm">
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm"
+            >
               {t("profile.add_photo_btn")}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-              />
-            </label>
+            </button>
           </motion.div>
         )}
 
@@ -557,6 +576,49 @@ export default function Profile() {
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
+
+      {/* Photo guidelines dialog */}
+      <Dialog open={showPhotoGuide} onOpenChange={setShowPhotoGuide}>
+        <DialogContent className="rounded-2xl max-w-sm mx-4">
+          <DialogHeader className="text-center items-center pb-2">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <Camera className="w-7 h-7 text-primary" />
+            </div>
+            <DialogTitle className="text-base font-bold">{t("profile.photo_guide_title")}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-1">
+              {t("profile.photo_guide_subtitle")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-1">
+            {[
+              { ok: true,  text: t("profile.photo_guide_face") },
+              { ok: true,  text: t("profile.photo_guide_light") },
+              { ok: true,  text: t("profile.photo_guide_alone") },
+              { ok: false, text: t("profile.photo_guide_sunglasses") },
+              { ok: false, text: t("profile.photo_guide_hat") },
+              { ok: false, text: t("profile.photo_guide_filter") },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-1">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${item.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                  {item.ok ? "✓" : "✕"}
+                </span>
+                <span className="text-sm text-foreground">{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowPhotoGuide(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button className="flex-1 rounded-xl" onClick={handlePhotoGuideConfirm}>
+              {t("profile.photo_guide_btn")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
