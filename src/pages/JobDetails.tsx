@@ -17,6 +17,7 @@ import ReviewModal from "@/components/ReviewModal";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { syncBadges } from "@/lib/badges";
+import { getWorkerShare } from "@/lib/earnings";
 
 /** Worker's estimated earnings: 90% of job price split equally between all workers. */
 const getWorkerEarnings = (job: { price: number; cleaners_required?: number | null; helpers_required?: number | null }) => {
@@ -33,7 +34,7 @@ export default function JobDetails() {
   const [ownerVerified, setOwnerVerified] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper" }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper"; submitted_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -108,9 +109,10 @@ export default function JobDetails() {
       if (totalReq >= 2) {
         const { data: apps } = await supabase
           .from("job_applications")
-          .select("cleaner_id, status")
+          .select("cleaner_id, status, submitted_at")
           .eq("job_id", (data as any).id)
           .eq("status", "accepted");
+        const submittedMap = new Map((apps || []).map((a: any) => [a.cleaner_id, (a as any).submitted_at ?? null]));
         const ids = (apps || []).map((a: any) => a.cleaner_id);
         if (ids.length > 0) {
           const { data: profs } = await supabase
@@ -123,6 +125,7 @@ export default function JobDetails() {
               full_name: p.full_name,
               avatar_url: p.avatar_url,
               worker_type: p.worker_type === "helper" ? "helper" : "cleaner",
+              submitted_at: submittedMap.get(p.id) ?? null,
             }))
           );
         } else {
@@ -141,6 +144,10 @@ export default function JobDetails() {
   // Any hired team member (lead cleaner or accepted helper/cleaner) can act as the worker
   const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
+  const isTeamJob = ((job?.cleaners_required ?? 1) + (job?.helpers_required ?? 0)) > 1;
+  const myMember = teamMembers.find(m => m.id === user?.id);
+  const mySubmittedAt = myMember?.submitted_at ?? null;
+  const pendingSubmitCount = teamMembers.filter(m => !m.submitted_at).length;
 
   // Solo start logic: helpers required but none accepted yet
   const helpersRequired = job?.helpers_required ?? 0;
@@ -257,14 +264,13 @@ export default function JobDetails() {
   };
 
   const submitCompletion = async () => {
-    if (!id) return;
+    if (!id || !job) return;
     if (completionPhotos.length < MIN_COMPLETION_PHOTOS) {
       toast.error(`Please add at least ${MIN_COMPLETION_PHOTOS} photos to complete this job.`);
       return;
     }
     setCompleting(true);
     try {
-      // Append captions to notes (so they persist without a schema change)
       const captionLines = completionPhotos
         .map((url, i) => {
           const cap = (photoCaptions[url] || "").trim();
@@ -274,9 +280,90 @@ export default function JobDetails() {
       const finalNotes = captionLines.length > 0
         ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
         : completionNotes;
-      const { error } = await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
-      if (error) throw error;
-      toast.success(t("job.submitted_review"));
+
+      const jobIsTeam = ((job.cleaners_required ?? 1) + (job.helpers_required ?? 0)) > 1;
+
+      if (jobIsTeam) {
+        // Find this worker's application row
+        const { data: myApp } = await supabase
+          .from("job_applications")
+          .select("id, submitted_at")
+          .eq("job_id", id)
+          .eq("cleaner_id", user!.id)
+          .maybeSingle();
+
+        if ((myApp as any)?.submitted_at) {
+          toast.info("Você já finalizou sua parte.");
+          return;
+        }
+
+        // Mark this worker as submitted
+        if (myApp) {
+          await supabase
+            .from("job_applications")
+            .update({ submitted_at: new Date().toISOString(), completion_notes: finalNotes } as any)
+            .eq("id", (myApp as any).id);
+        }
+
+        // Persist photos to shared job record
+        await supabase.from("jobs").update({
+          completion_photos: completionPhotos,
+          completion_notes: finalNotes,
+        }).eq("id", id);
+
+        // Check if ALL accepted team members have now submitted
+        const { data: stillPending } = await supabase
+          .from("job_applications")
+          .select("id")
+          .eq("job_id", id)
+          .eq("status", "accepted")
+          .is("submitted_at", null);
+
+        if (!stillPending || stillPending.length === 0) {
+          // Everyone done — move job to pending_review
+          const { error } = await supabase.from("jobs").update({
+            status: "pending_review",
+            pending_review_at: new Date().toISOString(),
+          } as any).eq("id", id);
+          if (error) throw error;
+
+          if (job.owner_id) {
+            await sendNotification({
+              userId: job.owner_id,
+              title: "Work Completed! 🎉",
+              message: `The team finished "${job.title}". Please review and approve.`,
+              type: "pending_review",
+              relatedId: id,
+              link: `/job/${id}`,
+            });
+          }
+          toast.success(t("job.submitted_review"));
+        } else {
+          toast.success(t("job.team_submitted_waiting"));
+        }
+      } else {
+        // Solo job: original behavior
+        const { error } = await supabase.from("jobs").update({
+          status: "pending_review",
+          completion_photos: completionPhotos,
+          completion_notes: finalNotes,
+          pending_review_at: new Date().toISOString(),
+        } as any).eq("id", id);
+        if (error) throw error;
+
+        if (job.owner_id) {
+          await sendNotification({
+            userId: job.owner_id,
+            title: "Work Completed! 🎉",
+            message: `"${job.title}" has been submitted for your review.`,
+            type: "pending_review",
+            relatedId: id,
+            link: `/job/${id}`,
+          });
+        }
+        toast.success(t("job.submitted_review"));
+      }
+
       await fetchJob();
     } catch (e) {
       console.error("[JobDetails] submitCompletion failed:", e);
@@ -356,30 +443,15 @@ export default function JobDetails() {
     const cleanerIds = workerIds.filter(id => profileMap.get(id)?.worker_type !== "helper");
     const helperIds  = workerIds.filter(id => profileMap.get(id)?.worker_type === "helper");
 
-    const hasTeam = cleanerIds.length > 0 && helperIds.length > 0;
-
-    // Cleaners: 70% when there are helpers, 100% when there aren't
-    const cleanerPool = hasTeam
-      ? Math.round(workerPool * 0.70 * 100) / 100
-      : workerPool;
-    const helperPool  = hasTeam
-      ? Math.round(workerPool * 0.30 * 100) / 100
-      : 0;
-
-    const perCleaner = cleanerIds.length > 0
-      ? Math.round((cleanerPool / cleanerIds.length) * 100) / 100
-      : 0;
-    const perHelper  = helperIds.length > 0
-      ? Math.round((helperPool  / helperIds.length)  * 100) / 100
-      : 0;
-
     // Update each worker's profile + atomically credit their wallet
     for (const workerId of workerIds) {
       try {
         const wp = profileMap.get(workerId);
         if (!wp) continue;
         const isHelper = wp.worker_type === "helper";
-        const earned   = isHelper ? perHelper : perCleaner;
+        const earned = Math.round(
+          getWorkerShare(total, cleanerIds.length, helperIds.length, isHelper ? "helper" : "cleaner") * 100
+        ) / 100;
         if (earned <= 0) continue;
 
         const newJobs     = (wp.jobs_completed || 0) + 1;
@@ -913,6 +985,43 @@ export default function JobDetails() {
               <p className="text-sm font-semibold text-primary">{t("job.in_progress")}</p>
             </div>
 
+            {/* Team submission status panel */}
+            {isTeamJob && teamMembers.length > 0 && (
+              <div className="bg-card rounded-2xl shadow-card p-4">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> {t("job.team_status")}
+                </h3>
+                <div className="space-y-2">
+                  {teamMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.submitted_at ? "bg-emerald-500" : "bg-amber-400"}`} />
+                      <span className="text-sm flex-1 text-foreground">
+                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                      </span>
+                      <span className={`text-xs font-medium ${m.submitted_at ? "text-emerald-600" : "text-amber-600"}`}>
+                        {m.submitted_at ? `✅ ${t("job.submitted")}` : `⏳ ${t("job.not_yet_submitted")}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* If already submitted own part, show waiting message */}
+            {mySubmittedAt ? (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-7 h-7 text-indigo-500" />
+                </div>
+                <h3 className="font-bold text-foreground mb-1">{t("job.your_part_submitted")}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {pendingSubmitCount > 0
+                    ? t("job.waiting_others").replace("{count}", String(pendingSubmitCount))
+                    : t("job.all_team_submitted")}
+                </p>
+              </div>
+            ) : (
+            <>
             <div className="bg-card rounded-2xl shadow-card p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1047,6 +1156,8 @@ export default function JobDetails() {
                 ? `${t("job.mark_finished")} (${completionPhotos.length}/${MIN_COMPLETION_PHOTOS})`
                 : t("job.mark_finished")}
             </Button>
+            </>
+            )}
           </motion.div>
         )}
 
