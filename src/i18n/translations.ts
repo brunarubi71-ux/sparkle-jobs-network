@@ -247,6 +247,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "myjobs.completion_notes": "Cleaner Notes",
     "myjobs.report_issue": "Report Issue",
     "myjobs.auto_approve_warning": "Auto-approves in 24h if no action taken",
+    "myjobs.helper_hired_notif_title": "You're hired!",
+    "myjobs.helper_hired_notif_msg": "The owner accepted you for the team job. Check your active jobs.",
 
     // Escrow
     "escrow.pending": "Payment Pending",
@@ -877,6 +879,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "myjobs.completion_notes": "Notas do Faxineiro",
     "myjobs.report_issue": "Reportar Problema",
     "myjobs.auto_approve_warning": "Aprovação automática em 24h se nenhuma ação for tomada",
+    "myjobs.helper_hired_notif_title": "Você foi contratado!",
+    "myjobs.helper_hired_notif_msg": "O proprietário te aceitou para a vaga em equipe. Verifique suas vagas ativas.",
     "escrow.pending": "Pagamento Pendente",
     "escrow.paid": "Pagamento Retido",
     "escrow.released": "Pagamento Liberado",
@@ -1476,6 +1480,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "myjobs.completion_notes": "Notas del Limpiador",
     "myjobs.report_issue": "Reportar Problema",
     "myjobs.auto_approve_warning": "Se aprueba automáticamente en 24h si no se toma acción",
+    "myjobs.helper_hired_notif_title": "¡Fuiste contratado!",
+    "myjobs.helper_hired_notif_msg": "El propietario te aceptó para el trabajo en equipo. Revisa tus trabajos activos.",
     "escrow.pending": "Pago Pendiente",
     "escrow.paid": "Pago Retenido",
     "escrow.released": "Pago Liberado",
