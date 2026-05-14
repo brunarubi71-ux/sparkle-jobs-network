@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Wallet as WalletIcon, Plus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Wallet as WalletIcon, Plus, ArrowDownLeft, ArrowUpRight, Banknote } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import BottomNav from "@/components/BottomNav";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { WalletStripeCheckout } from "@/components/WalletStripeCheckout";
+import { WithdrawDialog } from "@/components/WithdrawDialog";
 import { toast } from "sonner";
 
 interface WalletTransaction {
@@ -31,29 +32,42 @@ interface WalletTransaction {
 const PRESET_AMOUNTS = [100, 200, 300, 500];
 
 export default function Wallet() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [amountInput, setAmountInput] = useState<string>("");
   const [checkoutAmountCents, setCheckoutAmountCents] = useState<number>(0);
+
+  const isOwner = profile?.role === "owner";
+  const isCleaner = profile?.role === "cleaner";
+  const canWithdraw = isCleaner && (profile as any)?.stripe_connect_onboarded === true;
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [{ data: profileData }, { data: txData }] = await Promise.all([
-        supabase.from("profiles").select("wallet_balance").eq("id", user.id).single() as any,
-        supabase
-          .from("wallet_transactions" as any)
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      setBalance(Number((profileData as any)?.wallet_balance || 0));
-      setTransactions((txData as any) || []);
-      setLoading(false);
+      try {
+        const [profileRes, txRes] = await Promise.all([
+          supabase.from("profiles").select("wallet_balance").eq("id", user.id).maybeSingle() as any,
+          supabase
+            .from("wallet_transactions" as any)
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+        ]);
+        if (profileRes.error) console.error("[Wallet] profile load error:", profileRes.error);
+        if (txRes.error) console.error("[Wallet] transactions load error:", txRes.error);
+        setBalance(Number((profileRes.data as any)?.wallet_balance || 0));
+        setTransactions((txRes.data as any) || []);
+      } catch (e) {
+        console.error("[Wallet] load exception:", e);
+        toast.error("Couldn't load wallet data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [user]);
@@ -93,13 +107,28 @@ export default function Wallet() {
               <p className="text-3xl font-bold text-foreground">${balance.toFixed(2)}</p>
             </div>
           </div>
-          <Button
-            onClick={() => setAddOpen(true)}
-            className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 mt-4"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Funds
-          </Button>
+          <div className={`mt-4 gap-3 ${isCleaner ? "flex" : canWithdraw ? "grid grid-cols-2" : "flex"}`}>
+            {isOwner && (
+              <Button
+                onClick={() => setAddOpen(true)}
+                className="h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 flex-1"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Funds
+              </Button>
+            )}
+            {isCleaner && (
+              <Button
+                onClick={() => canWithdraw ? setWithdrawOpen(true) : window.location.href = "/earnings"}
+                variant={canWithdraw ? "default" : "secondary"}
+                className="h-12 rounded-xl font-semibold flex-1 gradient-primary text-primary-foreground"
+                disabled={balance === 0 && canWithdraw}
+              >
+                <Banknote className="w-4 h-4 mr-2" />
+                {canWithdraw ? "Withdraw to Bank" : "Set up bank account"}
+              </Button>
+            )}
+          </div>
         </motion.div>
 
         <motion.div
@@ -213,10 +242,18 @@ export default function Wallet() {
               amountInCents={checkoutAmountCents}
               customerEmail={user.email || undefined}
               userId={user.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&purpose=wallet_topup`}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        walletBalance={balance}
+        onSuccess={(newBalance) => setBalance(newBalance)}
+      />
 
       <BottomNav />
     </div>

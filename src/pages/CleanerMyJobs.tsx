@@ -12,6 +12,7 @@ import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { format } from "date-fns";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getWorkerShare } from "@/lib/earnings";
 
 interface CleanerJob {
   id: string;
@@ -62,14 +63,14 @@ export default function CleanerMyJobs() {
   const highlightJobId = searchParams.get("highlight");
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    pending: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    applied: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    waiting: { color: "bg-amber-100 text-amber-700", label: "Awaiting approval", icon: "⏳" },
-    accepted: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
-    hired: { color: "bg-purple-100 text-purple-700", label: "Hired", icon: "🤝" },
-    in_progress: { color: "bg-blue-100 text-blue-700", label: "In Progress", icon: "🔧" },
+    pending: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    applied: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    waiting: { color: "bg-amber-100 text-amber-700", label: t("status.awaiting_approval"), icon: "⏳" },
+    accepted: { color: "bg-purple-100 text-purple-700", label: t("status.hired"), icon: "🤝" },
+    hired: { color: "bg-purple-100 text-purple-700", label: t("status.hired"), icon: "🤝" },
+    in_progress: { color: "bg-blue-100 text-blue-700", label: t("status.in_progress"), icon: "🔧" },
     pending_review: { color: "bg-indigo-100 text-indigo-700", label: t("status.pending_review"), icon: "⏳" },
-    completed: { color: "bg-green-100 text-green-700", label: "Completed", icon: "✅" },
+    completed: { color: "bg-green-100 text-green-700", label: t("status.completed"), icon: "✅" },
     cancelled: { color: "bg-red-100 text-red-700", label: t("status.cancelled"), icon: "❌" },
   };
 
@@ -80,25 +81,18 @@ export default function CleanerMyJobs() {
   useEffect(() => {
     if (!user) return;
     fetchJobs();
-    fetchTabCounts();
 
     const channel = supabase
       .channel(`cleaner-myjobs-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "job_applications", filter: `cleaner_id=eq.${user.id}` },
-        () => {
-          fetchJobs();
-          fetchTabCounts();
-        }
+        () => { fetchJobs(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jobs", filter: `hired_cleaner_id=eq.${user.id}` },
-        () => {
-          fetchJobs();
-          fetchTabCounts();
-        }
+        () => { fetchJobs(); }
       )
       .subscribe();
 
@@ -107,82 +101,56 @@ export default function CleanerMyJobs() {
     };
   }, [user]);
 
-  const fetchTabCounts = async () => {
-    if (!user) return;
-    const [activeRes, completedRes, cancelledRes, appliedRes] = await Promise.all([
-      supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("hired_cleaner_id", user.id)
-        .in("status", ["accepted", "in_progress"]),
-      supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("hired_cleaner_id", user.id)
-        .eq("status", "completed"),
-      supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("hired_cleaner_id", user.id)
-        .eq("status", "cancelled"),
-      supabase
-        .from("job_applications")
-        .select(`
-          id,
-          status,
-          created_at,
-          job_id,
-          jobs (
-            id, title, price, city, status,
-            cleaners_required, helpers_required
-          )
-        `, { count: "exact" })
-        .eq("cleaner_id", user.id)
-        .in("status", APPLIED_APPLICATION_STATUSES),
-    ]);
-
-    setTabCounts({
-      active: activeRes.count ?? 0,
-      applied: appliedRes.count ?? 0,
-      completed: completedRes.count ?? 0,
-      cancelled: cancelledRes.count ?? 0,
-    });
-  };
-
   const fetchJobs = async () => {
     setLoading(true);
+    try {
+      const [hiredJobsRes, appliedJobsRes, acceptedAppsRes] = await Promise.all([
+        supabase
+          .from("jobs")
+          .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
+          .eq("hired_cleaner_id", user!.id)
+          .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("job_applications")
+          .select(`
+            id,
+            status,
+            created_at,
+            job_id,
+            jobs (
+              id, title, price, city, status,
+              cleaners_required, helpers_required
+            )
+          `)
+          .eq("cleaner_id", user!.id)
+          .in("status", APPLIED_APPLICATION_STATUSES)
+          .order("created_at", { ascending: false }),
+        // Fetch accepted applications not covered by hired_cleaner_id (e.g. helper team spots)
+        supabase
+          .from("job_applications")
+          .select(`
+            id,
+            status,
+            created_at,
+            job_id,
+            jobs (
+              id, title, price, city, status,
+              cleaners_required, helpers_required
+            )
+          `)
+          .eq("cleaner_id", user!.id)
+          .eq("status", "accepted")
+          .order("created_at", { ascending: false }),
+      ]);
 
-    const [hiredJobsRes, appliedJobsRes] = await Promise.all([
-      supabase
-        .from("jobs")
-        .select("id, title, cleaning_type, price, bedrooms, bathrooms, city, status, created_at, date_time")
-        .eq("hired_cleaner_id", user!.id)
-        .in("status", ["hired", "accepted", "in_progress", "pending_review", "completed", "cancelled"])
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("job_applications")
-        .select(`
-          id,
-          status,
-          created_at,
-          job_id,
-          jobs (
-            id, title, price, city, status,
-            cleaners_required, helpers_required
-          )
-        `)
-        .eq("cleaner_id", user!.id)
-        .in("status", APPLIED_APPLICATION_STATUSES)
-        .order("created_at", { ascending: false }),
-    ]);
+      if (hiredJobsRes.error) throw hiredJobsRes.error;
 
-    const hired = (hiredJobsRes.data as CleanerJob[]) || [];
-    const hiredIds = new Set(hired.map((job) => job.id));
+      const hired = (hiredJobsRes.data as CleanerJob[]) || [];
+      const hiredIds = new Set(hired.map((job) => job.id));
 
-    const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
-      .map((row): CleanerJob | null => {
+      const mapApplicationRow = (row: AppliedJobRow): CleanerJob | null => {
         if (!row.jobs || hiredIds.has(row.jobs.id)) return null;
-
         return {
           id: row.jobs.id,
           title: row.jobs.title,
@@ -197,12 +165,31 @@ export default function CleanerMyJobs() {
           cleaners_required: row.jobs.cleaners_required,
           helpers_required: row.jobs.helpers_required,
         };
-      })
-      .filter((job): job is CleanerJob => job !== null);
+      };
 
-    setJobs([...applied, ...hired]);
-    setTabCounts((current) => ({ ...current, applied: appliedJobsRes.data?.length ?? 0 }));
-    setLoading(false);
+      const applied = ((appliedJobsRes.data as AppliedJobRow[]) || [])
+        .map(mapApplicationRow)
+        .filter((job): job is CleanerJob => job !== null);
+
+      // Accepted team-job applications (helper spots) not already in hired list
+      const appliedIds = new Set(applied.map((j) => j.id));
+      const acceptedTeam = ((acceptedAppsRes.data as AppliedJobRow[]) || [])
+        .map(mapApplicationRow)
+        .filter((job): job is CleanerJob => job !== null && !appliedIds.has(job.id));
+
+      const allJobs = [...applied, ...acceptedTeam, ...hired];
+      setJobs(allJobs);
+      setTabCounts({
+        applied: applied.length,
+        active: allJobs.filter((j) => ACTIVE_STATUSES.includes(j.status)).length,
+        completed: hired.filter((j) => j.status === "completed").length,
+        cancelled: hired.filter((j) => j.status === "cancelled").length,
+      });
+    } catch (e) {
+      console.error("[CleanerMyJobs] fetchJobs error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sortJobs = (items: CleanerJob[]) =>
@@ -266,7 +253,16 @@ export default function CleanerMyJobs() {
         <div className="mb-2 flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold text-foreground">{job.title}</p>
-            <p className="text-xl font-bold text-primary">${job.price}</p>
+            {(() => {
+              const workerType = (profile?.worker_type as "cleaner" | "helper") ?? "cleaner";
+              const earnings = getWorkerShare(
+                job.price,
+                job.cleaners_required ?? 1,
+                job.helpers_required ?? 0,
+                workerType
+              );
+              return <p className="text-xl font-bold text-primary">${earnings.toFixed(2)}</p>;
+            })()}
           </div>
           <Badge className={`${status.color} border-0 text-[10px] font-bold`}>
             {status.icon} {status.label}

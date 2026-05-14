@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle, DollarSign, Shield, Users } from "lucide-re
 import { Dialog, DialogHeader, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getWorkerShare } from "@/lib/earnings";
 
 interface JobConfirmationModalProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface JobConfirmationModalProps {
   /** Team composition. Defaults to a solo cleaner (1 / 0). */
   cleanersRequired?: number;
   helpersRequired?: number;
+  workerType?: "cleaner" | "helper";
 }
 
 export default function JobConfirmationModal({
@@ -27,13 +29,13 @@ export default function JobConfirmationModal({
   jobPrice,
   cleanersRequired = 1,
   helpersRequired = 0,
+  workerType,
 }: JobConfirmationModalProps) {
   const { t } = useLanguage();
 
-  // Platform takes 10% from the owner; workers split the remaining 90% equally.
+  // Platform takes 10% from the owner; workers split using earnings formula.
   const totalWorkers = Math.max(1, (cleanersRequired ?? 0) + (helpersRequired ?? 0));
-  const workerPool = jobPrice * 0.9;
-  const yourShare = Math.round((workerPool / totalWorkers) * 100) / 100;
+  const yourShare = Math.round(getWorkerShare(jobPrice, cleanersRequired ?? 1, helpersRequired ?? 0, workerType ?? "cleaner") * 100) / 100;
   const isTeamJob = totalWorkers > 1;
 
   return (
@@ -53,14 +55,14 @@ export default function JobConfirmationModal({
             <div className="bg-accent rounded-xl p-4 space-y-2 mt-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">You will receive</span>
+                <span className="text-sm font-semibold text-foreground">{t("confirm.earnings")}</span>
                 <span className="ml-auto text-lg font-bold text-primary">${yourShare.toFixed(2)}</span>
               </div>
               {isTeamJob && (
                 <div className="flex items-start gap-2 pt-1">
                   <Users className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground">
-                    Final earnings split equally among all {totalWorkers} hired workers on this team job.
+                    {t("confirm.team_split").replace("{count}", String(totalWorkers))}
                   </p>
                 </div>
               )}
@@ -69,21 +71,21 @@ export default function JobConfirmationModal({
             <div className="space-y-2 mt-4">
               <div className="flex items-start gap-2">
                 <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">You must complete this job once accepted.</p>
+                <p className="text-xs text-muted-foreground">{t("confirm.rule1")}</p>
               </div>
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">Last-minute cancellations may result in account penalties.</p>
+                <p className="text-xs text-amber-700">{t("confirm.rule2")}</p>
               </div>
             </div>
 
             <div className="flex gap-3 mt-5">
               <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1 h-11 rounded-xl">
-                Cancel
+                {t("confirm.cancel")}
               </Button>
               <Button onClick={() => onConfirm(false)} disabled={loading} className="flex-1 h-11 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {loading ? t("confirm.confirming") : "Confirm Job"}
+                {loading ? t("confirm.confirming") : t("confirm.accept")}
               </Button>
             </div>
           </div>

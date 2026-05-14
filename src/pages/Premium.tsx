@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface SubRow {
   id: string;
@@ -48,6 +49,7 @@ const PRICES = {
 
 export default function Premium() {
   const { user, profile, refreshProfile } = useAuth();
+  const { t } = useLanguage();
   const [activeSub, setActiveSub] = useState<SubRow | null>(null);
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
   const [billing, setBilling] = useState<Billing>("monthly");
@@ -56,6 +58,8 @@ export default function Premium() {
   const currentTier = (profile?.plan_tier || "free") as "free" | "pro" | "premium";
   const isPaid = currentTier !== "free";
   const isOwner = profile?.role === "owner";
+  // Trial is only for first-time subscribers — once free_trial_started_at is set they've used it.
+  const trialEligible = !(profile as any)?.free_trial_started_at;
 
   useEffect(() => {
     if (isOwner) return;
@@ -81,12 +85,10 @@ export default function Premium() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center">
         <Crown className="w-12 h-12 text-primary mb-4" />
-        <h1 className="text-2xl font-bold text-foreground mb-2">Premium plans are for Cleaners and Helpers</h1>
-        <p className="text-sm text-muted-foreground max-w-sm mb-6">
-          As a Job Owner, you don't need a subscription. A 10% platform fee is collected automatically when you book a job.
-        </p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t("premium.owners_title")}</h1>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">{t("premium.owners_desc")}</p>
         <Button onClick={() => (window.location.href = "/")} className="rounded-xl">
-          Back to home
+          {t("premium.back_home")}
         </Button>
         <BottomNav />
       </div>
@@ -139,8 +141,8 @@ export default function Premium() {
         >
           <Crown className="w-10 h-10 text-primary-foreground" />
         </motion.div>
-        <h1 className="text-2xl font-bold text-primary-foreground mb-1">My Subscription</h1>
-        <p className="text-primary-foreground/80 text-sm">Manage your Shinely plan</p>
+        <h1 className="text-2xl font-bold text-primary-foreground mb-1">{t("premium.my_subscription")}</h1>
+        <p className="text-primary-foreground/80 text-sm">{t("premium.manage_tagline")}</p>
       </div>
 
       <div className="px-4 -mt-12 relative z-10 space-y-4">
@@ -153,12 +155,10 @@ export default function Premium() {
               className="bg-card rounded-2xl p-5 shadow-elevated text-center"
             >
               <div className="inline-flex items-center gap-1.5 bg-accent text-primary text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-3">
-                Free Plan
+                {t("premium.free_plan_label")}
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-1">You've reached your free limit</h2>
-              <p className="text-sm text-muted-foreground">
-                Upgrade to unlock more jobs and earn more
-              </p>
+              <h2 className="text-xl font-bold text-foreground mb-1">{t("premium.free_limit")}</h2>
+              <p className="text-sm text-muted-foreground">{t("premium.free_limit_desc")}</p>
             </motion.div>
 
             {/* Billing toggle */}
@@ -174,7 +174,7 @@ export default function Premium() {
                   billing === "monthly" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
                 }`}
               >
-                Monthly
+                {t("premium.monthly")}
               </button>
               <button
                 onClick={() => setBilling("annual")}
@@ -182,8 +182,8 @@ export default function Premium() {
                   billing === "annual" ? "bg-primary text-primary-foreground shadow-card" : "text-muted-foreground"
                 }`}
               >
-                Annual
-                <span className="ml-1 text-[9px] font-bold opacity-90">save ~17%</span>
+                {t("premium.annual")}
+                <span className="ml-1 text-[9px] font-bold opacity-90">{t("premium.save_pct")}</span>
               </button>
             </motion.div>
 
@@ -194,20 +194,25 @@ export default function Premium() {
               transition={{ delay: 0.1 }}
               className="grid grid-cols-2 gap-3"
             >
-              {/* Pro */}
-              <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative shadow-[0_0_20px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30">
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                  RECOMMENDED ✓
-                </div>
+              {/* Pro — standard option */}
+              <div className="rounded-2xl border border-border bg-card p-4 flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1 mt-1">
                   <Zap className="w-4 h-4 text-primary" />
                   <p className="font-bold text-foreground">Pro</p>
                 </div>
-                <p className="text-lg font-extrabold text-foreground leading-tight">
-                  ${proPrice.amount}
-                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
-                </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                {trialEligible ? (
+                  <>
+                    <p className="text-[11px] text-primary font-bold mt-0.5">{t("premium.days_free")}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      {t("premium.then_price")} ${proPrice.amount}{priceSuffix}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-lg font-extrabold text-foreground leading-tight">
+                    ${proPrice.amount}
+                    <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
+                  </p>
+                )}
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {proBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -218,23 +223,34 @@ export default function Premium() {
                 </ul>
                 <Button
                   onClick={() => setCheckoutPriceId(proPrice.id)}
-                  className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
+                  className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
                 >
-                  Start with Pro →
+                  {trialEligible ? t("premium.try_free_btn") : t("premium.subscribe_btn")}
                 </Button>
               </div>
 
-              {/* Premium */}
-              <div className="rounded-2xl border border-border bg-card p-4 flex flex-col">
+              {/* Premium — recommended */}
+              <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 flex flex-col relative shadow-[0_0_20px_hsl(var(--primary)/0.35)] ring-1 ring-primary/30">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                  RECOMMENDED ✓
+                </div>
                 <div className="flex items-center gap-1.5 mb-1 mt-1">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <p className="font-bold text-foreground">Premium</p>
                 </div>
-                <p className="text-lg font-extrabold text-foreground leading-tight">
-                  ${premiumPrice.amount}
-                  <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
-                </p>
-                <p className="text-[10px] text-primary font-semibold mt-0.5">7-day free trial</p>
+                {trialEligible ? (
+                  <>
+                    <p className="text-[11px] text-primary font-bold mt-0.5">{t("premium.days_free")}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">
+                      {t("premium.then_price")} ${premiumPrice.amount}{priceSuffix}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-lg font-extrabold text-foreground leading-tight">
+                    ${premiumPrice.amount}
+                    <span className="text-xs font-medium text-muted-foreground">{priceSuffix}</span>
+                  </p>
+                )}
                 <ul className="mt-3 mb-4 space-y-1.5 flex-1">
                   {premiumBenefits.map((b) => (
                     <li key={b.text} className="flex items-start gap-1.5 text-[11px] text-foreground leading-snug">
@@ -245,12 +261,22 @@ export default function Premium() {
                 </ul>
                 <Button
                   onClick={() => setCheckoutPriceId(premiumPrice.id)}
-                  className="w-full h-9 rounded-xl bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20"
+                  className="w-full h-9 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs hover:opacity-90"
                 >
-                  Go Premium →
+                  {trialEligible ? t("premium.try_free_btn") : t("premium.go_premium_btn")}
                 </Button>
               </div>
             </motion.div>
+
+            {/* Trial disclaimer */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center text-[11px] text-muted-foreground px-2"
+            >
+              {trialEligible ? t("premium.disclaimer_trial") : t("premium.disclaimer")}
+            </motion.p>
           </>
         ) : (
           <>
@@ -264,14 +290,14 @@ export default function Premium() {
                 <div>
                   <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full mb-2">
                     <Crown className="w-3 h-3" />
-                    Active
+                    {t("premium.active_badge")}
                   </div>
                   <h2 className="text-2xl font-bold text-foreground">{planLabel[currentTier]}</h2>
                 </div>
                 {activeSub?.current_period_end && (
                   <div className="text-right">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {activeSub.status === "trialing" ? "Trial ends" : "Next billing"}
+                      {activeSub.status === "trialing" ? t("premium.trial_ends") : t("premium.next_billing")}
                     </p>
                     <p className="text-sm font-semibold text-foreground">
                       {format(new Date(activeSub.current_period_end), "MMM d, yyyy")}
@@ -282,7 +308,7 @@ export default function Premium() {
 
               <div className="space-y-2 mb-5 pt-4 border-t border-border">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Your benefits
+                  {t("premium.your_benefits")}
                 </p>
                 {userBenefits.map((b) => (
                   <div key={b.text} className="flex items-center gap-2">
@@ -303,7 +329,7 @@ export default function Premium() {
                 {portalLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "Manage Subscription"
+                  t("profile.manage_subscription")
                 )}
               </Button>
             </motion.div>
@@ -316,7 +342,7 @@ export default function Premium() {
                 className="rounded-2xl gradient-primary p-4 shadow-card"
               >
                 <p className="text-sm font-bold text-primary-foreground mb-3">
-                  ✨ Unlock even more with Premium
+                  {t("premium.unlock_more")}
                 </p>
                 <div className="rounded-2xl bg-card/95 p-4">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -340,7 +366,7 @@ export default function Premium() {
                     onClick={() => setCheckoutPriceId("premium_monthly")}
                     className="w-full h-10 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90"
                   >
-                    Upgrade to Premium →
+                    {t("premium.upgrade_premium_btn")}
                   </Button>
                 </div>
               </motion.div>

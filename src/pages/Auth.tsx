@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { Briefcase, User, Car, UserMinus, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +24,9 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const { signUp, signIn } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -56,28 +58,32 @@ export default function Auth() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setError(t("common.google_failed"));
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Digite seu email acima primeiro");
       return;
     }
-    if (result.redirected) return;
-    navigate("/");
+    setResetLoading(true);
+    setError("");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      setResetEmailSent(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
-  const handleAppleLogin = async () => {
-    const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) {
-      setError((result.error as any)?.message ?? "Apple sign-in failed");
-      return;
-    }
-    if (result.redirected) return;
-    navigate("/");
+    if (error) setError(t("common.google_failed"));
   };
 
   const stars = [
@@ -148,13 +154,66 @@ export default function Auth() {
         style={{ borderRadius: "28px", paddingTop: "28px" }}
       >
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          {isSignUp ? t("auth.create_account") : t("auth.welcome")}
+          {showForgotPassword ? (resetEmailSent ? "Email enviado!" : "Esqueceu a senha?") : isSignUp ? t("auth.create_account") : t("auth.welcome")}
         </h2>
-        <p className="text-sm text-gray-500 mb-6">
+        {!showForgotPassword && <p className="text-sm text-gray-500 mb-6">
           {isSignUp ? t("auth.tagline") : t("auth.sign_in_continue")}
-        </p>
+        </p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {showForgotPassword && (
+          <div className="space-y-4 mt-6">
+            {resetEmailSent ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">Email enviado!</p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Enviamos um link para <strong>{email}</strong>. Verifique sua caixa de entrada.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); setResetEmailSent(false); }}
+                  className="text-sm text-primary font-semibold hover:underline"
+                >
+                  ← Voltar para login
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 -mt-2">
+                  Digite seu email e enviaremos um link para redefinir sua senha.
+                </p>
+                <Input
+                  type="email"
+                  placeholder={t("auth.email")}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-xl h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-primary"
+                />
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                <Button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={resetLoading}
+                  className="w-full h-12 rounded-xl gradient-primary text-white font-semibold text-base shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {resetLoading ? "..." : "Enviar link de redefinição"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); setError(""); }}
+                  className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-1"
+                >
+                  ← Voltar para login
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className={`space-y-4${showForgotPassword ? " hidden" : ""}`}>
           {isSignUp && (
             <>
               <Input
@@ -258,7 +317,7 @@ export default function Auth() {
 
           {!isSignUp && (
             <div className="text-right">
-              <button type="button" className="text-xs text-primary font-medium hover:underline">
+              <button type="button" onClick={() => { setShowForgotPassword(true); setError(""); }} className="text-xs text-primary font-medium hover:underline">
                 {t("auth.forgot_password")}
               </button>
             </div>
@@ -304,13 +363,13 @@ export default function Auth() {
           </Button>
         </form>
 
-        <div className="flex items-center gap-3 my-5">
+        {!showForgotPassword && <div className="flex items-center gap-3 my-5">
           <div className="flex-1 h-px bg-gray-200" />
           <span className="text-xs text-gray-400 font-medium">{t("auth.or_continue")}</span>
           <div className="flex-1 h-px bg-gray-200" />
-        </div>
+        </div>}
 
-        <Button
+        {!showForgotPassword && <Button
           variant="outline"
           onClick={handleGoogleLogin}
           className="w-full h-12 rounded-xl border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-all"
@@ -322,21 +381,10 @@ export default function Auth() {
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
           {t("auth.google")}
-        </Button>
+        </Button>}
 
-        <Button
-          type="button"
-          onClick={handleAppleLogin}
-          className="w-full h-12 mt-3 text-white font-medium hover:opacity-90 transition-all"
-          style={{ backgroundColor: "#000000", borderRadius: "12px" }}
-        >
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-          </svg>
-          Continue with Apple
-        </Button>
 
-        <p className="text-center text-sm text-gray-500 mt-5">
+        {!showForgotPassword && <p className="text-center text-sm text-gray-500 mt-5">
           {isSignUp ? t("auth.has_account") : t("auth.no_account")} {" "}
           <button
             onClick={() => {
@@ -347,7 +395,7 @@ export default function Auth() {
           >
             {isSignUp ? t("auth.log_in") : t("auth.sign_up")}
           </button>
-        </p>
+        </p>}
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />

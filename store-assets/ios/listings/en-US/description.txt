@@ -1,0 +1,28 @@
+Shinely — Premium Cleaning Jobs Marketplace
+
+Connect with top cleaning professionals in your area, or find well-paying cleaning jobs — fast and secure.
+
+🧹 FOR CLIENTS (need cleaning done)
+• Post a job in minutes — set the type, date, address, and budget
+• Receive quotes from verified professionals near you
+• Pay securely in-app via Stripe
+• Track the job status in real time
+• Rate your cleaner after the service
+
+✨ FOR CLEANING PROFESSIONALS
+• Sign up for free and build your complete profile
+• Browse jobs near you on the interactive map
+• Apply with one tap and negotiate directly with clients
+• Get paid fast and securely
+• Build your reputation with verified reviews
+
+🔒 SAFETY & TRUST
+• Verified profiles for both clients and professionals
+• Payments powered by Stripe — we never store card details
+• Two-way review system
+• Dedicated in-app support
+
+📍 FIND JOBS ANYWHERE
+Shinely connects you to professionals or jobs in any city.
+
+Download now and start shining!

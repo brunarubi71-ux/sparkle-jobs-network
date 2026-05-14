@@ -9,6 +9,7 @@ import {
   Check, X, Crown, AlertTriangle, Ban, RotateCcw, Search, Eye, TrendingUp,
   Webhook, ShieldOff, Settings2, Wallet, Star, EyeOff, Trash2,
   Megaphone, Settings, AlertOctagon, UsersRound, Plus, Save,
+  Activity, CheckCircle2, Bell, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { toast } from "sonner";
 import { awardPoints } from "@/lib/points";
 
-type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "reviews" | "webhooks" | "settings" | "violations" | "teams";
+type Tab = "metrics" | "revenue" | "users" | "identity" | "jobs" | "disputes" | "reviews" | "webhooks" | "settings" | "violations" | "teams" | "monitor";
 type RoleFilter = "all" | "owner" | "cleaner" | "helper";
 type StatusFilter = "all" | "verified" | "pending" | "unverified" | "suspended" | "banned";
 type RevenueRange = "7" | "30" | "90" | "all";
@@ -59,6 +60,9 @@ export default function AdminDashboard() {
   const [teamInvites, setTeamInvites] = useState<any[]>([]);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [editSetting, setEditSetting] = useState<any | null>(null);
+  const [errorReports, setErrorReports] = useState<any[]>([]);
+  const [notifyTarget, setNotifyTarget] = useState<any | null>(null);
+  const [notifyMinutes, setNotifyMinutes] = useState("10");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +72,40 @@ export default function AdminDashboard() {
     }
     if (profile) fetchAll();
   }, [profile]);
+
+  // Realtime: error reports and identity submissions appear immediately
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "error_reports" }, (payload) => {
+        setErrorReports((prev) => [payload.new as any, ...prev]);
+        toast(`🚨 New error: ${(payload.new as any).context}`, {
+          description: (payload.new as any).user_email,
+          duration: 8000,
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "error_reports" }, (payload) => {
+        setErrorReports((prev) => prev.map((r) => r.id === (payload.new as any).id ? payload.new : r));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, (payload) => {
+        const updated = payload.new as any;
+        setUsers((prev) => prev.map((u) => u.id === updated.id ? { ...u, ...updated } : u));
+        if (updated.identity_status === "pending") {
+          toast(`📋 New identity submission`, {
+            description: `${updated.full_name || updated.email} submitted verification documents`,
+            duration: 8000,
+          });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const fetchErrorReports = async () => {
+    const { data } = await (supabase.from as any)("error_reports")
+      .select("*").order("created_at", { ascending: false }).limit(100);
+    setErrorReports(data || []);
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -96,6 +134,7 @@ export default function AdminDashboard() {
     setViolations(violationsRes.data || []);
     setTeamMembers(teamMembersRes.data || []);
     setTeamInvites(teamInvitesRes.data || []);
+    await fetchErrorReports();
     setStats({
       users: p.length,
       cleaners: p.filter((u: any) => u.role === "cleaner").length,
@@ -171,8 +210,11 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
-  const changeUserRole = async (userId: string, newRole: "cleaner" | "owner" | "admin") => {
-    const { error } = await supabase.from("profiles").update({ role: newRole } as any).eq("id", userId);
+  const changeUserRole = async (userId: string, newRole: "cleaner" | "helper" | "owner" | "admin") => {
+    const update: any = newRole === "helper"
+      ? { role: "cleaner", worker_type: "helper" }
+      : { role: newRole, worker_type: newRole === "cleaner" ? "cleaner" : undefined };
+    const { error } = await supabase.from("profiles").update(update).eq("id", userId);
     if (error) { toast.error("Failed to change role"); return; }
     toast.success(`Role updated to ${newRole}`);
     setChangeRoleUser(null);
@@ -387,6 +429,7 @@ export default function AdminDashboard() {
     { key: "teams", label: "Teams", icon: UsersRound },
     { key: "settings", label: "Settings", icon: Settings },
     { key: "webhooks", label: "Webhooks", icon: Webhook, badge: webhookEvents.filter((w: any) => w.error || !w.processed_at).length },
+    { key: "monitor", label: "Monitor", icon: Activity, badge: errorReports.filter((e: any) => !e.resolved).length },
   ];
 
   if (loading) {
@@ -1070,7 +1113,114 @@ export default function AdminDashboard() {
             })}
           </div>
         )}
+
+        {/* ─── MONITOR ─── */}
+        {tab === "monitor" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-foreground">Live Monitor</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Errors reported by real users in real time</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={fetchErrorReports} className="h-8 text-xs gap-1">
+                <Activity className="w-3.5 h-3.5" /> Refresh
+              </Button>
+            </div>
+
+            {errorReports.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
+                <p className="text-sm font-medium">No errors reported</p>
+                <p className="text-xs mt-1">All users are running smoothly</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {errorReports.map((report: any) => (
+                  <div key={report.id} className={`rounded-2xl border p-4 space-y-2 ${report.resolved ? "bg-card opacity-60" : "bg-destructive/5 border-destructive/30"}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {report.resolved
+                          ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          : <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 animate-pulse" />
+                        }
+                        <div>
+                          <p className="text-xs font-bold text-foreground">{report.context}</p>
+                          <p className="text-[10px] text-muted-foreground">{report.user_email} · {new Date(report.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        {!report.notification_sent && !report.resolved && (
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1"
+                            onClick={() => setNotifyTarget(report)}>
+                            <Bell className="w-3 h-3" /> Notify
+                          </Button>
+                        )}
+                        {!report.resolved && (
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] text-emerald-600 border-emerald-200 gap-1"
+                            onClick={async () => {
+                              await (supabase.from as any)("error_reports").update({ resolved: true, resolved_at: new Date().toISOString() }).eq("id", report.id);
+                            }}>
+                            <Check className="w-3 h-3" /> Resolve
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-destructive bg-destructive/5 rounded-lg px-3 py-1.5 font-mono break-all">{report.error_message}</p>
+                    {report.notification_sent && (
+                      <p className="text-[10px] text-amber-600 flex items-center gap-1"><Bell className="w-3 h-3" /> User notified</p>
+                    )}
+                    {report.resolved && (
+                      <p className="text-[10px] text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Resolved {report.resolved_at ? new Date(report.resolved_at).toLocaleString() : ""}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Notify User Modal */}
+      <Dialog open={!!notifyTarget} onOpenChange={(o) => !o && setNotifyTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Bell className="w-4 h-4" /> Notify User</DialogTitle>
+            <DialogDescription>{notifyTarget?.user_email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Estimated resolution time (minutes)</p>
+              <div className="flex gap-2">
+                {["5","10","15","30"].map(m => (
+                  <button key={m} onClick={() => setNotifyMinutes(m)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${notifyMinutes === m ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-accent"}`}>
+                    {m}m
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setNotifyTarget(null)} className="flex-1">Cancel</Button>
+            <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={async () => {
+              if (!notifyTarget) return;
+              const resolveAt = new Date(Date.now() + parseInt(notifyMinutes) * 60 * 1000).toISOString();
+              await (supabase.from as any)("notifications").insert({
+                user_id: notifyTarget.user_id,
+                title: "⚠️ Identificamos um problema",
+                message: "Nossa equipe está resolvendo. Por favor, aguarde.",
+                type: "support_alert",
+                resolve_at: resolveAt,
+              });
+              await (supabase.from as any)("error_reports").update({ notification_sent: true }).eq("id", notifyTarget.id);
+              toast.success(`User notified — ${notifyMinutes}min countdown started`);
+              setNotifyTarget(null);
+            }}>
+              <Clock className="w-4 h-4 mr-1" /> Send ({notifyMinutes}min)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View Profile Modal */}
       <UserProfileModal user={viewUser} onClose={() => setViewUser(null)} />
@@ -1206,10 +1356,11 @@ function ChangeRoleModal({
 }: {
   user: any | null;
   onClose: () => void;
-  onConfirm: (id: string, role: "cleaner" | "owner" | "admin") => void;
+  onConfirm: (id: string, role: "cleaner" | "helper" | "owner" | "admin") => void;
 }) {
+  const currentRole = user?.role === "cleaner" && user?.worker_type === "helper" ? "helper" : user?.role;
   const [selected, setSelected] = useState<string>("");
-  useEffect(() => { if (user) setSelected(user.role); }, [user]);
+  useEffect(() => { if (user) setSelected(currentRole); }, [user]);
   if (!user) return null;
   return (
     <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
@@ -1224,6 +1375,7 @@ function ChangeRoleModal({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="cleaner">Cleaner</SelectItem>
+            <SelectItem value="helper">Helper</SelectItem>
             <SelectItem value="owner">Owner</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
@@ -1232,7 +1384,7 @@ function ChangeRoleModal({
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button
             onClick={() => onConfirm(user.id, selected as any)}
-            disabled={selected === user.role}
+            disabled={selected === currentRole}
             className="flex-1 bg-primary text-primary-foreground"
           >
             Update

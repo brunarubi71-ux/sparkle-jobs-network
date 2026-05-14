@@ -107,13 +107,63 @@ export default function MyJobs() {
   };
 
   const hireCleaner = async (jobId: string, cleanerId: string) => {
-    await supabase.from("jobs").update({ status: "hired", hired_cleaner_id: cleanerId }).eq("id", jobId);
+    const { error } = await supabase.from("jobs").update({ status: "hired", hired_cleaner_id: cleanerId }).eq("id", jobId);
+    if (error) {
+      console.error("[MyJobs] hireCleaner failed:", error);
+      toast.error(t("errors.generic"));
+      return;
+    }
     await supabase.from("job_applications").update({ status: "hired" }).eq("job_id", jobId).eq("cleaner_id", cleanerId);
     const { data: existing } = await supabase.from("conversations").select("id").eq("job_id", jobId).eq("cleaner_id", cleanerId).maybeSingle();
     if (!existing) await supabase.from("conversations").insert({ job_id: jobId, cleaner_id: cleanerId, owner_id: user!.id });
     toast.success(t("myjobs.cleaner_hired"));
     fetchJobs();
   };
+
+  const hireTeamWorker = async (jobId: string, workerId: string) => {
+    const { error } = await supabase
+      .from("job_applications")
+      .update({ status: "accepted" })
+      .eq("job_id", jobId)
+      .eq("cleaner_id", workerId);
+    if (error) { toast.error(t("errors.generic")); return; }
+
+    const job = jobs.find((j) => j.id === jobId);
+    if (job) {
+      // Set hired_cleaner_id to first accepted cleaner for backwards compat
+      if (!job.hired_cleaner_id) {
+        const app = job.applicants.find(a => a.cleaner_id === workerId);
+        if (app?.worker_type === "cleaner") {
+          await supabase.from("jobs").update({ hired_cleaner_id: workerId }).eq("id", jobId);
+        }
+      }
+      const totalRequired = (job.cleaners_required ?? 1) + (job.helpers_required ?? 0);
+      const { count: filled } = await supabase
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", jobId)
+        .eq("status", "accepted");
+      if ((filled ?? 0) >= totalRequired) {
+        await supabase.from("jobs").update({ status: "accepted" }).eq("id", jobId);
+      }
+    }
+
+    try {
+      await sendNotifications([{
+        userId: workerId,
+        title: t("myjobs.helper_hired_notif_title") || "You're hired!",
+        message: t("myjobs.helper_hired_notif_msg") || "The owner accepted you for the job. Check your active jobs.",
+        type: "job_accepted",
+        relatedId: jobId,
+        link: `/cleaner-my-jobs?tab=active`,
+      }]);
+    } catch {}
+
+    toast.success(t("myjobs.cleaner_hired"));
+    fetchJobs();
+  };
+
+  const hireHelper = async (jobId: string, helperId: string) => hireTeamWorker(jobId, helperId);
 
   const cancelJob = async (jobId: string) => {
     // Find affected workers (pending or accepted applicants + lead hired cleaner)
@@ -138,7 +188,12 @@ export default function MyJobs() {
       console.error("[MyJobs] cancel: failed to load affected workers", e);
     }
 
-    await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    const { error: cancelError } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    if (cancelError) {
+      console.error("[MyJobs] cancelJob failed:", cancelError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // Notify all affected workers
     if (affected.size > 0) {
@@ -170,11 +225,16 @@ export default function MyJobs() {
 
   const approveJob = async (jobId: string) => {
     const job = jobs.find((j) => j.id === jobId);
-    await supabase.from("jobs").update({
+    const { error: approveError } = await supabase.from("jobs").update({
       status: "completed",
       owner_confirmed_completion: true,
       escrow_status: "released",
     } as any).eq("id", jobId);
+    if (approveError) {
+      console.error("[MyJobs] approveJob failed:", approveError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // Award points: owner gets owner_job_completed; worker gets job_completed (+ first_job bonus)
     try {
@@ -329,6 +389,12 @@ export default function MyJobs() {
               </button>
               {!isTeam && ["open", "applied"].includes(job.status) && app.status !== "hired" && app.status !== "accepted" && (
                 <Button size="sm" onClick={() => hireCleaner(job.id, app.cleaner_id)}
+                  className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
+                  {t("myjobs.hire")}
+                </Button>
+              )}
+              {isTeam && app.status === "pending" && (
+                <Button size="sm" onClick={() => hireTeamWorker(job.id, app.cleaner_id)}
                   className="h-7 text-xs gradient-primary text-primary-foreground rounded-lg">
                   {t("myjobs.hire")}
                 </Button>
@@ -561,6 +627,7 @@ export default function MyJobs() {
               jobTitle={paymentJob.title}
               customerEmail={user.email || undefined}
               userId={user.id}
+              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&job_id=${paymentJob.jobId}`}
             />
           )}
         </DialogContent>

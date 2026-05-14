@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
@@ -23,6 +23,13 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { awardPoints } from "@/lib/points";
 import NotificationBell from "@/components/NotificationBell";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 function formatMemberSince(iso?: string) {
   if (!iso) return "—";
@@ -45,6 +52,8 @@ export default function Profile() {
   const [ownerJobsCompleted, setOwnerJobsCompleted] = useState(0);
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [showPhotoGuide, setShowPhotoGuide] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
   const isWorkerRole = profile?.role === "cleaner";
@@ -161,14 +170,24 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarClick = () => setShowPhotoGuide(true);
+
+  const handlePhotoGuideConfirm = () => {
+    setShowPhotoGuide(false);
+    setTimeout(() => avatarInputRef.current?.click(), 150);
+  };
+
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     const wasEmpty = !(profile as any)?.avatar_url;
-    const ext = file.name.split(".").pop();
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
     const path = `${user.id}/avatar.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    // Remove existing file first to avoid RLS upsert issues
+    await supabase.storage.from("avatars").remove([path]);
+    const { error } = await supabase.storage.from("avatars").upload(path, file);
     if (error) {
-      toast.error(t("job.upload_failed"));
+      console.error("[uploadAvatar]", error);
+      toast.error(error.message || t("job.upload_failed"));
       return;
     }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -217,30 +236,33 @@ export default function Profile() {
           animate={{ scale: 1, opacity: 1 }}
           className="w-24 h-24 rounded-full bg-primary-foreground/20 mx-auto flex items-center justify-center mb-3 overflow-hidden relative border-[3px] border-white"
         >
+          {/* Single hidden file input controlled by ref */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files?.[0]) { uploadAvatar(e.target.files[0]); e.target.value = ""; } }}
+          />
           {avatarUrl ? (
             <>
               <img src={avatarUrl} className="w-full h-full object-cover" alt="Profile" />
-              {/* Click avatar to change */}
-              <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleAvatarClick}
+                className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 hover:bg-black/40 transition-opacity flex items-center justify-center"
+              >
                 <Camera className="w-6 h-6 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-                />
-              </label>
+              </button>
             </>
           ) : (
-            <label className="w-full h-full flex items-center justify-center cursor-pointer">
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              className="w-full h-full flex items-center justify-center cursor-pointer"
+            >
               <Camera className="w-9 h-9 text-primary-foreground/90" />
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-              />
-            </label>
+            </button>
           )}
         </motion.div>
 
@@ -258,14 +280,14 @@ export default function Profile() {
               <Crown className="w-3 h-3 mr-1" /> Premium
             </Badge>
           )}
-          {isWorker && identityStatus === "approved" && (
+          {identityStatus === "approved" && (
             <Badge className="bg-emerald-500/90 text-white border-0 text-[10px] hover:bg-emerald-500/90">
-              <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+              <ShieldCheck className="w-3 h-3 mr-1" /> {t("profile.verified_badge")}
             </Badge>
           )}
           {isWorker && workerType === "helper" && (
             <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
-              Helper
+              {t("profile.helper_badge")}
             </Badge>
           )}
         </div>
@@ -275,7 +297,7 @@ export default function Profile() {
           onClick={() => setEditOpen(true)}
           className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground text-xs font-medium transition-colors"
         >
-          <Pencil className="w-3.5 h-3.5" /> Edit Profile
+          <Pencil className="w-3.5 h-3.5" /> {t("profile.edit")}
         </button>
       </div>
 
@@ -292,18 +314,16 @@ export default function Profile() {
               <Sparkles className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">📸 Add your photo</p>
-              <p className="text-xs text-amber-700">Earn +20 points instantly!</p>
+              <p className="text-sm font-semibold text-amber-900">📸 {t("profile.add_photo_title")}</p>
+              <p className="text-xs text-amber-700">{t("profile.add_photo_bonus")}</p>
             </div>
-            <label className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm">
-              Add
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
-              />
-            </label>
+            <button
+              type="button"
+              onClick={handleAvatarClick}
+              className="text-xs font-semibold text-primary cursor-pointer px-3 py-1.5 rounded-lg bg-card shadow-sm"
+            >
+              {t("profile.add_photo_btn")}
+            </button>
           </motion.div>
         )}
 
@@ -315,21 +335,21 @@ export default function Profile() {
         >
           {isOwner ? (
             <>
-              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label="Jobs Completed" />
-              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label="Cleaners Hired" />
+              <StatCard icon={<Home className="w-4 h-4" />} value={ownerJobsCompleted} label={t("profile.jobs_completed")} />
+              <StatCard icon={<Users className="w-4 h-4" />} value={cleanersHired} label={t("profile.cleaners_hired")} />
               <StatCard
                 icon={<Star className="w-4 h-4" />}
                 value={
                   reviewCountReceived > 0 ? (
                     avgRatingReceived.toFixed(1)
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.no_ratings")}</span>
                   )
                 }
-                label="My Rating"
+                label={t("profile.my_rating")}
                 small={reviewCountReceived === 0}
               />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label={t("profile.member_since")} small />
             </>
           ) : (
             <>
@@ -341,10 +361,10 @@ export default function Profile() {
                   ) : (workerStats?.reviewCount ?? 0) > 0 && workerStats?.avgRating != null ? (
                     workerStats.avgRating.toFixed(1)
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">No ratings yet</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.no_ratings")}</span>
                   )
                 }
-                label="Avg Rating"
+                label={t("profile.avg_rating")}
                 small={(workerStats?.reviewCount ?? 0) === 0 && !workerStatsLoading}
               />
               <StatCard
@@ -356,7 +376,7 @@ export default function Profile() {
                     workerStats?.jobsCompleted ?? 0
                   )
                 }
-                label="Jobs Completed"
+                label={t("profile.jobs_completed")}
               />
               <StatCard
                 icon={<DollarSign className="w-4 h-4" />}
@@ -364,15 +384,15 @@ export default function Profile() {
                   workerStatsLoading ? (
                     <Skeleton className="h-6 w-16" />
                   ) : !workerStats?.totalEarnings ? (
-                    <span className="text-xs font-medium text-muted-foreground">Start earning today! 💰</span>
+                    <span className="text-xs font-medium text-muted-foreground">{t("profile.start_earning")}</span>
                   ) : (
                     `$${workerStats.totalEarnings.toFixed(0)}`
                   )
                 }
-                label="Total Earned"
+                label={t("profile.total_earned")}
                 small={!workerStatsLoading && !workerStats?.totalEarnings}
               />
-              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label="Member Since" small />
+              <StatCard icon={<CalendarDays className="w-4 h-4" />} value={memberSince} label={t("profile.member_since")} small />
             </>
           )}
         </motion.div>
@@ -391,25 +411,25 @@ export default function Profile() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Identity Verification</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("profile.identity_title")}</h3>
               </div>
               {identityStatus === "approved" && (
                 <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">
-                  <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+                  <ShieldCheck className="w-3 h-3 mr-1" /> {t("profile.verified_badge")}
                 </Badge>
               )}
               {identityStatus === "pending" && (
                 <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">
-                  <Clock className="w-3 h-3 mr-1" /> Pending
+                  <Clock className="w-3 h-3 mr-1" /> {t("profile.pending_badge")}
                 </Badge>
               )}
               {identityStatus === "rejected" && (
                 <Badge className="bg-destructive/10 text-destructive border-0 text-[10px]">
-                  <ShieldAlert className="w-3 h-3 mr-1" /> Rejected
+                  <ShieldAlert className="w-3 h-3 mr-1" /> {t("profile.rejected_badge")}
                 </Badge>
               )}
               {identityStatus === "unverified" && (
-                <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+                <Badge variant="outline" className="text-[10px]">{t("profile.not_verified_badge")}</Badge>
               )}
             </div>
             {(identityStatus === "unverified" || identityStatus === "rejected") && (
@@ -420,13 +440,13 @@ export default function Profile() {
                   size="sm"
                   className="h-9 px-5 rounded-full border-primary text-primary hover:bg-primary/5"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Verify Identity
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> {t("profile.verify_btn")}
                 </Button>
               </div>
             )}
             {identityStatus === "pending" && (
               <p className="text-xs text-muted-foreground mt-2">
-                Your documents are under review. You'll be notified within 24 hours.
+                {t("profile.pending_review")}
               </p>
             )}
           </motion.div>
@@ -450,13 +470,13 @@ export default function Profile() {
             transition={{ delay: 0.12 }}
             className="bg-card rounded-2xl shadow-card p-4"
           >
-            <h3 className="text-sm font-semibold text-foreground mb-3">About Me</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">{t("profile.about_me")}</h3>
             <div className="space-y-2">
               {(profile as any)?.bio ? (
                 <p className="text-sm text-muted-foreground">{(profile as any).bio}</p>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
-                  Add a short bio so owners get to know you.
+                  {t("profile.bio_placeholder")}
                 </p>
               )}
               {(profile as any)?.specialties?.length > 0 && (
@@ -520,7 +540,7 @@ export default function Profile() {
               window.open(data.url, "_blank");
             }}
           >
-            Manage Subscription
+            {t("profile.manage_subscription")}
           </Button>
         )}
 
@@ -556,6 +576,49 @@ export default function Profile() {
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
+
+      {/* Photo guidelines dialog */}
+      <Dialog open={showPhotoGuide} onOpenChange={setShowPhotoGuide}>
+        <DialogContent className="rounded-2xl max-w-sm mx-4">
+          <DialogHeader className="text-center items-center pb-2">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <Camera className="w-7 h-7 text-primary" />
+            </div>
+            <DialogTitle className="text-base font-bold">{t("profile.photo_guide_title")}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-1">
+              {t("profile.photo_guide_subtitle")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-1">
+            {[
+              { ok: true,  text: t("profile.photo_guide_face") },
+              { ok: true,  text: t("profile.photo_guide_light") },
+              { ok: true,  text: t("profile.photo_guide_alone") },
+              { ok: false, text: t("profile.photo_guide_sunglasses") },
+              { ok: false, text: t("profile.photo_guide_hat") },
+              { ok: false, text: t("profile.photo_guide_filter") },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-1">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${item.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                  {item.ok ? "✓" : "✕"}
+                </span>
+                <span className="text-sm text-foreground">{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowPhotoGuide(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button className="flex-1 rounded-xl" onClick={handlePhotoGuideConfirm}>
+              {t("profile.photo_guide_btn")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <BottomNav />
     </div>
   );
@@ -586,20 +649,21 @@ function StatCard({
 function ProfileCompletion({
   profile, isOwner, avatarUrl,
 }: { profile: any; isOwner: boolean; avatarUrl?: string }) {
+  const { t } = useLanguage();
   const checks = isOwner
     ? [
-        { ok: !!avatarUrl, label: "Add profile photo" },
-        { ok: !!profile.full_name, label: "Add full name" },
-        { ok: !!profile.bio, label: "Add bio" },
-        { ok: (profile.specialties || []).length > 0, label: "Select property type" },
+        { ok: !!avatarUrl, label: t("profile.completion_photo") },
+        { ok: !!profile.full_name, label: t("profile.completion_name") },
+        { ok: !!profile.bio, label: t("profile.completion_bio") },
+        { ok: (profile.specialties || []).length > 0, label: t("profile.completion_property") },
       ]
     : [
-        { ok: !!avatarUrl, label: "Add profile photo" },
-        { ok: !!profile.full_name, label: "Add full name" },
-        { ok: !!profile.bio, label: "Add bio" },
-        { ok: (profile.specialties || []).length > 0, label: "Add specialties" },
-        { ok: (profile.languages || []).length > 0, label: "Add languages" },
-        { ok: (profile.experience_years || 0) > 0, label: "Add years of experience" },
+        { ok: !!avatarUrl, label: t("profile.completion_photo") },
+        { ok: !!profile.full_name, label: t("profile.completion_name") },
+        { ok: !!profile.bio, label: t("profile.completion_bio") },
+        { ok: (profile.specialties || []).length > 0, label: t("profile.completion_specialties") },
+        { ok: (profile.languages || []).length > 0, label: t("profile.completion_languages") },
+        { ok: (profile.experience_years || 0) > 0, label: t("profile.completion_experience") },
       ];
   const completed = checks.filter((c) => c.ok).length;
   const pct = Math.round((completed / checks.length) * 100);
@@ -615,7 +679,7 @@ function ProfileCompletion({
       className="bg-card rounded-2xl shadow-card p-4"
     >
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-foreground">Profile completion</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("profile.completion_title")}</h3>
         <span className="text-sm font-bold text-primary">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2 mb-3" />

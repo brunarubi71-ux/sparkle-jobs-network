@@ -15,7 +15,7 @@ import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import { JobStripeCheckout } from "@/components/JobStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { toast } from "sonner";
-import { PlusCircle, Camera, X, Upload, Star, ShieldAlert } from "lucide-react";
+import { PlusCircle, Camera, X, Upload, Star, ShieldAlert, Clock } from "lucide-react";
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -36,6 +36,7 @@ export default function PostJob() {
   // Block submission if not approved, but only show the banner for unverified/rejected (not pending — that lives on Profile)
   const ownerNeedsVerification = profile?.role === "owner" && ownerIdentityStatus !== "approved";
   const showOwnerVerifyBanner = profile?.role === "owner" && (ownerIdentityStatus === "unverified" || ownerIdentityStatus === "rejected");
+  const showOwnerPendingBanner = profile?.role === "owner" && ownerIdentityStatus === "pending";
   const [mainPhotoFile, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string>("");
   const [existingMainPhoto, setExistingMainPhoto] = useState<string>("");
@@ -117,7 +118,7 @@ export default function PostJob() {
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (photoFiles.length + files.length > 10) {
+    if (photoFiles.length + files.length > 50) {
       toast.error(t("post.max_photos"));
       return;
     }
@@ -143,6 +144,11 @@ export default function PostJob() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    // Wait for profile to finish loading before allowing submission
+    if (!profile) {
+      toast.error("Loading your profile, please try again in a moment.");
+      return;
+    }
     if (ownerNeedsVerification) {
       setIdentityOpen(true);
       return;
@@ -203,8 +209,8 @@ export default function PostJob() {
         cleaners_required: cleanersReq, helpers_required: helpersReq,
         main_property_photo: mainPhotoUrl,
         property_photos: allAdditional.length > 0 ? allAdditional : null,
-        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
-        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
+        guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
       } as any).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
 
@@ -270,8 +276,8 @@ export default function PostJob() {
         main_property_photo: mainPhotoUrl,
         property_photos: additionalUrls.length > 0 ? additionalUrls : null,
         status,
-        number_of_guests: form.number_of_guests ? parseInt(form.number_of_guests) : null,
-        guest_stay_length: form.guest_stay_length ? parseInt(form.guest_stay_length) : null,
+        number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
+        guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
       } as any).select("id").single();
       if (error) throw error;
 
@@ -325,7 +331,10 @@ export default function PostJob() {
       });
       setCheckoutOpen(true);
       try { await awardPoints(user.id, "job_posted"); } catch {}
-    } catch { toast.error(t("post.error")); } finally { setLoading(false); setUploadingPhotos(false); }
+    } catch (err: any) {
+      const isRLS = err?.code === "42501" || String(err?.message || "").includes("row-level security") || String(err?.message || "").includes("violates");
+      toast.error(isRLS ? "Identity verification required before posting jobs. Please wait for your documents to be approved." : t("post.error"));
+    } finally { setLoading(false); setUploadingPhotos(false); }
   };
 
   const handlePayCard = () => {
@@ -346,7 +355,7 @@ export default function PostJob() {
   const isAirbnb = form.cleaning_type === "airbnb";
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-32">
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
         <h1 className="text-xl font-bold text-primary-foreground">{isEditMode ? "Edit job" : t("post.title")}</h1>
@@ -376,13 +385,26 @@ export default function PostJob() {
             </span>
           </button>
         )}
+        {showOwnerPendingBanner && (
+          <div className="w-full bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3 shadow-card">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Clock className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-900">Verification in progress</p>
+              <p className="text-xs text-blue-700">
+                Your documents are under review. You'll be able to post jobs once approved (usually within 24h).
+              </p>
+            </div>
+          </div>
+        )}
         {/* Basic Info */}
         <div className="bg-card rounded-2xl shadow-card p-4 space-y-4">
           <Input placeholder={t("post.job_title")} value={form.title} onChange={(e) => update("title", e.target.value)} required className="rounded-xl h-12" />
           <div className="grid grid-cols-2 gap-3">
             <Select value={form.cleaning_type} onValueChange={(v) => update("cleaning_type", v)}>
               <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[9999]">
                 <SelectItem value="residential">{t("post.residential")}</SelectItem>
                 <SelectItem value="airbnb">{t("post.airbnb")}</SelectItem>
                 <SelectItem value="commercial">{t("post.commercial")}</SelectItem>
@@ -390,7 +412,7 @@ export default function PostJob() {
             </Select>
             <Select value={form.urgency} onValueChange={(v) => update("urgency", v)}>
               <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[9999]">
                 <SelectItem value="scheduled">{t("post.scheduled")}</SelectItem>
                 <SelectItem value="asap">{t("post.asap")}</SelectItem>
                 <SelectItem value="urgent">{t("post.urgent")}</SelectItem>
@@ -425,10 +447,10 @@ export default function PostJob() {
           <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium text-foreground mb-2">🚗 Cleaners needed (with car)</p>
+              <p className="text-sm font-medium text-foreground mb-2">🚗 {t("post.cleaners_with_car")}</p>
               <Select value={form.cleaners_required} onValueChange={(v) => update("cleaners_required", v)}>
                 <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   <SelectItem value="0">0</SelectItem>
                   <SelectItem value="1">1</SelectItem>
                   <SelectItem value="2">2</SelectItem>
@@ -437,10 +459,10 @@ export default function PostJob() {
               </Select>
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground mb-2">🤝 Helpers needed (no car)</p>
+              <p className="text-sm font-medium text-foreground mb-2">🤝 {t("post.helpers_no_car")}</p>
               <Select value={form.helpers_required} onValueChange={(v) => update("helpers_required", v)}>
                 <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   <SelectItem value="0">0</SelectItem>
                   <SelectItem value="1">1</SelectItem>
                   <SelectItem value="2">2</SelectItem>
@@ -449,7 +471,7 @@ export default function PostJob() {
               </Select>
             </div>
             {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
-              <p className="text-xs text-destructive">At least 1 worker (Cleaner or Helper) is required.</p>
+              <p className="text-xs text-destructive">{t("post.min_worker_required")}</p>
             )}
           </div>
         </div>
@@ -527,7 +549,7 @@ export default function PostJob() {
             <span className="text-sm text-muted-foreground">{t("post.upload_photos")}</span>
             <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
           </label>
-          <p className="text-xs text-muted-foreground text-center">{t("post.max_photos_label")}</p>
+          <p className="text-xs text-muted-foreground text-center">{t("post.photos_label")}</p>
         </div>
 
         {/* Access & Property Details */}
@@ -583,13 +605,15 @@ export default function PostJob() {
           </motion.div>
         )}
 
-        <Button type="submit" disabled={loading || uploadingPhotos || editLoading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
+        <Button type="submit" disabled={loading || uploadingPhotos || editLoading || showOwnerPendingBanner} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 disabled:opacity-50">
           <PlusCircle className="w-4 h-4 mr-2" />
-          {uploadingPhotos
-            ? t("post.uploading_photos")
-            : loading
-              ? (isEditMode ? "Saving..." : t("post.posting"))
-              : (isEditMode ? "Save changes" : t("post.submit"))}
+          {showOwnerPendingBanner
+            ? "Awaiting Identity Approval"
+            : uploadingPhotos
+              ? t("post.uploading_photos")
+              : loading
+                ? (isEditMode ? "Saving..." : t("post.posting"))
+                : (isEditMode ? "Save changes" : t("post.submit"))}
         </Button>
       </motion.form>
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
