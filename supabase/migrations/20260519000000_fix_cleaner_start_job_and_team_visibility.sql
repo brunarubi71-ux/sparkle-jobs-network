@@ -1,34 +1,52 @@
--- Bug fix: cleaners/helpers cannot start or update their hired job because the
--- UPDATE policy on jobs only allows the owner. This caused the silent failure where
--- startJob() returned no error but updated 0 rows, triggering the success toast
--- without actually changing the status.
+-- Bug fix: cleaners/helpers cannot start or update their hired job.
 --
--- Also: accepted team members in job_applications couldn't see the job once it moved
--- past 'open'/'applied' status. Fixed via a SECURITY DEFINER helper function to
--- avoid the circular dependency (jobs SELECT → job_applications → jobs SELECT).
+-- Root cause of HTTP 500 ("infinite recursion detected in policy for relation jobs"):
+-- The original fix used EXISTS (SELECT FROM job_applications) directly in the
+-- UPDATE USING clause. That triggered job_applications SELECT RLS, which reads
+-- jobs.owner_id, which triggered jobs SELECT RLS again → infinite loop.
+--
+-- Solution: wrap the worker-check in a SECURITY DEFINER function so all internal
+-- table accesses bypass RLS, cutting the recursive chain at the root.
 
 -- -----------------------------------------------------------------------
--- 1. Allow hired workers to update their own job
+-- 1. SECURITY DEFINER helper: checks if auth.uid() is a hired worker
+-- -----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_hired_worker_for_job(p_job_id uuid)
+  RETURNS boolean
+  LANGUAGE sql
+  SECURITY DEFINER
+  STABLE
+  SET search_path = public
+AS $$
+  SELECT
+    EXISTS (
+      SELECT 1 FROM public.jobs
+      WHERE id = p_job_id
+        AND (hired_cleaner_id = auth.uid() OR hired_helper_id = auth.uid())
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.job_applications
+      WHERE job_id = p_job_id
+        AND cleaner_id = auth.uid()
+        AND status IN ('accepted', 'hired')
+    );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_hired_worker_for_job(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_hired_worker_for_job(uuid) TO authenticated;
+
+-- -----------------------------------------------------------------------
+-- 2. UPDATE policy: use SECURITY DEFINER function (no raw RLS subquery)
 -- -----------------------------------------------------------------------
 DROP POLICY IF EXISTS "Workers can update their hired job" ON public.jobs;
 
 CREATE POLICY "Workers can update their hired job"
   ON public.jobs FOR UPDATE TO authenticated
-  USING (
-    hired_cleaner_id = auth.uid()
-    OR hired_helper_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.job_applications
-      WHERE job_id = public.jobs.id
-        AND cleaner_id = auth.uid()
-        AND status = 'accepted'
-    )
-  );
+  USING (public.is_hired_worker_for_job(id));
 
 -- -----------------------------------------------------------------------
--- 2. Fix SELECT visibility for accepted team members
---    Uses SECURITY DEFINER to bypass the job_applications RLS and avoid
---    the circular dependency that previously caused HTTP 500 errors.
+-- 3. SELECT visibility for accepted/hired team members
+--    Also uses SECURITY DEFINER to avoid the circular dependency.
 -- -----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.my_accepted_job_ids()
   RETURNS SETOF uuid
@@ -40,7 +58,7 @@ AS $$
   SELECT job_id
   FROM public.job_applications
   WHERE cleaner_id = auth.uid()
-    AND status = 'accepted';
+    AND status IN ('accepted', 'hired');
 $$;
 
 REVOKE ALL ON FUNCTION public.my_accepted_job_ids() FROM PUBLIC;
