@@ -167,11 +167,16 @@ export default function JobDetails() {
     }
     setStartingJob(true);
     try {
-      const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
+      const { data, error } = await supabase
+        .from("jobs")
+        .update({ status: "in_progress" })
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("permission_denied");
       toast.success(t("job.started_success"));
       await fetchJob();
-    } catch (e) {
+    } catch (e: any) {
       console.error("[JobDetails] startJob failed:", e);
       toast.error(t("errors.generic"));
     } finally {

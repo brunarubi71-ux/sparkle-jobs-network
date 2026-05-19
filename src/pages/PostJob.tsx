@@ -19,6 +19,8 @@ import { PlusCircle, Camera, X, Upload, Star, ShieldAlert, Clock } from "lucide-
 import { awardPoints } from "@/lib/points";
 import { useLanguage } from "@/i18n/LanguageContext";
 
+const DRAFT_KEY = "postjob_draft";
+
 export default function PostJob() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -45,14 +47,32 @@ export default function PostJob() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [editLoading, setEditLoading] = useState(isEditMode);
-  const [form, setForm] = useState({
-    title: "", cleaning_type: "residential", price: "",
-    bedrooms: "1", bathrooms: "1", address: "", city: "",
-    urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
-    door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
-    alarm_instructions: "", parking_instructions: "", door_access_info: "",
-    guest_stay_length: "", number_of_guests: "",
+  const [form, setForm] = useState(() => {
+    const isEdit = !!new URLSearchParams(window.location.search).get("edit");
+    if (!isEdit && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw);
+          if (draft?.form) return draft.form;
+        }
+      } catch {}
+    }
+    return {
+      title: "", cleaning_type: "residential", price: "",
+      bedrooms: "1", bathrooms: "1", address: "", city: "",
+      urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
+      alarm_instructions: "", parking_instructions: "", door_access_info: "",
+      guest_stay_length: "", number_of_guests: "",
+    };
   });
+
+  // Persist draft to localStorage (text fields only — photos can't be serialised)
+  useEffect(() => {
+    if (isEditMode) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ form })); } catch {}
+  }, [form, isEditMode]);
 
   // Load existing job in edit mode
   useEffect(() => {
@@ -228,6 +248,7 @@ export default function PostJob() {
         }, { onConflict: "job_id" });
       if (privError) throw privError;
       toast.success("Job updated");
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
       navigate("/my-jobs");
     } catch (err) {
       console.error("[PostJob] saveEdits error:", err);
@@ -318,6 +339,7 @@ export default function PostJob() {
         }
         await refreshProfile();
         toast.success("Job posted successfully! 🎉");
+        try { localStorage.removeItem(DRAFT_KEY); } catch {}
         try { await awardPoints(user.id, "job_posted"); } catch {}
         navigate("/my-jobs");
         return;
@@ -330,6 +352,7 @@ export default function PostJob() {
         title: form.title,
       });
       setCheckoutOpen(true);
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
       try { await awardPoints(user.id, "job_posted"); } catch {}
     } catch (err: any) {
       const isRLS = err?.code === "42501" || String(err?.message || "").includes("row-level security") || String(err?.message || "").includes("violates");
