@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✨ Shinely Marketing Agent v2.0</title>
+<style>
+/* ── Variables ───────────────────────────────────────────────── */
+:root {
+  --primary:         #6d28d9;
+  --primary-light:   #8b5cf6;
+  --primary-lighter: #a78bfa;
+  --primary-dark:    #5b21b6;
+  --accent:          #ddd6fe;
+  --bg:              #ffffff;
+  --bg-secondary:    #f5f3ff;
+  --bg-card:         #ffffff;
+  --text:            #1f2937;
+  --text-muted:      #6b7280;
+  --border:          #e5e7eb;
+  --shadow:          rgba(109,40,217,0.12);
+  --user-bubble:     #6d28d9;
+  --agent-bubble:    #f5f3ff;
+  --radius:          16px;
+}
+[data-theme="dark"] {
+  --bg:           #0f0b1a;
+  --bg-secondary: #1a1428;
+  --bg-card:      #221b35;
+  --text:         #f3f0ff;
+  --text-muted:   #9d86e9;
+  --border:       #2d2540;
+  --shadow:       rgba(139,92,246,0.2);
+  --agent-bubble: #1e1730;
+}
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background .25s, color .25s;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-shadow: 0 2px 16px rgba(109,40,217,.3);
+  z-index: 10;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; backdrop-filter: blur(4px);
+}
+.logo-text  { color: #fff; font-size: 18px; font-weight: 700; line-height: 1.1; }
+.logo-sub   { color: rgba(255,255,255,.65); font-size: 11px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.api-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.15); color: #fff;
+  padding: 5px 12px; border-radius: 20px; font-size: 12px;
+  backdrop-filter: blur(4px);
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4ade80; flex-shrink: 0;
+}
+.dot.off { background: #f87171; }
+.hbtn {
+  background: rgba(255,255,255,.18); border: none; color: #fff;
+  width: 34px; height: 34px; border-radius: 8px;
+  cursor: pointer; font-size: 16px; display: flex;
+  align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.hbtn:hover { background: rgba(255,255,255,.3); }
+
+/* ── Tabs ─────────────────────────────────────────────────────── */
+.tabs-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+  display: flex;
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 11px 18px; border: none; background: none;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+.tab-btn:hover  { color: var(--primary); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.tab-panel.active { display: flex; }
+
+/* ── Quick Actions ───────────────────────────────────────────── */
+.quick-row {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex; flex-wrap: wrap; gap: 5px;
+  flex-shrink: 0;
+}
+.q-btn {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text); padding: 5px 11px; border-radius: 20px;
+  font-size: 12px; cursor: pointer; transition: all .18s;
+  white-space: nowrap;
+}
+.q-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── Image bar ───────────────────────────────────────────────── */
+.img-row {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 14px;
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.img-row label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.style-sel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text); padding: 5px 10px; border-radius: 16px;
+  font-size: 12px; cursor: pointer; outline: none;
+}
+.img-btn {
+  background: linear-gradient(135deg,var(--primary),var(--primary-light));
+  border: none; color: #fff; padding: 5px 12px;
+  border-radius: 16px; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: opacity .18s;
+}
+.img-btn:hover { opacity: .88; }
+
+/* ── Messages ────────────────────────────────────────────────── */
+.msgs {
+  flex: 1; overflow-y: auto; padding: 18px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  scroll-behavior: smooth;
+}
+.msg {
+  display: flex; gap: 9px; max-width: 92%;
+  animation: fadeUp .25s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg.user  { align-self: flex-end;  flex-direction: row-reverse; }
+.msg.agent { align-self: flex-start; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0; margin-top: 2px;
+}
+.user  .avatar { background: var(--primary); color: #fff; }
+.agent .avatar { background: linear-gradient(135deg,var(--primary),var(--primary-light)); color: #fff; }
+.bwrap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.bubble {
+  padding: 10px 14px; border-radius: 16px;
+  font-size: 13.5px; line-height: 1.65; word-break: break-word;
+}
+.user  .bubble { background: var(--user-bubble); color: #fff; border-bottom-right-radius: 4px; }
+.agent .bubble {
+  background: var(--agent-bubble); color: var(--text);
+  border: 1px solid var(--border); border-bottom-left-radius: 4px;
+}
+.copy-btn {
+  align-self: flex-start;
+  background: none; border: 1px solid var(--border);
+  color: var(--text-muted); padding: 3px 10px;
+  border-radius: 10px; font-size: 11px; cursor: pointer;
+  transition: all .18s;
+}
+.copy-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Typing dots */
+.typing-bubble { display: flex; align-items: center; gap: 4px; padding: 12px 14px; }
+.tdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary-light);
+  animation: tdot 1.2s infinite;
+}
+.tdot:nth-child(2) { animation-delay: .2s; }
+.tdot:nth-child(3) { animation-delay: .4s; }
+@keyframes tdot {
+  0%,60%,100% { transform: translateY(0); }
+  30%         { transform: translateY(-6px); }
+}
+
+/* ── Input Area ──────────────────────────────────────────────── */
+.input-area {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px 10px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.input-wrap { display: flex; gap: 8px; align-items: flex-end; }
+.msg-input {
+  flex: 1; background: var(--bg-secondary);
+  border: 1.5px solid var(--border); color: var(--text);
+  padding: 10px 14px; border-radius: 22px; font-size: 13.5px;
+  resize: none; outline: none; font-family: inherit;
+  max-height: 140px; min-height: 42px;
+  transition: border-color .2s;
+  line-height: 1.5;
+}
+.msg-input:focus { border-color: var(--primary); }
+.send-btn {
+  background: linear-gradient(135deg,var(--primary),var(--primary-light));
+  border: none; color: #fff; width: 42px; height: 42px;
+  border-radius: 50%; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .18s, transform .18s; flex-shrink: 0;
+}
+.send-btn:hover   { opacity: .9; transform: scale(1.06); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.input-meta {
+  display: flex; justify-content: space-between;
+  padding: 5px 3px 0; font-size: 11px; color: var(--text-muted);
+}
+
+/* ── Bubble Markdown ─────────────────────────────────────────── */
+.bubble table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 12.5px; }
+.bubble th, .bubble td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+.bubble th { background: var(--bg-secondary); font-weight: 600; }
+.bubble ul, .bubble ol { padding-left: 18px; margin: 5px 0; }
+.bubble li { margin: 2px 0; }
+.bubble strong { font-weight: 700; }
+.bubble em { font-style: italic; }
+.bubble code {
+  background: var(--bg-secondary); padding: 2px 5px;
+  border-radius: 4px; font-family: monospace; font-size: 12px;
+}
+.bubble pre {
+  background: var(--bg-secondary); padding: 10px;
+  border-radius: 8px; overflow-x: auto; margin: 6px 0; font-size: 12px;
+}
+.bubble pre code { background: none; padding: 0; }
+.bubble h2, .bubble h3, .bubble h4 { margin: 8px 0 4px; }
+.bubble h2 { font-size: 15px; }
+.bubble h3 { font-size: 14px; }
+.bubble h4 { font-size: 13px; }
+.bubble hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+/* ── Generated images ────────────────────────────────────────── */
+.gen-imgs { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.img-card {
+  display: flex; flex-direction: column; gap: 5px;
+  width: 145px;
+}
+.gen-img {
+  width: 145px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--border); transition: transform .18s;
+  display: block;
+}
+.gen-img:hover { transform: scale(1.03); }
+.img-acts { display: flex; gap: 5px; }
+.ia-btn {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text); padding: 4px 6px; border-radius: 8px;
+  font-size: 11px; cursor: pointer; transition: all .18s; text-align: center;
+}
+.ia-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.img-placeholder {
+  width: 145px; height: 145px; border-radius: 10px;
+  border: 2px dashed var(--border); background: var(--bg-secondary);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; font-size: 12px; color: var(--text-muted);
+}
+.progress-bar {
+  width: 80%; height: 3px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light), var(--primary));
+  background-size: 200%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Library ─────────────────────────────────────────────────── */
+.lib-wrap { flex: 1; overflow-y: auto; padding: 16px; }
+.lib-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+}
+.filter-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 5px 13px; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-muted);
+  border-radius: 20px; font-size: 12px; cursor: pointer; transition: all .18s;
+}
+.filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.export-btn {
+  background: linear-gradient(135deg,var(--primary),var(--primary-light));
+  color: #fff; border: none; padding: 7px 16px;
+  border-radius: 20px; font-size: 12px; cursor: pointer;
+}
+.lib-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.lib-empty-icon { font-size: 44px; margin-bottom: 10px; }
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+  transition: box-shadow .2s;
+}
+.card:hover { box-shadow: 0 4px 16px var(--shadow); }
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.plat-badge {
+  padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600;
+}
+.pi { background: #fce7f3; color: #be185d; }
+.pt { background: #e0f2fe; color: #0369a1; }
+.pf { background: #eff6ff; color: #1d4ed8; }
+.px { background: #f0fdf4; color: #15803d; }
+.pe { background: #fef3c7; color: #92400e; }
+.po { background: var(--accent); color: var(--primary); }
+.card-date { font-size: 11px; color: var(--text-muted); }
+.card-preview {
+  font-size: 12.5px; color: var(--text); line-height: 1.5; margin-bottom: 10px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-acts { display: flex; gap: 6px; }
+.cc-btn {
+  background: var(--primary); color: #fff; border: none;
+  padding: 5px 13px; border-radius: 10px; font-size: 11px; cursor: pointer;
+}
+.cd-btn {
+  background: none; border: 1px solid #fca5a5; color: #ef4444;
+  padding: 5px 13px; border-radius: 10px; font-size: 11px; cursor: pointer;
+  transition: background .18s;
+}
+.cd-btn:hover { background: #fef2f2; }
+
+/* ── Gallery ─────────────────────────────────────────────────── */
+.gal-wrap { flex: 1; overflow-y: auto; padding: 16px; }
+.gal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.gal-note { font-size: 13px; color: var(--text-muted); }
+.clear-btn {
+  background: none; border: 1px solid #fca5a5; color: #ef4444;
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
+}
+.gal-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;
+}
+.gal-item {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg-card); position: relative;
+}
+.gal-img { width: 100%; aspect-ratio: 1; object-fit: cover; cursor: pointer; display: block; }
+.gal-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(transparent 50%, rgba(0,0,0,.65) 100%);
+  opacity: 0; transition: opacity .2s;
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 8px; gap: 5px;
+}
+.gal-item:hover .gal-overlay { opacity: 1; }
+.gal-act {
+  background: rgba(255,255,255,.9); border: none;
+  padding: 4px 8px; border-radius: 7px; font-size: 13px; cursor: pointer;
+}
+.gal-meta { padding: 6px 8px; font-size: 10.5px; color: var(--text-muted); }
+.gal-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-muted); }
+
+/* ── Setup Modal ─────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200;
+  display: none; align-items: center; justify-content: center; padding: 18px;
+  backdrop-filter: blur(3px);
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--bg-card); border-radius: 20px; padding: 28px;
+  max-width: 460px; width: 100%;
+  box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.modal-sub   { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.step { display: flex; gap: 11px; align-items: flex-start; }
+.snum {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+}
+.stitle { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.sdesc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.sdesc a { color: var(--primary); text-decoration: none; }
+.sdesc code { background: var(--bg-secondary); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+.key-input {
+  width: 100%; background: var(--bg-secondary);
+  border: 2px solid var(--border); color: var(--text);
+  padding: 11px 14px; border-radius: 12px; font-size: 13px;
+  font-family: monospace; outline: none; transition: border-color .2s;
+}
+.key-input:focus { border-color: var(--primary); }
+.key-input.valid   { border-color: #22c55e; }
+.key-input.warn    { border-color: #f59e0b; }
+.key-input.invalid { border-color: #ef4444; }
+.key-msg { font-size: 11.5px; margin-top: 5px; min-height: 16px; }
+.key-msg.valid   { color: #22c55e; }
+.key-msg.warn    { color: #f59e0b; }
+.key-msg.invalid { color: #ef4444; }
+.save-btn {
+  width: 100%; background: linear-gradient(135deg,var(--primary),var(--primary-light));
+  color: #fff; border: none; padding: 13px; border-radius: 12px;
+  font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px;
+  transition: opacity .2s;
+}
+.save-btn:hover { opacity: .9; }
+.modal-close {
+  display: block; width: 100%; text-align: center; margin-top: 12px;
+  background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer;
+}
+
+/* ── Lightbox ─────────────────────────────────────────────────── */
+.lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 300;
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 20px;
+}
+.lightbox.open { display: flex; }
+.lb-img { max-width: 90vw; max-height: 78vh; border-radius: 12px; object-fit: contain; }
+.lb-acts { display: flex; gap: 10px; }
+.lb-btn {
+  background: rgba(255,255,255,.9); border: none;
+  padding: 8px 22px; border-radius: 20px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.lb-close {
+  position: absolute; top: 18px; right: 18px;
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px;
+}
+
+/* ── Toasts ──────────────────────────────────────────────────── */
+.toasts {
+  position: fixed; bottom: 20px; right: 20px; z-index: 999;
+  display: flex; flex-direction: column; gap: 7px; pointer-events: none;
+}
+.toast {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 18px; border-radius: 12px; font-size: 13px;
+  box-shadow: 0 4px 20px var(--shadow); max-width: 270px;
+  animation: toastIn .3s ease, toastOut .3s ease 2.6s forwards;
+  pointer-events: auto;
+}
+.toast.s { border-left: 3px solid #22c55e; }
+.toast.e { border-left: 3px solid #ef4444; }
+.toast.i { border-left: 3px solid var(--primary); }
+@keyframes toastIn  { from { transform: translateX(80px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-lighter); }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .header { padding: 8px 12px; }
+  .logo-text { font-size: 15px; }
+  .quick-row, .img-row { padding: 6px 10px; }
+  .msgs { padding: 12px 10px; }
+  .input-area { padding: 10px 12px 8px; }
+  .gal-grid { grid-template-columns: repeat(2, 1fr); }
+  .modal { padding: 20px; }
+  .tab-btn { padding: 10px 12px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">✨</div>
+    <div>
+      <div class="logo-text">Shinely</div>
+      <div class="logo-sub">Marketing Agent v2.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="api-badge">
+      <div class="dot off" id="statusDot"></div>
+      <span id="statusText">Configurar API</span>
+    </div>
+    <button class="hbtn" id="themeBtn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+    <button class="hbtn" onclick="openSetup()" title="Configurações">⚙️</button>
+  </div>
+</header>
+
+<!-- ══ TABS ════════════════════════════════════════════════════ -->
+<div class="tabs-bar">
+  <button class="tab-btn active" id="tb-chat"    onclick="showTab('chat')">💬 Chat</button>
+  <button class="tab-btn"        id="tb-library" onclick="showTab('library')">📚 Biblioteca</button>
+  <button class="tab-btn"        id="tb-gallery" onclick="showTab('gallery')">🖼️ Galeria</button>
+</div>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── Chat Panel ─────────────────────────────────────────── -->
+  <div class="tab-panel active" id="panel-chat">
+
+    <!-- Quick action buttons (populated by JS) -->
+    <div class="quick-row" id="quickRow"></div>
+
+    <!-- Image generation bar -->
+    <div class="img-row">
+      <label>Estilo:</label>
+      <select class="style-sel" id="imgStyle">
+        <option value="photo">📸 Fotorrealista</option>
+        <option value="illus">🎨 Ilustração</option>
+        <option value="mini">✨ Minimalista</option>
+      </select>
+      <button class="img-btn" onclick="genImgs('feed')">🖼️ Feed 1:1</button>
+      <button class="img-btn" onclick="genImgs('story')">📱 Story 9:16</button>
+      <button class="img-btn" onclick="genImgs('cover')">🖥️ Capa 16:9</button>
+      <button class="img-btn" onclick="genImgs('port')">📌 Portrait 4:5</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="msgs" id="msgs"></div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea class="msg-input" id="msgInput"
+          placeholder="Peça um post, roteiro, ideia de campanha..."
+          rows="1"
+          onkeydown="onKey(event)"
+          oninput="resize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="send()">➤</button>
+      </div>
+      <div class="input-meta">
+        <span id="modelLabel">OpenRouter · GPT-4o</span>
+        <span id="tokCount">0 tokens</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Library Panel ──────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-library">
+    <div class="lib-wrap">
+      <div class="lib-header">
+        <div class="filter-row" id="filterRow">
+          <button class="filter-btn active" onclick="filter('all',this)">Todos</button>
+          <button class="filter-btn" onclick="filter('instagram',this)">Instagram</button>
+          <button class="filter-btn" onclick="filter('tiktok',this)">TikTok</button>
+          <button class="filter-btn" onclick="filter('facebook',this)">Facebook</button>
+          <button class="filter-btn" onclick="filter('twitter',this)">Twitter/X</button>
+          <button class="filter-btn" onclick="filter('email',this)">Email</button>
+        </div>
+        <button class="export-btn" onclick="exportLib()">📤 Exportar</button>
+      </div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
+  <!-- ── Gallery Panel ──────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-gallery">
+    <div class="gal-wrap">
+      <div class="gal-header">
+        <span class="gal-note">Imagens geradas pelo agente</span>
+        <button class="clear-btn" onclick="clearGallery()">🗑️ Limpar galeria</button>
+      </div>
+      <div class="gal-grid" id="galGrid"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ SETUP MODAL ═════════════════════════════════════════════ -->
+<div class="overlay" id="setupOverlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-title">⚙️ Configurar API</div>
+    <div class="modal-sub">Configure sua chave para começar a criar conteúdo</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="snum">1</div>
+        <div>
+          <div class="stitle">Crie conta no OpenRouter (recomendado)</div>
+          <div class="sdesc">
+            Funciona direto no browser — sem servidor, sem janela preta.<br>
+            <a href="https://openrouter.ai" target="_blank">→ openrouter.ai</a> · Grátis para criar conta
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="snum">2</div>
+        <div>
+          <div class="stitle">Gere sua API Key</div>
+          <div class="sdesc">Em <strong>Keys → Create key</strong>. A chave começa com <code>sk-or-...</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="snum">3</div>
+        <div>
+          <div class="stitle">Cole abaixo e salve</div>
+          <div class="sdesc">
+            Também aceita <code>sk-ant-...</code> (Anthropic, nativo) ou <code>sk-proj-...</code> (OpenAI, requer servidor local)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <input type="password" class="key-input" id="keyInput"
+      placeholder="sk-or-v1-..."
+      oninput="validateKey(this.value)">
+    <div class="key-msg" id="keyMsg"></div>
+
+    <button class="save-btn" onclick="saveKey()">✅ Salvar e Conectar</button>
+    <button class="modal-close" onclick="closeSetup()">Fechar</button>
+  </div>
+</div>
+
+<!-- ══ LIGHTBOX ════════════════════════════════════════════════ -->
+<div class="lightbox" id="lightbox" onclick="lbBgClick(event)">
+  <button class="lb-close" onclick="closeLB()">✕</button>
+  <img class="lb-img" id="lbImg" src="" alt="">
+  <div class="lb-acts">
+    <button class="lb-btn" onclick="dlLB()">⬇️ Download</button>
+    <button class="lb-btn" onclick="closeLB()">Fechar</button>
+  </div>
+</div>
+
+<!-- ══ TOASTS ══════════════════════════════════════════════════ -->
+<div class="toasts" id="toasts"></div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ─── State ──────────────────────────────────────────────────── */
+const S = {
+  key:     localStorage.getItem('sh_key')     || '',
+  theme:   localStorage.getItem('sh_theme')   || 'light',
+  lib:     JSON.parse(localStorage.getItem('sh_lib')  || '[]'),
+  gal:     JSON.parse(localStorage.getItem('sh_gal')  || '[]'),
+  hist:    [],
+  tab:     'chat',
+  filt:    'all',
+  busy:    false,
+  lbUrl:   ''
+};
+
+/* ─── Constants ──────────────────────────────────────────────── */
+const SYSTEM = `Você é o agente de marketing oficial do Shinely — um marketplace de limpeza que conecta clientes a faxineiros profissionais verificados via app.
+
+SOBRE O SHINELY:
+• App marketplace de limpeza (iOS e Android)
+• Lançamento: EUA (foco principal), Brasil e Espanha
+• Clientes: querem faxina fácil, rápida, confiável
+• Faxineiros: querem mais jobs e renda extra
+• Reserva em 3 minutos, mapa ao vivo, sem ligações
+• Gratuito para baixar, sem assinatura
+• Handle: @shinely.app | Avaliação: 4.9 ⭐
+
+MARCA:
+• Tom: confiante, animado, direto, acolhedor
+• Cores: roxo/lavanda, branco, lilás claro
+• Palavras-chave: "sparkling", "shinely clean", "one tap", "instantly"
+• Evitar: linguagem corporativa, emojis em excesso
+
+HASHTAGS:
+Instagram: #cleaning #cleaningtips #homecleaning #cleaningservice #cleaningapp #shinelyclean #shinelyapp
+TikTok: #cleaningcheck #cleantok #homecleaning #fyp #shinelyapp (máx 5)
+Facebook: sem hashtags
+
+HOOKS APROVADOS:
+• "POV: You just discovered [solução]"
+• "Booking a cleaner used to take [problema]. Now it takes 3 minutes."
+• "Things I wish I knew before [problema]"
+• "The app that's changing how America cleans"
+• "Why I stopped stressing about cleaning"
+
+REGRAS:
+1. Responda em português quando a usuária falar português
+2. Posts e captions: escrever em INGLÊS (para o mercado americano)
+3. Entregue o conteúdo pronto, direto ao ponto
+4. Posts: sempre inclua Caption + Hashtags + Horário ideal de publicação
+5. Múltiplas opções: use Opção A, Opção B
+6. Para calendário: formato de tabela com Dia | Plataforma | Tipo | Tema | Horário
+7. Para roteiros TikTok: use formato HOOK (0-3s) / CONTEÚDO (3-25s) / CTA (25-30s)
+8. Sempre pense no público americano para posts em inglês`;
+
+const ACTIONS = [
+  { l: '📸 Post Instagram',   p: 'Crie um post completo para o Instagram do Shinely. Caption engajante em inglês, hashtags otimizadas e horário ideal de publicação. Foco no público americano.' },
+  { l: '🎵 Post TikTok',      p: 'Crie um post TikTok para o Shinely. Caption curta e impactante em inglês com no máximo 5 hashtags.' },
+  { l: '📘 Post Facebook',    p: 'Crie um post para o Facebook do Shinely. Tom informativo, sem hashtags. Destaque a facilidade e confiabilidade do app.' },
+  { l: '🎬 Roteiro TikTok',   p: 'Crie um roteiro TikTok de 30 segundos para o Shinely. Formato obrigatório: HOOK (0-3s) / CONTEÚDO (3-25s) / CTA (25-30s).' },
+  { l: '📅 Calendário 7 dias',p: 'Crie um calendário de conteúdo para 7 dias. Tabela: Dia | Plataforma | Tipo | Tema | Horário. Variedade de plataformas.' },
+  { l: '💬 Responder comentário', p: 'Crie 5 templates de respostas para comentários no @shinely.app: elogio, dúvida sobre o app, crítica, pedido de info, e comentário sobre preço.' },
+  { l: '🧵 Thread Twitter/X', p: 'Crie uma thread Twitter/X com 6 tweets sobre por que o Shinely está mudando como os americanos limpam suas casas. Em inglês, max 280 chars por tweet.' },
+  { l: '💌 Email de lançamento', p: 'Crie um email de lançamento do Shinely para early adopters. Assunto impactante, benefícios claros, CTA forte para baixar o app. Em inglês.' },
+  { l: '📊 Bio do perfil',    p: 'Crie 3 opções de bio para o Instagram @shinely.app. Máximo 150 caracteres cada, emoji estratégico e CTA claro.' },
+  { l: '🎯 10 Ideas Virais',  p: 'Me dê 10 ideias de posts virais para o Shinely. Para cada uma: plataforma ideal, gancho (hook), tipo de conteúdo e por que tem potencial viral.' }
+];
+
+const DIMS = {
+  feed:  { w: 1024, h: 1024, label: 'Feed 1:1'      },
+  story: { w:  576, h: 1024, label: 'Story 9:16'     },
+  cover: { w: 1024, h:  576, label: 'Capa 16:9'      },
+  port:  { w:  819, h: 1024, label: 'Portrait 4:5'   }
+};
+
+const STYLE_PROMPTS = {
+  photo: 'ultra photorealistic photography, professional lighting, DSLR quality, sharp focus',
+  illus: 'digital illustration, vibrant flat design, modern vector art, colorful',
+  mini:  'minimalist clean design, white space, simple geometric shapes, luxury elegant'
+};
+
+/* ─── Init ───────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(S.theme);
+
+  // Build quick action buttons
+  const row = document.getElementById('quickRow');
+  ACTIONS.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'q-btn';
+    b.textContent = a.l;
+    b.onclick = () => quickAction(a.p);
+    row.appendChild(b);
+  });
+
+  // Welcome message
+  addMsg('agent', '**Olá! Sou o agente de marketing do Shinely.** 🚀\n\nEstou aqui para criar conteúdo incrível para o lançamento do app nos EUA, Brasil e Espanha!\n\nUse os botões acima para posts prontos, ou me diga o que você precisa. Para imagens, escolha o estilo e clique em Feed/Story/Capa/Portrait.', true);
+
+  // Restore API status
+  if (S.key) setConnected(true);
+  else setTimeout(openSetup, 600);
+
+  renderLib();
+  renderGal();
+});
+
+/* ─── Theme ──────────────────────────────────────────────────── */
+function toggleTheme() {
+  S.theme = S.theme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('sh_theme', S.theme);
+  applyTheme(S.theme);
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const b = document.getElementById('themeBtn');
+  if (b) b.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+
+/* ─── API Status ─────────────────────────────────────────────── */
+function setConnected(on) {
+  const dot  = document.getElementById('statusDot');
+  const txt  = document.getElementById('statusText');
+  const mlbl = document.getElementById('modelLabel');
+  if (on) {
+    dot.className = 'dot';
+    const [prov, model] = providerOf(S.key);
+    txt.textContent  = `${prov} · Conectado`;
+    mlbl.textContent = `${prov} · ${model}`;
+  } else {
+    dot.className = 'dot off';
+    txt.textContent  = 'Configurar API';
+    mlbl.textContent = 'API não configurada';
+  }
+}
+function providerOf(k) {
+  if (k.startsWith('sk-ant-'))  return ['Anthropic', 'Claude Sonnet'];
+  if (k.startsWith('sk-or-'))   return ['OpenRouter', 'GPT-4o'];
+  return ['OpenAI', 'GPT-4o'];
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+function showTab(name) {
+  S.tab = name;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tb-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'library') renderLib();
+  if (name === 'gallery') renderGal();
+}
+
+/* ─── Setup Modal ────────────────────────────────────────────── */
+function openSetup() {
+  document.getElementById('setupOverlay').classList.add('open');
+  const inp = document.getElementById('keyInput');
+  if (S.key) { inp.value = S.key; validateKey(S.key); }
+  setTimeout(() => inp.focus(), 100);
+}
+function closeSetup() {
+  document.getElementById('setupOverlay').classList.remove('open');
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('setupOverlay')) closeSetup();
+}
+function validateKey(v) {
+  const inp = document.getElementById('keyInput');
+  const msg = document.getElementById('keyMsg');
+  inp.className = 'key-input';
+  msg.className = 'key-msg';
+  msg.textContent = '';
+  if (!v) return;
+  if (v.startsWith('sk-or-')) {
+    inp.classList.add('valid'); msg.classList.add('valid');
+    msg.textContent = '✅ OpenRouter — funciona direto no browser (recomendado)';
+  } else if (v.startsWith('sk-ant-')) {
+    inp.classList.add('valid'); msg.classList.add('valid');
+    msg.textContent = '✅ Anthropic Claude — funciona direto no browser';
+  } else if (v.startsWith('sk-')) {
+    inp.classList.add('warn'); msg.classList.add('warn');
+    msg.textContent = '⚠️ OpenAI — requer servidor PowerShell na porta 3000';
+  } else if (v.length > 8) {
+    inp.classList.add('invalid'); msg.classList.add('invalid');
+    msg.textContent = '❌ Formato não reconhecido. Use sk-or-... ou sk-ant-...';
+  }
+}
+function saveKey() {
+  const v = document.getElementById('keyInput').value.trim();
+  if (!v) { toast('Digite uma API key', 'e'); return; }
+  S.key = v;
+  localStorage.setItem('sh_key', v);
+  setConnected(true);
+  closeSetup();
+  toast('✅ Conectado com sucesso!', 's');
+}
+
+/* ─── Chat ───────────────────────────────────────────────────── */
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  const est = Math.ceil(el.value.length / 4);
+  document.getElementById('tokCount').textContent = `~${est} tokens`;
+}
+
+async function send() {
+  const inp = document.getElementById('msgInput');
+  const txt = inp.value.trim();
+  if (!txt || S.busy) return;
+  if (!S.key) { toast('Configure sua API key primeiro', 'e'); openSetup(); return; }
+  inp.value = ''; inp.style.height = 'auto';
+  document.getElementById('tokCount').textContent = '0 tokens';
+  addMsg('user', txt);
+  S.hist.push({ role: 'user', content: txt });
+  await callApi();
+}
+
+async function quickAction(prompt) {
+  if (S.busy) return;
+  if (!S.key) { toast('Configure sua API key primeiro', 'e'); openSetup(); return; }
+  addMsg('user', prompt);
+  S.hist.push({ role: 'user', content: prompt });
+  await callApi();
+}
+
+function addMsg(role, text, skipCopy) {
+  const c   = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.textContent = role === 'user' ? '👤' : '✨';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap';
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = role === 'agent' ? md(text) : esc(text);
+
+  wrap.appendChild(bub);
+
+  if (role === 'agent' && !skipCopy) {
+    const cp = document.createElement('button');
+    cp.className = 'copy-btn';
+    cp.textContent = '📋 Copiar';
+    cp.onclick = () => copy(text);
+    wrap.appendChild(cp);
+  }
+
+  div.appendChild(av);
+  div.appendChild(wrap);
+  c.appendChild(div);
+  scrollDown();
+  return div;
+}
+
+function showTyping() {
+  const c   = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.id = 'typing';
+
+  const av = document.createElement('div');
+  av.className = 'avatar'; av.textContent = '✨';
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble typing-bubble';
+  bub.innerHTML = '<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
+
+  div.appendChild(av); div.appendChild(bub);
+  c.appendChild(div);
+  scrollDown();
+}
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+function scrollDown() {
+  const c = document.getElementById('msgs');
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ─── API ────────────────────────────────────────────────────── */
+async function callApi() {
+  S.busy = true;
+  document.getElementById('sendBtn').disabled = true;
+  showTyping();
+
+  try {
+    const reply = S.key.startsWith('sk-ant-')
+      ? await apiAnthropic()
+      : S.key.startsWith('sk-or-')
+        ? await apiOpenRouter()
+        : await apiOpenAIProxy();
+
+    hideTyping();
+    addMsg('agent', reply);
+    S.hist.push({ role: 'assistant', content: reply });
+    if (S.hist.length > 40) S.hist.splice(0, 2);
+    autoSave(reply);
+  } catch (err) {
+    hideTyping();
+    addMsg('agent', `❌ **Erro:** ${err.message}\n\nVerifique sua API key em ⚙️ Configurações.`);
+    toast(err.message.slice(0, 60), 'e');
+  }
+
+  S.busy = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+async function apiOpenRouter() {
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${S.key}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://shinely.app',
+      'X-Title': 'Shinely Marketing Agent'
+    },
+    body: JSON.stringify({
+      model: 'openai/gpt-4o',
+      messages: buildMsgs(),
+      temperature: 0.8,
+      max_tokens: 1600
+    })
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error?.message || `HTTP ${r.status}`);
+  }
+  const d = await r.json();
+  return d.choices[0].message.content;
+}
+
+async function apiAnthropic() {
+  const msgs = buildMsgs().filter(m => m.role !== 'system');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': S.key,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1600,
+      system: SYSTEM,
+      messages: msgs
+    })
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error?.message || `HTTP ${r.status}`);
+  }
+  const d = await r.json();
+  return d.content[0].text;
+}
+
+async function apiOpenAIProxy() {
+  const r = await fetch('http://localhost:3000/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: buildMsgs() })
+  }).catch(() => {
+    throw new Error('Servidor local não encontrado. Use OpenRouter (sk-or-...) para funcionar sem servidor.');
+  });
+  if (!r.ok) throw new Error(`Servidor retornou ${r.status}`);
+  const d = await r.json();
+  return d.content || d.choices?.[0]?.message?.content || 'Sem resposta.';
+}
+
+function buildMsgs() {
+  return [{ role: 'system', content: SYSTEM }, ...S.hist.slice(-20)];
+}
+
+/* ─── Markdown renderer ──────────────────────────────────────── */
+function esc(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function md(raw) {
+  let t = esc(raw);
+
+  // Code blocks first (before other replacements touch backticks)
+  t = t.replace(/```[\w]*\n?([\s\S]*?)```/g, (_,c) => `<pre><code>${c.trim()}</code></pre>`);
+  t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Tables: | h | h |\n|---|---|\n| d | d |
+  t = t.replace(/(\|.+\|\n\|[-| :]+\|\n(?:\|.+\|\n?)+)/g, blk => {
+    const rows = blk.trim().split('\n');
+    const hdr = rows[0].split('|').slice(1,-1).map(c=>`<th>${c.trim()}</th>`).join('');
+    const body = rows.slice(2).map(r =>
+      '<tr>' + r.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('') + '</tr>'
+    ).join('');
+    return `<table><thead><tr>${hdr}</tr></thead><tbody>${body}</tbody></table>`;
+  });
+
+  // Bold / Italic
+  t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Headers
+  t = t.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  t = t.replace(/^### (.+)$/gm,  '<h3>$1</h3>');
+  t = t.replace(/^## (.+)$/gm,   '<h2>$1</h2>');
+  t = t.replace(/^# (.+)$/gm,    '<h2>$1</h2>');
+
+  // HR
+  t = t.replace(/^[-]{3,}$/gm, '<hr>');
+
+  // Lists (collect consecutive lines)
+  t = t.replace(/((?:^[•\-\*] .+\n?)+)/gm, blk => {
+    const items = blk.trim().split('\n').map(l => `<li>${l.replace(/^[•\-\*] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  t = t.replace(/((?:^\d+\. .+\n?)+)/gm, blk => {
+    const items = blk.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+
+  // Paragraphs
+  t = t.replace(/\n\n+/g, '<br><br>').replace(/\n/g, '<br>');
+  return t;
+}
+
+/* ─── Clipboard ──────────────────────────────────────────────── */
+async function copy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const el = document.createElement('textarea');
+    el.value = text; el.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+  }
+  toast('📋 Copiado!', 's');
+}
+
+/* ─── Auto-save ──────────────────────────────────────────────── */
+function autoSave(text) {
+  const worthy = /caption:|post:|hook:|roteiro:|bio:|email:|subject:|thread:|opção [ab]:|opção a|opção b|\d\.\s/i.test(text)
+    || text.length > 250;
+  if (!worthy) return;
+
+  const item = {
+    id:      Date.now().toString(36),
+    plat:    detectPlat(text),
+    content: text,
+    preview: text.replace(/<[^>]+>/g,'').slice(0, 220),
+    date:    new Date().toISOString()
+  };
+  S.lib.unshift(item);
+  if (S.lib.length > 50) S.lib.length = 50;
+  localStorage.setItem('sh_lib', JSON.stringify(S.lib));
+  toast('💾 Salvo na Biblioteca', 'i');
+}
+
+function detectPlat(t) {
+  const l = t.toLowerCase();
+  if (l.includes('instagram') || l.includes('#cleaning') || l.includes('reel')) return 'instagram';
+  if (l.includes('tiktok') || l.includes('#cleantok') || l.includes('tik tok')) return 'tiktok';
+  if (l.includes('facebook')) return 'facebook';
+  if (l.includes('twitter') || l.includes('tweet') || l.includes('thread')) return 'twitter';
+  if (l.includes('email') || l.includes('subject:') || l.includes('assunto:')) return 'email';
+  return 'other';
+}
+
+/* ─── Library ────────────────────────────────────────────────── */
+function renderLib() {
+  const c = document.getElementById('cards');
+  const items = S.filt === 'all' ? S.lib : S.lib.filter(i => i.plat === S.filt);
+
+  if (!items.length) {
+    c.innerHTML = `<div class="lib-empty">
+      <div class="lib-empty-icon">📚</div>
+      <div>Nenhum conteúdo salvo ainda</div>
+      <div style="font-size:12px;margin-top:4px;color:var(--text-muted)">Posts e captions gerados aparecerão aqui automaticamente</div>
+    </div>`;
+    return;
+  }
+
+  const platInfo = {
+    instagram: { label: 'Instagram', cls: 'pi' },
+    tiktok:    { label: 'TikTok',    cls: 'pt' },
+    facebook:  { label: 'Facebook',  cls: 'pf' },
+    twitter:   { label: 'Twitter/X', cls: 'px' },
+    email:     { label: 'Email',     cls: 'pe' },
+    other:     { label: 'Geral',     cls: 'po' }
+  };
+
+  c.innerHTML = items.map(item => {
+    const p    = platInfo[item.plat] || platInfo.other;
+    const date = new Date(item.date).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const prev = item.preview.replace(/\n/g,' ');
+    return `<div class="card">
+      <div class="card-top">
+        <span class="plat-badge ${p.cls}">${p.label}</span>
+        <span class="card-date">${date}</span>
+      </div>
+      <div class="card-preview">${esc(prev)}</div>
+      <div class="card-acts">
+        <button class="cc-btn" onclick="copyLibItem('${item.id}')">📋 Copiar</button>
+        <button class="cd-btn" onclick="delLibItem('${item.id}')">🗑️ Deletar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filter(plat, btn) {
+  S.filt = plat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLib();
+}
+
+function copyLibItem(id) {
+  const item = S.lib.find(i => i.id === id);
+  if (item) copy(item.content);
+}
+function delLibItem(id) {
+  S.lib = S.lib.filter(i => i.id !== id);
+  localStorage.setItem('sh_lib', JSON.stringify(S.lib));
+  renderLib();
+  toast('Deletado', 'i');
+}
+function exportLib() {
+  if (!S.lib.length) { toast('Biblioteca vazia', 'e'); return; }
+  const body = S.lib.map((it,i) => {
+    const d = new Date(it.date).toLocaleDateString('pt-BR');
+    return `══════════════════════════════\n[${i+1}] ${it.plat.toUpperCase()} · ${d}\n══════════════════════════════\n${it.content}\n`;
+  }).join('\n');
+  const blob = new Blob([`SHINELY MARKETING AGENT — Exportação\nData: ${new Date().toLocaleDateString('pt-BR')}\n\n${body}`], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `shinely-conteudo-${Date.now()}.txt`;
+  a.click();
+  toast('📤 Exportado!', 's');
+}
+
+/* ─── Image generation ───────────────────────────────────────── */
+function buildImgPrompt(style) {
+  const sty = STYLE_STYLES[style] || STYLE_STYLES.photo;
+  return `Shinely cleaning app marketing image, professional home cleaning service, purple lavender color palette, modern smartphone showing app UI, happy client in bright clean home, ${sty}, no text, no watermark, no logo`;
+}
+const STYLE_STYLES = STYLE_PROMPTS;  // alias
+
+function pollinationsUrl(prompt, w, h, seed) {
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}&model=flux`;
+}
+
+async function genImgs(type) {
+  if (!S.key) { toast('Configure sua API key primeiro', 'e'); openSetup(); return; }
+  const dim   = DIMS[type];
+  const style = document.getElementById('imgStyle').value;
+  const prompt = buildImgPrompt(style);
+
+  const s1 = Math.floor(Math.random() * 999983);
+  const s2 = Math.floor(Math.random() * 999983);
+  const u1  = pollinationsUrl(prompt, dim.w, dim.h, s1);
+  const u2  = pollinationsUrl(prompt, dim.w, dim.h, s2);
+
+  // Insert message with two placeholders
+  const c   = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+
+  const av = document.createElement('div');
+  av.className = 'avatar'; av.textContent = '✨';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap';
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = `<strong>Gerando imagens ${dim.label}</strong> (${style}) — aguarde 20–40s por variação.`;
+
+  const row = document.createElement('div');
+  row.className = 'gen-imgs';
+
+  const ph1 = mkPlaceholder('Variação 1');
+  const ph2 = mkPlaceholder('Variação 2');
+  row.appendChild(ph1); row.appendChild(ph2);
+  bub.appendChild(row);
+  wrap.appendChild(bub);
+  div.appendChild(av); div.appendChild(wrap);
+  c.appendChild(div);
+  scrollDown();
+
+  loadImg(u1, ph1, type, style, dim, s1, prompt);
+  loadImg(u2, ph2, type, style, dim, s2, prompt);
+}
+
+function mkPlaceholder(label) {
+  const d = document.createElement('div');
+  d.className = 'img-placeholder';
+  d.innerHTML = `<span style="font-size:26px">🎨</span>
+    <span style="font-size:11px">${label}</span>
+    <div class="progress-bar"><div class="progress-fill"></div></div>`;
+  return d;
+}
+
+async function loadImg(url, ph, type, style, dim, seed, prompt, attempt) {
+  attempt = attempt || 1;
+  const MAX = 3, TIMEOUT = 42000;
+  try {
+    await new Promise((res, rej) => {
+      const img = new Image();
+      const t = setTimeout(() => { img.src = ''; rej(new Error('timeout')); }, TIMEOUT);
+      img.onload  = () => { clearTimeout(t); res(); };
+      img.onerror = () => { clearTimeout(t); rej(new Error('load error')); };
+      img.src = url + '&_=' + Date.now();
+    });
+
+    // Build image card to replace placeholder
+    const card = document.createElement('div');
+    card.className = 'img-card';
+
+    const img = document.createElement('img');
+    img.src = url; img.className = 'gen-img';
+    const aspH = Math.round(145 * dim.h / dim.w);
+    img.style.cssText = `width:145px;height:${aspH}px;object-fit:cover;`;
+    img.onclick = () => openLB(url);
+
+    const acts = document.createElement('div');
+    acts.className = 'img-acts';
+
+    const dlB = document.createElement('button');
+    dlB.className = 'ia-btn'; dlB.textContent = '⬇️ Baixar';
+    dlB.onclick = () => dlImg(url, `shinely-${type}-${style}-${Date.now()}.jpg`);
+
+    const retB = document.createElement('button');
+    retB.className = 'ia-btn'; retB.textContent = '🔄 Nova';
+    retB.onclick = () => {
+      const ns = Math.floor(Math.random() * 999983);
+      const nu = pollinationsUrl(prompt, dim.w, dim.h, ns);
+      const np = mkPlaceholder('Nova variação');
+      card.replaceWith(np);
+      loadImg(nu, np, type, style, dim, ns, prompt);
+    };
+
+    acts.appendChild(dlB); acts.appendChild(retB);
+    card.appendChild(img); card.appendChild(acts);
+
+    if (ph.parentNode) ph.parentNode.replaceChild(card, ph);
+    saveToGal(url, type, style, dim);
+    scrollDown();
+
+  } catch {
+    if (attempt < MAX) {
+      setTimeout(() => loadImg(url, ph, type, style, dim, seed, prompt, attempt + 1), 3500);
+    } else {
+      // Build error state with DOM (not innerHTML) so closures work
+      while (ph.firstChild) ph.removeChild(ph.firstChild);
+
+      const iconEl = document.createElement('span');
+      iconEl.style.fontSize = '22px'; iconEl.textContent = '❌';
+
+      const msgEl = document.createElement('span');
+      msgEl.style.cssText = 'font-size:11px;text-align:center';
+      msgEl.textContent = `Falhou após ${MAX} tentativas`;
+
+      const retBtn = document.createElement('button');
+      retBtn.style.cssText = 'font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-card);color:var(--text);margin-top:4px';
+      retBtn.textContent = '🔄 Tentar novamente';
+      retBtn.onclick = () => {
+        const ns  = Math.floor(Math.random() * 999983);
+        const nu  = pollinationsUrl(prompt, dim.w, dim.h, ns);
+        const np  = mkPlaceholder('Tentando...');
+        if (ph.parentNode) ph.parentNode.replaceChild(np, ph);
+        loadImg(nu, np, type, style, dim, ns, prompt);
+      };
+
+      ph.appendChild(iconEl);
+      ph.appendChild(msgEl);
+      ph.appendChild(retBtn);
+    }
+  }
+}
+
+function dlImg(url, name) {
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.target = '_blank';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('⬇️ Download iniciado!', 's');
+}
+
+/* ─── Gallery ────────────────────────────────────────────────── */
+function saveToGal(url, type, style, dim) {
+  S.gal.unshift({ id: Date.now().toString(36), url, type, style, size: `${dim.w}×${dim.h}`, label: dim.label, date: new Date().toISOString() });
+  if (S.gal.length > 20) S.gal.length = 20;
+  localStorage.setItem('sh_gal', JSON.stringify(S.gal));
+}
+
+function renderGal() {
+  const g = document.getElementById('galGrid');
+  if (!S.gal.length) {
+    g.innerHTML = `<div class="gal-empty">
+      <div style="font-size:44px;margin-bottom:10px">🖼️</div>
+      <div>Nenhuma imagem gerada ainda</div>
+      <div style="font-size:12px;margin-top:4px">Use os botões na aba Chat</div>
+    </div>`;
+    return;
+  }
+  g.innerHTML = S.gal.map(it => {
+    const d = new Date(it.date).toLocaleDateString('pt-BR');
+    return `<div class="gal-item">
+      <img class="gal-img" src="${it.url}" alt="${it.label}" data-url="${it.url}"
+           onclick="openLB(this.dataset.url)">
+      <div class="gal-overlay">
+        <button class="gal-act" onclick="dlImg('${it.url}','shinely-${it.type}-${it.style}.jpg')">⬇️</button>
+        <button class="gal-act" onclick="delGal('${it.id}')">🗑️</button>
+      </div>
+      <div class="gal-meta">${it.label} · ${it.style} · ${d}</div>
+    </div>`;
+  }).join('');
+}
+
+function delGal(id) {
+  S.gal = S.gal.filter(i => i.id !== id);
+  localStorage.setItem('sh_gal', JSON.stringify(S.gal));
+  renderGal();
+}
+function clearGallery() {
+  if (!confirm('Limpar toda a galeria?')) return;
+  S.gal = [];
+  localStorage.setItem('sh_gal', '[]');
+  renderGal();
+}
+
+/* ─── Lightbox ───────────────────────────────────────────────── */
+function openLB(url) {
+  S.lbUrl = url;
+  document.getElementById('lbImg').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLB() { document.getElementById('lightbox').classList.remove('open'); }
+function lbBgClick(e) { if (e.target.id === 'lightbox') closeLB(); }
+function dlLB() { dlImg(S.lbUrl, `shinely-image-${Date.now()}.jpg`); }
+
+/* ─── Toast ──────────────────────────────────────────────────── */
+function toast(msg, type) {
+  const c = document.getElementById('toasts');
+  const d = document.createElement('div');
+  d.className = `toast ${type||'i'}`;
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3100);
+}
+</script>
+</body>
+</html>

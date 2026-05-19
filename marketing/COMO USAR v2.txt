@@ -1,0 +1,160 @@
+╔══════════════════════════════════════════════════════════════╗
+║          SHINELY MARKETING AGENT v2.0 — COMO USAR           ║
+╚══════════════════════════════════════════════════════════════╝
+
+NOVIDADE: Não precisa mais de servidor! Abra o arquivo direto
+no Chrome com duplo-clique. Zero instalação, zero janela preta.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 1 — CONSEGUIR SUA API KEY (OpenRouter — RECOMENDADO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Acesse: https://openrouter.ai
+2. Crie uma conta gratuita (pode usar Google)
+3. No painel, vá em: Keys → Create Key
+4. Copie a chave — começa com "sk-or-..."
+5. Adicione créditos se necessário (mínimo $5 dura bastante)
+
+Por que OpenRouter?
+→ Funciona diretamente no browser (sem servidor)
+→ Acesso ao GPT-4o e outros modelos
+→ Sem janela preta, sem complicação
+
+Alternativa — Anthropic (também funciona sem servidor):
+1. Acesse: https://console.anthropic.com
+2. Crie conta e vá em API Keys
+3. Chave começa com "sk-ant-..."
+
+⚠️  OpenAI (sk-proj-...) ainda requer o servidor PowerShell antigo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSO 2 — ABRIR O AGENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Dê duplo-clique em: "Shinely Agent v2.html"
+2. Abre no Chrome (ou Edge)
+3. Uma janela de configuração aparece automaticamente
+4. Cole sua chave API e clique em "Salvar e Conectar"
+5. Pronto! ✅
+
+Na próxima vez que abrir, a chave já estará salva.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMO USAR — CHAT (aba 💬)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BOTÕES DE ATALHO (linha cinza no topo):
+  📸 Post Instagram   → Caption + hashtags + horário
+  🎵 Post TikTok      → Caption curta + max 5 hashtags
+  📘 Post Facebook    → Post informativo sem hashtags
+  🎬 Roteiro TikTok   → Script de 30s com HOOK/CONTEÚDO/CTA
+  📅 Calendário 7 dias→ Tabela completa da semana
+  💬 Responder comentário → 5 templates prontos
+  🧵 Thread Twitter/X → Thread com 6 tweets
+  💌 Email de lançamento → Email completo para early adopters
+  📊 Bio do perfil    → 3 opções de bio para o Instagram
+  🎯 10 Ideas Virais  → 10 ideias com gancho e estratégia
+
+DIGITANDO (caixa de texto embaixo):
+  Enter         = enviar mensagem
+  Shift + Enter = nova linha
+
+COPIAR RESPOSTAS:
+  Clique em "📋 Copiar" embaixo de qualquer resposta do agente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMO USAR — IMAGENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Escolha o ESTILO:
+   📸 Fotorrealista  → Foto profissional
+   🎨 Ilustração     → Arte digital, colorida
+   ✨ Minimalista    → Clean, elegante, espaço em branco
+
+2. Clique no FORMATO:
+   🖼️ Feed 1:1      → Instagram Feed / Facebook (1024×1024)
+   📱 Story 9:16    → Reels, Stories (576×1024)
+   🖥️ Capa 16:9    → YouTube / Facebook capa (1024×576)
+   📌 Portrait 4:5  → Instagram portrait (819×1024)
+
+3. O agente gera 2 variações em paralelo (20–40 segundos cada)
+
+4. Quando aparecer a imagem:
+   ⬇️ Baixar → salva no seu computador
+   🔄 Nova   → gera uma nova variação
+
+5. Clique na imagem para abrir em tela cheia (lightbox)
+
+Geração de imagens usa Pollinations.ai (grátis, sem API key extra)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMO USAR — BIBLIOTECA (aba 📚)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Posts e captions gerados são SALVOS AUTOMATICAMENTE aqui.
+
+→ Filtrar por plataforma: Instagram, TikTok, Facebook, etc.
+→ 📋 Copiar: copia o conteúdo completo
+→ 🗑️ Deletar: remove o item
+→ 📤 Exportar: baixa TUDO como arquivo .txt
+
+Limite: 50 itens (os mais antigos são removidos automaticamente)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMO USAR — GALERIA (aba 🖼️)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Todas as imagens geradas ficam aqui automaticamente.
+
+→ Passe o mouse sobre a imagem para ver os botões
+→ ⬇️ Download individual
+→ 🗑️ Deletar imagem
+→ Clique na imagem para ampliar
+→ 🗑️ Limpar galeria: remove todas as imagens
+
+Limite: 20 imagens salvas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTRAS FUNÇÕES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌙 / ☀️ (botão no header) → Modo escuro / claro
+⚙️  (botão no header)    → Alterar API key
+
+Tudo é salvo automaticamente no browser (localStorage).
+Fechar e reabrir mantém: biblioteca, galeria, chave API e tema.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUPORTE A APIs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  sk-or-...    OpenRouter (RECOMENDADO — sem servidor)
+  sk-ant-...   Anthropic Claude (sem servidor)
+  sk-proj-...  OpenAI (requer servidor PowerShell na porta 3000)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DICAS DE USO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Peça em português — o agente responde em pt-BR
+• Os posts e captions são gerados em INGLÊS (foco no mercado EUA)
+• Para o calendário semanal, você pode pedir para focar em uma
+  plataforma específica: "Calendário 7 dias só para TikTok"
+• Para ideias personalizadas: "Post focado em faxineiros que
+  querem mais clientes" ou "Caption para lançamento nos EUA"
+• Para variações: "Me dá mais 3 opções de caption para Instagram"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEMAS COMUNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Erro de API" → Verifique se a chave está correta em ⚙️
+"Imagem não carrega" → Pollinations.ai pode estar lento; aguarde
+                        ou clique em 🔄 Nova variação
+"Biblioteca vazia" → Só salva respostas com conteúdo de post
+                     (caption, hook, roteiro, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    ✨ Shinely — Sparkling Clean ✨
+                         @shinely.app · 4.9 ⭐
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
