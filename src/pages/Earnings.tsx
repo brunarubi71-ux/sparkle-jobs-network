@@ -1,10 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { DollarSign, TrendingUp, Briefcase, Calendar, ArrowUp, ArrowDown, Award } from "lucide-react";
+import { DollarSign, TrendingUp, Briefcase, Calendar, ArrowUp, ArrowDown, Award, ArrowUpRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { PayoutSetup } from "@/components/PayoutSetup";
+import { WithdrawDialog } from "@/components/WithdrawDialog";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useState, useEffect, useMemo } from "react";
@@ -23,6 +25,11 @@ export default function Earnings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<EarningRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
+  const isOnboarded = (profile as any)?.stripe_connect_onboarded === true;
+  const canWithdraw = profile?.role === "cleaner" && isOnboarded;
 
   // Handle return from Stripe Connect onboarding
   useEffect(() => {
@@ -55,15 +62,19 @@ export default function Earnings() {
     if (!user) return;
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("wallet_transactions")
-          .select("amount, created_at, description, job_id")
-          .eq("user_id", user.id)
-          .eq("type", "credit")
-          .not("job_id", "is", null)
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        setJobs((data as EarningRow[]) || []);
+        const [txRes, profileRes] = await Promise.all([
+          supabase
+            .from("wallet_transactions")
+            .select("amount, created_at, description, job_id")
+            .eq("user_id", user.id)
+            .eq("type", "credit")
+            .not("job_id", "is", null)
+            .order("created_at", { ascending: false }),
+          supabase.from("profiles").select("wallet_balance").eq("id", user.id).maybeSingle(),
+        ]);
+        if (txRes.error) throw txRes.error;
+        setJobs((txRes.data as EarningRow[]) || []);
+        setWalletBalance(Number((profileRes.data as any)?.wallet_balance || 0));
       } catch (err) {
         console.error("[Earnings] fetch error:", err);
         toast.error("Couldn't load earnings. Please check your connection.");
@@ -127,6 +138,22 @@ export default function Earnings() {
             onboarded={(profile as any).stripe_connect_onboarded ?? false}
             onRefresh={refreshProfile}
           />
+        )}
+
+        {/* Withdraw button — shown once bank is connected and there is a balance */}
+        {canWithdraw && (
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+            <Button
+              onClick={() => setWithdrawOpen(true)}
+              disabled={walletBalance < 5}
+              className="w-full h-14 rounded-2xl gradient-primary text-primary-foreground font-semibold text-base gap-2"
+            >
+              <ArrowUpRight className="w-5 h-5" />
+              {walletBalance >= 5
+                ? `Sacar $${walletBalance.toFixed(2)} para conta bancária`
+                : `Saldo disponível: $${walletBalance.toFixed(2)} (mínimo $5)`}
+            </Button>
+          </motion.div>
         )}
 
         {/* Total Earnings Hero Card */}
@@ -275,6 +302,14 @@ export default function Earnings() {
           </div>
         )}
       </div>
+
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        walletBalance={walletBalance}
+        onSuccess={(newBalance) => setWalletBalance(newBalance)}
+      />
+
       <BottomNav />
     </div>
   );
