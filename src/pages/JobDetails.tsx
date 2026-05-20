@@ -415,7 +415,7 @@ export default function JobDetails() {
     // Platform keeps 10%. Of the remaining 90%:
     //   - If the job has BOTH cleaners and helpers: cleaners share 70%, helpers share 30%
     //   - If the job is cleaner-only: cleaners share 100% of the pool
-    const total = Number(job.total_amount || job.price || 0);
+    const total = Number(job.price || 0);
     const platformFee = Math.round(total * 0.10 * 100) / 100;
     const workerPool = Math.round((total - platformFee) * 100) / 100;
 

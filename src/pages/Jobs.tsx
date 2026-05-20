@@ -283,6 +283,16 @@ export default function Jobs() {
         rawJobs = rawJobs.filter(j => j.status === "open" && !j.hired_cleaner_id);
       }
 
+      // Remove jobs this user has already applied to (any status — pending, accepted, etc.)
+      if (user) {
+        const { data: myApps } = await supabase
+          .from("job_applications")
+          .select("job_id")
+          .eq("cleaner_id", user.id);
+        const myAppliedIds = new Set((myApps || []).map((a: any) => a.job_id));
+        rawJobs = rawJobs.filter(j => !myAppliedIds.has(j.id));
+      }
+
       // Fetch owner profile info (name, avatar, verification)
       const ownerIds = Array.from(new Set(rawJobs.map(j => j.owner_id)));
       const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();

@@ -262,7 +262,7 @@ export default function MyJobs() {
 
     // ── Payout: credit each worker's wallet ──────────────────────────────
     try {
-      const total = Number((job as any)?.total_amount || (job as any)?.price || 0);
+      const total = Number((job as any)?.price || 0);
       if (total > 0) {
         // Collect all hired workers
         const hiredIds = new Set<string>();
