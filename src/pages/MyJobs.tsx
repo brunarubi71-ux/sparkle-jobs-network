@@ -13,7 +13,9 @@ import EmptyState from "@/components/EmptyState";
 import BackToTop from "@/components/BackToTop";
 import PullToRefresh from "@/components/PullToRefresh";
 import { toast } from "sonner";
-import { sendNotifications } from "@/lib/notifications";
+import { sendNotification, sendNotifications } from "@/lib/notifications";
+import { getWorkerShare } from "@/lib/earnings";
+import { syncBadges } from "@/lib/badges";
 import ReviewModal from "@/components/ReviewModal";
 import DisputeModal from "@/components/DisputeModal";
 import { awardPoints } from "@/lib/points";
@@ -58,6 +60,7 @@ export default function MyJobs() {
   const [jobs, setJobs] = useState<JobWithApplicants[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewJob, setReviewJob] = useState<{ jobId: string; reviewedId: string } | null>(null);
+  const [reviewedJobIds, setReviewedJobIds] = useState<Set<string>>(new Set());
   const [disputeJob, setDisputeJob] = useState<{ jobId: string; reportedId: string } | null>(null);
   const [activeTab, setActiveTab] = useState("active");
   const [paymentJob, setPaymentJob] = useState<{ jobId: string; amountInCents: number; title: string } | null>(null);
@@ -98,6 +101,13 @@ export default function MyJobs() {
         jobsWithApplicants.push({ ...job, applicants } as JobWithApplicants);
       }
       setJobs(jobsWithApplicants);
+
+      // Track which jobs the owner has already reviewed
+      const { data: myReviews } = await supabase
+        .from("reviews")
+        .select("job_id")
+        .eq("reviewer_id", user!.id);
+      setReviewedJobIds(new Set((myReviews || []).map((r: any) => r.job_id)));
     } catch (err) {
       console.error("[MyJobs] fetch error:", err);
       toast.error("Couldn't load your jobs. Please check your connection and try again.");
@@ -250,12 +260,77 @@ export default function MyJobs() {
       return;
     }
 
-    // Award points: owner gets owner_job_completed; worker gets job_completed (+ first_job bonus)
+    // ── Payout: credit each worker's wallet ──────────────────────────────
+    try {
+      const total = Number((job as any)?.total_amount || (job as any)?.price || 0);
+      if (total > 0) {
+        // Collect all hired workers
+        const hiredIds = new Set<string>();
+        if (job?.hired_cleaner_id) hiredIds.add(job.hired_cleaner_id);
+        const { data: acceptedApps } = await supabase
+          .from("job_applications")
+          .select("cleaner_id")
+          .eq("job_id", jobId)
+          .eq("status", "accepted");
+        (acceptedApps || []).forEach((a: any) => { if (a.cleaner_id) hiredIds.add(a.cleaner_id); });
+
+        const workerIds = Array.from(hiredIds);
+        const { data: workerProfiles } = await supabase
+          .from("profiles")
+          .select("id, jobs_completed, total_earnings, helper_earnings, worker_type")
+          .in("id", workerIds);
+        const profileMap = new Map((workerProfiles || []).map((p: any) => [p.id, p]));
+        const cleanerIds = workerIds.filter(wid => profileMap.get(wid)?.worker_type !== "helper");
+        const helperIds  = workerIds.filter(wid => profileMap.get(wid)?.worker_type === "helper");
+
+        for (const workerId of workerIds) {
+          try {
+            const wp = profileMap.get(workerId);
+            if (!wp) continue;
+            const isHelper = wp.worker_type === "helper";
+            const earned = Math.round(
+              getWorkerShare(total, cleanerIds.length, helperIds.length, isHelper ? "helper" : "cleaner") * 100
+            ) / 100;
+            if (earned <= 0) continue;
+
+            const newJobs     = (wp.jobs_completed || 0) + 1;
+            const newEarnings = Math.round((Number(wp.total_earnings || 0) + earned) * 100) / 100;
+            const profileUpdate: Record<string, unknown> = { jobs_completed: newJobs, total_earnings: newEarnings };
+            if (isHelper) profileUpdate.helper_earnings = Math.round((Number(wp.helper_earnings || 0) + earned) * 100) / 100;
+            await supabase.from("profiles").update(profileUpdate as any).eq("id", workerId);
+
+            await supabase.rpc("credit_wallet", {
+              p_user_id: workerId,
+              p_amount: earned,
+              p_description: `Earnings from "${(job as any)?.title || "job"}"`,
+              p_job_id: jobId,
+            });
+
+            await sendNotification({
+              userId: workerId,
+              title: "Payment Received 💰",
+              message: `You received $${earned.toFixed(2)} for completing "${(job as any)?.title || "job"}"!`,
+              type: "payment_received",
+              relatedId: jobId,
+              link: "/wallet",
+            });
+
+            await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: 0, totalEarnings: newEarnings }, isHelper ? "helper" : "cleaner");
+          } catch (e) {
+            console.error("[MyJobs] payout error for worker", workerId, e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[MyJobs] payout block failed:", e);
+    }
+
+    // Award points: owner gets owner_job_completed; workers get job_completed (+ first_job bonus)
     try {
       if (user) await awardPoints(user.id, "owner_job_completed");
       if (job?.hired_cleaner_id) {
         await awardPoints(job.hired_cleaner_id, "job_completed");
-        await awardPoints(job.hired_cleaner_id, "first_job_completed"); // one-time
+        await awardPoints(job.hired_cleaner_id, "first_job_completed");
       }
     } catch {}
 
@@ -524,11 +599,14 @@ export default function MyJobs() {
               <Eye className="w-3 h-3 mr-1" /> {t("myjobs.view_details")}
             </Button>
           )}
-          {job.status === "completed" && (
+          {job.status === "completed" && !reviewedJobIds.has(job.id) && (
             <Button size="sm" variant="outline" onClick={() => job.hired_cleaner_id && setReviewJob({ jobId: job.id, reviewedId: job.hired_cleaner_id })}
               className="flex-1 h-9 text-xs rounded-xl">
               <Star className="w-3 h-3 mr-1" /> {t("myjobs.review")}
             </Button>
+          )}
+          {job.status === "completed" && reviewedJobIds.has(job.id) && (
+            <span className="flex-1 text-center text-xs text-muted-foreground py-2">✓ {t("myjobs.reviewed") || "Review submitted"}</span>
           )}
           {["pending_payment", "open"].includes(job.status) && (
             <Button
@@ -616,7 +694,7 @@ export default function MyJobs() {
       </div>
 
       {reviewJob && (
-        <ReviewModal open={!!reviewJob} onClose={() => { setReviewJob(null); fetchJobs(); }} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />
+        <ReviewModal open={!!reviewJob} onClose={() => { setReviewedJobIds(prev => new Set([...prev, reviewJob!.jobId])); setReviewJob(null); fetchJobs(); }} jobId={reviewJob.jobId} reviewedId={reviewJob.reviewedId} />
       )}
       {disputeJob && (
         <DisputeModal open={!!disputeJob} onClose={() => { setDisputeJob(null); fetchJobs(); }} jobId={disputeJob.jobId} reportedId={disputeJob.reportedId} />
