@@ -29,7 +29,7 @@ export default function JobDetails() {
   const [ownerVerified, setOwnerVerified] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper"; submitted_at: string | null }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper"; submitted_at: string | null; started_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -104,10 +104,11 @@ export default function JobDetails() {
       if (totalReq >= 2) {
         const { data: apps } = await supabase
           .from("job_applications")
-          .select("cleaner_id, status, submitted_at")
+          .select("cleaner_id, status, submitted_at, started_at")
           .eq("job_id", (data as any).id)
           .eq("status", "accepted");
         const submittedMap = new Map((apps || []).map((a: any) => [a.cleaner_id, (a as any).submitted_at ?? null]));
+        const startedMap = new Map((apps || []).map((a: any) => [a.cleaner_id, (a as any).started_at ?? null]));
         const ids = (apps || []).map((a: any) => a.cleaner_id);
         if (ids.length > 0) {
           const { data: profs } = await supabase
@@ -121,6 +122,7 @@ export default function JobDetails() {
               avatar_url: p.avatar_url,
               worker_type: p.worker_type === "helper" ? "helper" : "cleaner",
               submitted_at: submittedMap.get(p.id) ?? null,
+              started_at: startedMap.get(p.id) ?? null,
             }))
           );
         } else {
@@ -142,7 +144,9 @@ export default function JobDetails() {
   const isTeamJob = ((job?.cleaners_required ?? 1) + (job?.helpers_required ?? 0)) > 1;
   const myMember = teamMembers.find(m => m.id === user?.id);
   const mySubmittedAt = myMember?.submitted_at ?? null;
+  const myStartedAt = isTeamJob ? (myMember?.started_at ?? null) : null;
   const pendingSubmitCount = teamMembers.filter(m => !m.submitted_at).length;
+  const pendingStartCount = isTeamJob ? teamMembers.filter(m => !m.started_at).length : 0;
 
   // Solo start logic: helpers required but none accepted yet
   const helpersRequired = job?.helpers_required ?? 0;
@@ -167,14 +171,28 @@ export default function JobDetails() {
     }
     setStartingJob(true);
     try {
-      const { data, error } = await supabase
-        .from("jobs")
-        .update({ status: "in_progress" })
-        .eq("id", id)
-        .select("id");
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error("permission_denied");
-      toast.success(t("job.started_success"));
+      if (isTeamJob) {
+        // Per-worker start: atomic RPC sets started_at, moves job to in_progress once everyone starts
+        const { data: rpcData, error: rpcErr } = await supabase.rpc("start_team_job", { p_job_id: id });
+        if (rpcErr) throw rpcErr;
+        const result = rpcData as { all_started: boolean; pending_count: number; error?: string };
+        if (result?.error) throw new Error(result.error);
+        if (result?.all_started) {
+          toast.success(t("job.started_success"));
+        } else {
+          toast.success(`Você iniciou! Aguardando ${result?.pending_count ?? ""} membro(s) da equipe.`);
+        }
+      } else {
+        // Solo job: direct status update
+        const { data, error } = await supabase
+          .from("jobs")
+          .update({ status: "in_progress" })
+          .eq("id", id)
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error("permission_denied");
+        toast.success(t("job.started_success"));
+      }
       await fetchJob();
     } catch (e: any) {
       console.error("[JobDetails] startJob failed:", e);
@@ -956,25 +974,65 @@ export default function JobDetails() {
 
         {/* Cleaner: Start Job */}
         {isCleaner && ["accepted", "hired"].includes(job.status) && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Button
-              onClick={startJob}
-              disabled={startingJob || startBlockedByMissingHelper}
-              title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
-              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Play className="w-6 h-6 mr-2" />
-              {startingJob ? t("job.starting") : t("job.start")}
-            </Button>
-            {startBlockedByMissingHelper && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
-                ⏳ Waiting for Helper to be hired or Owner approval
-              </p>
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="space-y-3">
+            {/* Team start status panel */}
+            {isTeamJob && teamMembers.length > 0 && (
+              <div className="bg-card rounded-2xl shadow-card p-4">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Status de início da equipe
+                </h3>
+                <div className="space-y-2">
+                  {teamMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.started_at ? "bg-emerald-500" : "bg-amber-400"}`} />
+                      <span className="text-sm flex-1 text-foreground">
+                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                      </span>
+                      <span className={`text-xs font-medium ${m.started_at ? "text-emerald-600" : "text-amber-600"}`}>
+                        {m.started_at ? "✅ Iniciado" : "⏳ Aguardando"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            {helperMissing && allowSoloStart && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 text-center font-medium">
-                ✓ Owner approved solo start
-              </p>
+
+            {/* Show button if this worker hasn't started yet */}
+            {!myStartedAt ? (
+              <>
+                <Button
+                  onClick={startJob}
+                  disabled={startingJob || startBlockedByMissingHelper}
+                  title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
+                  className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Play className="w-6 h-6 mr-2" />
+                  {startingJob ? t("job.starting") : t("job.start")}
+                </Button>
+                {startBlockedByMissingHelper && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                    ⏳ Waiting for Helper to be hired or Owner approval
+                  </p>
+                )}
+                {helperMissing && allowSoloStart && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+                    ✓ Owner approved solo start
+                  </p>
+                )}
+              </>
+            ) : (
+              /* This worker started — waiting for others */
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-7 h-7 text-indigo-500" />
+                </div>
+                <h3 className="font-bold text-foreground mb-1">Você já iniciou!</h3>
+                <p className="text-sm text-muted-foreground">
+                  {pendingStartCount > 0
+                    ? `Aguardando ${pendingStartCount} membro(s) da equipe iniciar.`
+                    : "Todos iniciaram — o trabalho está em andamento."}
+                </p>
+              </div>
             )}
           </motion.div>
         )}

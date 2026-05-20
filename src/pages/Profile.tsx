@@ -138,7 +138,7 @@ export default function Profile() {
     // Always pull fresh "My Rating" = avg of reviews where reviewed_id = current user
     const { data: received } = await supabase
       .from("reviews")
-      .select("rating, review_text, created_at, id")
+      .select("rating, comment, created_at, id")
       .eq("reviewed_id", user.id)
       .eq("is_hidden", false)
       .order("created_at", { ascending: false });
@@ -508,7 +508,7 @@ export default function Profile() {
                     <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                {r.review_text && <p className="text-xs text-muted-foreground">{r.review_text}</p>}
+                {r.comment && <p className="text-xs text-muted-foreground">{r.comment}</p>}
               </div>
             ))}
           </motion.div>

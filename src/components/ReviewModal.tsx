@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,13 +26,15 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
     if (!user) return;
     setLoading(true);
     try {
-      await supabase.from("reviews").insert({
+      const { error: insertError } = await supabase.from("reviews").insert({
         job_id: jobId,
         reviewer_id: user.id,
         reviewed_id: reviewedId,
         rating,
-        review_text: text || null,
+        comment: text || null,
+        reviewer_role: profile?.role ?? "cleaner",
       });
+      if (insertError) throw insertError;
 
       // Lookup reviewer name + reviewed person's role for points + notification
       let reviewerName = "Someone";
