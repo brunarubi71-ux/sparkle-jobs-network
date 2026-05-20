@@ -1662,7 +1662,7 @@ function DisputeCard({
             </Button>
             <Button
               size="sm"
-              disabled={saving || !job?.hired_cleaner_id}
+              disabled={saving || (!dispute.against && !job?.hired_cleaner_id)}
               onClick={() => resolve("pay_cleaner")}
               className="h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] disabled:opacity-50"
             >
