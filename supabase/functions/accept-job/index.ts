@@ -153,8 +153,11 @@ Deno.serve(async (req) => {
     }
 
     // All jobs accept applications while status is open or applied.
-    // Owner confirms/selects workers — no auto-accept for anyone.
-    if (!["open", "applied"].includes(jobRow.status) || jobRow.hired_cleaner_id) {
+    // For solo jobs: also block when hired_cleaner_id is already set.
+    // For team jobs (helpers_required > 0): hired_cleaner_id being set is fine —
+    //   the helper slot may still be open.
+    const soloJobFilled = helpersRequired === 0 && !!jobRow.hired_cleaner_id;
+    if (!["open", "applied"].includes(jobRow.status) || soloJobFilled) {
       return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

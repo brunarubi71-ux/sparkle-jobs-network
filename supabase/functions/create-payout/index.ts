@@ -94,6 +94,21 @@ serve(async (req) => {
     const connectAccountId: string = profile.stripe_connect_account_id;
 
     try {
+      // In test mode: ensure platform has enough Stripe balance before transferring.
+      // (Job payments via internal wallet don't fund the Stripe platform balance.)
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+      if (stripeKey.startsWith("sk_test_")) {
+        try {
+          await (stripe as any).testHelpers.topups.create({
+            amount: amountCents + 10000,
+            currency: "usd",
+            description: "Test balance top-up for worker payout",
+          });
+        } catch (topupErr) {
+          console.warn("[create-payout] test topup failed (non-fatal):", topupErr);
+        }
+      }
+
       // 1. Transfer funds from platform → connected account
       const transfer = await stripe.transfers.create({
         amount: amountCents,
