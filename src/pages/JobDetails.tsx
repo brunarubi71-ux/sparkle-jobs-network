@@ -197,7 +197,7 @@ export default function JobDetails() {
 
     const uploadOne = async (file: File, offset: number) => {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${id}/completion/foto_${baseIndex + offset + 1}_${Date.now()}_${offset}.${ext}`;
+      const path = `${user!.id}/${id}/completion/foto_${baseIndex + offset + 1}_${Date.now()}_${offset}.${ext}`;
       const { error } = await supabase.storage.from("property-photos").upload(path, file);
       completed += 1;
       setUploadProgress({ done: completed, total: files.length });

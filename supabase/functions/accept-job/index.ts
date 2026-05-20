@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     const usedThisWeek = confirmedThisWeek ?? 0;
     const tier = profile.plan_tier ?? "free";
     const maxJobsPerWeek =
-      tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 5 : 1;
+      tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 7 : 2;
 
     if (Number.isFinite(maxJobsPerWeek) && usedThisWeek >= maxJobsPerWeek) {
       return new Response(JSON.stringify({ success: false, error: "Weekly job limit reached. Upgrade your plan for more jobs." }), {
