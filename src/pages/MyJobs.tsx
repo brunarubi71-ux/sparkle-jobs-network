@@ -121,6 +121,25 @@ export default function MyJobs() {
   };
 
   const hireTeamWorker = async (jobId: string, workerId: string) => {
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return;
+
+    // Enforce per-role slot capacity before accepting
+    const app = job.applicants.find(a => a.cleaner_id === workerId);
+    const workerType = app?.worker_type ?? "cleaner";
+    const slotsForType = workerType === "helper"
+      ? (job.helpers_required ?? 0)
+      : (job.cleaners_required ?? 1);
+    const acceptedOfType = job.applicants.filter(
+      a => a.worker_type === workerType && (a.status === "accepted" || a.status === "hired")
+    ).length;
+    if (acceptedOfType >= slotsForType) {
+      toast.error(workerType === "helper"
+        ? "All Helper slots are already filled"
+        : "All Cleaner slots are already filled");
+      return;
+    }
+
     const { error } = await supabase
       .from("job_applications")
       .update({ status: "accepted" })
@@ -128,24 +147,19 @@ export default function MyJobs() {
       .eq("cleaner_id", workerId);
     if (error) { toast.error(t("errors.generic")); return; }
 
-    const job = jobs.find((j) => j.id === jobId);
-    if (job) {
-      // Set hired_cleaner_id to first accepted cleaner for backwards compat
-      if (!job.hired_cleaner_id) {
-        const app = job.applicants.find(a => a.cleaner_id === workerId);
-        if (app?.worker_type === "cleaner") {
-          await supabase.from("jobs").update({ hired_cleaner_id: workerId }).eq("id", jobId);
-        }
-      }
-      const totalRequired = (job.cleaners_required ?? 1) + (job.helpers_required ?? 0);
-      const { count: filled } = await supabase
-        .from("job_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("job_id", jobId)
-        .eq("status", "accepted");
-      if ((filled ?? 0) >= totalRequired) {
-        await supabase.from("jobs").update({ status: "accepted" }).eq("id", jobId);
-      }
+    // Set hired_cleaner_id to first accepted cleaner for backwards compat
+    if (!job.hired_cleaner_id && workerType === "cleaner") {
+      await supabase.from("jobs").update({ hired_cleaner_id: workerId }).eq("id", jobId);
+    }
+
+    const totalRequired = (job.cleaners_required ?? 1) + (job.helpers_required ?? 0);
+    const { count: filled } = await supabase
+      .from("job_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("job_id", jobId)
+      .eq("status", "accepted");
+    if ((filled ?? 0) >= totalRequired) {
+      await supabase.from("jobs").update({ status: "accepted" }).eq("id", jobId);
     }
 
     try {
@@ -368,7 +382,7 @@ export default function MyJobs() {
 
         {/* Applicants for active jobs */}
         {job.applicants.length > 0 && ACTIVE_STATUSES.includes(job.status) && (() => {
-          const isTeam = (job.team_size_required ?? 1) >= 2;
+          const isTeam = ((job.cleaners_required ?? 1) + (job.helpers_required ?? 0)) >= 2;
           const cleanerApps = job.applicants.filter(a => a.worker_type === "cleaner");
           const helperApps = job.applicants.filter(a => a.worker_type === "helper");
 
