@@ -88,7 +88,12 @@ serve(async (req) => {
           trial_settings: {
             end_behavior: { missing_payment_method: "cancel" },
           },
-          ...(userId && { metadata: { userId } }),
+          // Embed userId AND planTier in metadata so the webhook can link user + determine
+          // tier even when the price ID isn't in its lookup map (e.g. test mode prices).
+          metadata: {
+            ...(userId && { userId }),
+            planTier: priceId.includes("premium") ? "premium" : "pro",
+          },
         },
       }),
     });

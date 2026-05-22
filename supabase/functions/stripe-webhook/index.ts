@@ -129,10 +129,24 @@ Deno.serve(async (req) => {
 });
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  if (session.payment_status !== "paid") return;
-
   const purpose = session.metadata?.purpose;
   const userId = session.metadata?.userId;
+
+  // For subscription checkouts: pre-link stripe_customer_id so future events can
+  // resolve the user without relying on email lookup. Do this regardless of
+  // payment_status (trials have status "no_payment_required").
+  if (!purpose && userId && session.customer) {
+    const customerId = typeof session.customer === "string" ? session.customer : (session.customer as any).id;
+    const { error: linkErr } = await supabase
+      .from("profiles")
+      .update({ stripe_customer_id: customerId })
+      .eq("id", userId)
+      .is("stripe_customer_id", null);
+    if (linkErr) console.error("[checkout.completed] failed to link stripe_customer_id:", linkErr);
+    else console.log(`[checkout.completed] linked stripe_customer_id ${customerId} to user ${userId}`);
+  }
+
+  if (session.payment_status !== "paid") return;
 
   if (purpose === "job_payment") {
     const jobId = session.metadata?.jobId;
@@ -173,22 +187,36 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
     ? item.price.product
     : item.price.product.id;
 
-  const knownTier = PRICE_ID_TO_PLAN[priceId] ?? null;
+  // Determine environment from livemode flag on the subscription object
+  const environment: "live" | "sandbox" = sub.livemode ? "live" : "sandbox";
+
+  // Resolve tier: first from price ID map, then from subscription metadata (set by create-checkout)
+  const tierFromPrice = PRICE_ID_TO_PLAN[priceId] ?? null;
+  const tierFromMeta = (sub.metadata?.planTier as "pro" | "premium") ?? null;
+  const knownTier: "pro" | "premium" | null = tierFromPrice ?? tierFromMeta;
+
   const isActive = ACTIVE_STATUSES.has(sub.status);
 
-  const userId = await resolveUserId(customerId);
+  // Primary: resolve user from stripe_customer_id or email lookup.
+  // Fallback: use userId embedded in subscription metadata by create-checkout.
+  let userId = await resolveUserId(customerId);
+  if (!userId && sub.metadata?.userId) {
+    userId = sub.metadata.userId;
+    console.log(`[sub.upsert] resolved userId from sub.metadata: ${userId}`);
+  }
   if (!userId) {
-    console.warn(`Skipping: no Supabase user for stripe customer ${customerId}`);
+    console.warn(`[sub.upsert] skipping: no Supabase user for stripe customer ${customerId}`);
     return;
   }
 
+  // Always keep stripe_customer_id in sync on the profile
   await supabase
     .from("profiles")
     .update({ stripe_customer_id: customerId })
     .eq("id", userId)
     .is("stripe_customer_id", null);
 
-  await supabase.from("subscriptions").upsert({
+  const { error: upsertErr } = await supabase.from("subscriptions").upsert({
     user_id: userId,
     stripe_customer_id: customerId,
     stripe_subscription_id: sub.id,
@@ -196,19 +224,21 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
     plan_name: knownTier ?? "unknown",
     product_id: productId,
     price_id: priceId,
+    environment,
     current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
     current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
     cancel_at_period_end: sub.cancel_at_period_end,
     trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
     trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
   }, { onConflict: "stripe_subscription_id" });
+  if (upsertErr) console.error("[sub.upsert] subscriptions upsert error:", upsertErr);
 
-  // Profile updates: only mutate plan_tier/is_premium when we can resolve the tier.
-  // Unknown price + active sub means a config gap — log and preserve existing tier
-  // rather than silently downgrade a paying customer.
   if (!knownTier && isActive) {
+    // Tier still unknown (price not in map, no metadata) — mark as premium so the
+    // user isn't stuck on "free" while paying. plan_tier stays unchanged to avoid
+    // silently downgrading a user already on a known tier.
     console.warn(
-      `Unknown price ${priceId} (product ${productId}) on active sub ${sub.id} — preserving plan_tier`,
+      `[sub.upsert] unknown price ${priceId} on active sub ${sub.id} — marking is_premium only`,
     );
     await supabase
       .from("profiles")
@@ -232,6 +262,8 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
       free_trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
     })
     .eq("id", userId);
+
+  console.log(`[sub.upsert] updated user ${userId} → plan_tier=${isActive ? knownTier : "free"} status=${sub.status}`);
 }
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {

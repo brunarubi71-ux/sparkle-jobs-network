@@ -56,7 +56,8 @@ export default function Premium() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   const currentTier = (profile?.plan_tier || "free") as "free" | "pro" | "premium";
-  const isPaid = currentTier !== "free";
+  // Treat is_premium=true as paid even if plan_tier hasn't been updated yet by webhook
+  const isPaid = currentTier !== "free" || (profile as any)?.is_premium === true;
   const isOwner = profile?.role === "owner";
   // Trial is only for first-time subscribers — once free_trial_started_at is set they've used it.
   const trialEligible = !(profile as any)?.free_trial_started_at;
