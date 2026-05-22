@@ -227,7 +227,7 @@ export default function Jobs() {
       // - "applied" jobs (partially filled team jobs — helpers may still be needed)
       const { data, error } = await supabase
         .from("jobs")
-        .select("*")
+        .select("id,owner_id,title,cleaning_type,price,total_amount,cleaner_earnings,helper_earnings,bedrooms,bathrooms,city,latitude,longitude,urgency,status,escrow_status,description,date_time,team_size_required,hired_cleaner_id,hired_helper_id,pending_review_at,owner_confirmed_completion,completion_notes,completion_photos,property_photos,main_property_photo,number_of_guests,guest_stay_length,created_at,cleaners_required,helpers_required,allow_solo_start")
         .in("status", ["open", "applied"])
         .order("created_at", { ascending: false });
       if (error) throw error;
