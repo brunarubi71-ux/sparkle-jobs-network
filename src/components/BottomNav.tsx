@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
+import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet, CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,6 +162,7 @@ export default function BottomNav() {
     { path: "/", label: t("nav.jobs"), icon: Briefcase, badge: 0 },
     { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList, badge: 0 },
     { path: "/earnings", label: t("nav.earnings"), icon: DollarSign, badge: 0 },
+    { path: "/schedules", label: t("nav.schedules"), icon: CalendarDays, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
     { path: "/premium", label: t("nav.premium"), icon: Crown, badge: 0 },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
@@ -171,6 +172,7 @@ export default function BottomNav() {
     { path: "/post-job", label: t("nav.post_job"), icon: PlusCircle, badge: 0 },
     { path: "/my-jobs", label: t("nav.my_jobs"), icon: List, badge: pendingReviewCount + pendingApplicantsCount },
     { path: "/wallet", label: t("nav.wallet"), icon: Wallet, badge: 0 },
+    { path: "/schedules", label: t("nav.schedules"), icon: CalendarDays, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
