@@ -78,7 +78,7 @@ serve(async (req) => {
       payment_method_collection: "always",
       return_url: returnUrl ||
         `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
-      ...(customerEmail && { customer_email: customerEmail }),
+      // Do not pass customer_email to avoid triggering Stripe Link auto-recognition
       ...(userId && { metadata: { userId } }),
       ...(isRecurring && {
         subscription_data: {
