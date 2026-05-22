@@ -208,11 +208,11 @@ export default function BottomNav() {
         </div>
         <div className="border-t border-border/60 py-1.5 px-4 flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-3">
-            <Link to="/terms" className="hover:text-primary">Terms</Link>
+            <Link to="/terms" className="hover:text-primary">{t("footer.terms")}</Link>
             <span aria-hidden="true">·</span>
-            <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+            <Link to="/privacy" className="hover:text-primary">{t("footer.privacy")}</Link>
             <span aria-hidden="true">·</span>
-            <Link to="/cancellation" className="hover:text-primary">Cancellation</Link>
+            <Link to="/cancellation" className="hover:text-primary">{t("footer.cancellation")}</Link>
           </div>
           <LanguageSwitcher variant="floating" />
         </div>

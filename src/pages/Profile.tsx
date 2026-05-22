@@ -269,7 +269,9 @@ export default function Profile() {
         <h1 className="text-xl font-bold text-primary-foreground">{profile.full_name || "User"}</h1>
 
         <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
-          <span className="text-primary-foreground/80 text-sm capitalize font-medium">{profile.role}</span>
+          <span className="text-primary-foreground/80 text-sm font-medium">
+            {profile.role === "owner" ? t("profile.job_owner") : t("profile.cleaner")}
+          </span>
           {activePlanTier === "pro" && (
             <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
               <Crown className="w-3 h-3 mr-1" /> Pro

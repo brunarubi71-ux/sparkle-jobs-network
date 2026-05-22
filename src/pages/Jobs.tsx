@@ -466,7 +466,7 @@ export default function Jobs() {
       setSelectedJob(null);
       setConfirmJob(null);
       toast.success(t("common.job_accepted"));
-      const isTeamJob = ((job.cleaners_required ?? 1) + (job.helpers_required ?? 0)) > 1;
+      const isTeamJob = ((job.cleaners_required ?? 0) + (job.helpers_required ?? 0)) > 1;
       navigate(`/cleaner-my-jobs?tab=${isTeamJob ? "active" : "applied"}&highlight=${job.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.failed_apply"));
@@ -512,7 +512,7 @@ export default function Jobs() {
             <Marker
               key={job.id}
               position={getJobPosition(job, index, mapCenter)}
-              icon={createPriceIcon(profile?.role === "cleaner" ? getWorkerShare(job.price, job.cleaners_required ?? 1, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner") : job.price, selectedJob?.id === job.id)}
+              icon={createPriceIcon(profile?.role === "cleaner" ? getWorkerShare(job.price, job.cleaners_required ?? 0, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner") : job.price, selectedJob?.id === job.id)}
               eventHandlers={{ click: () => setSelectedJob(job) }}
             />
           ))}
@@ -719,7 +719,7 @@ export default function Jobs() {
                   <div>
                     {profile?.role === "cleaner" ? (
                       <>
-                        <p className="text-2xl font-bold text-emerald-600">${getWorkerShare(job.price, job.cleaners_required ?? 1, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner").toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-emerald-600">${getWorkerShare(job.price, job.cleaners_required ?? 0, job.helpers_required ?? 0, (profile?.worker_type as "cleaner" | "helper") ?? "cleaner").toFixed(2)}</p>
                         <p className="text-[11px] font-medium text-muted-foreground -mt-0.5">{t("jobs.your_earnings")}</p>
                       </>
                     ) : (

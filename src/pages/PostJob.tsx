@@ -364,12 +364,40 @@ export default function PostJob() {
     submitJob("card");
   };
 
-  const handlePayWallet = () => {
+  const handlePayWallet = async () => {
     const price = parseFloat(form.price) || 0;
     const fee = Math.round(price * 0.1 * 100) / 100;
     const total = Math.round((price + fee) * 100) / 100;
     if (walletBalance < total) {
       toast.error("Insufficient wallet balance. Add funds or pay with card.");
+      return;
+    }
+    // If user came back from card checkout, a job already exists — pay for it via wallet
+    if (pendingJob) {
+      setLoading(true);
+      setConfirmOpen(false);
+      try {
+        const { error: debitError } = await supabase.rpc("debit_wallet", {
+          p_amount: total,
+          p_description: `Job posted: ${pendingJob.title}`,
+          p_job_id: pendingJob.id,
+        });
+        if (debitError) {
+          toast.error(debitError.message || "Wallet payment failed");
+          setConfirmOpen(true);
+          return;
+        }
+        await supabase.from("jobs").update({ status: "open" } as any).eq("id", pendingJob.id);
+        setPendingJob(null);
+        await refreshProfile();
+        toast.success(t("post.success"));
+        try { localStorage.removeItem(DRAFT_KEY); } catch {}
+        navigate("/my-jobs");
+      } catch {
+        toast.error(t("post.error"));
+      } finally {
+        setLoading(false);
+      }
       return;
     }
     submitJob("wallet");
@@ -729,6 +757,13 @@ export default function PostJob() {
               returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}&job_id=${pendingJob.id}`}
             />
           )}
+          <button
+            type="button"
+            onClick={() => { setCheckoutOpen(false); setConfirmOpen(true); }}
+            className="w-full text-center text-sm text-muted-foreground hover:text-foreground mt-1"
+          >
+            ← Change payment method
+          </button>
         </DialogContent>
       </Dialog>
 

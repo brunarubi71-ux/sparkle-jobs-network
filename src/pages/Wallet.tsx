@@ -19,6 +19,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { WalletStripeCheckout } from "@/components/WalletStripeCheckout";
 import { WithdrawDialog } from "@/components/WithdrawDialog";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface WalletTransaction {
   id: string;
@@ -33,6 +34,7 @@ const PRESET_AMOUNTS = [100, 200, 300, 500];
 
 export default function Wallet() {
   const { user, profile } = useAuth();
+  const { t } = useLanguage();
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function Wallet() {
         setTransactions((txRes.data as any) || []);
       } catch (e) {
         console.error("[Wallet] load exception:", e);
-        toast.error("Couldn't load wallet data. Please try again.");
+        toast.error(t("wallet.load_error"));
       } finally {
         setLoading(false);
       }
@@ -75,7 +77,7 @@ export default function Wallet() {
   const handleProceed = () => {
     const parsed = parseFloat(amountInput);
     if (!parsed || parsed < 1) {
-      toast.error("Minimum top-up is $1.00");
+      toast.error(t("wallet.min_topup"));
       return;
     }
     const cents = Math.round(parsed * 100);
@@ -88,8 +90,8 @@ export default function Wallet() {
     <div className="min-h-screen bg-background pb-20">
       <PaymentTestModeBanner />
       <div className="gradient-primary px-4 pt-8 pb-6">
-        <h1 className="text-xl font-bold text-primary-foreground">Wallet</h1>
-        <p className="text-primary-foreground/70 text-sm">Manage your balance and transactions</p>
+        <h1 className="text-xl font-bold text-primary-foreground">{t("wallet.title")}</h1>
+        <p className="text-primary-foreground/70 text-sm">{t("wallet.subtitle")}</p>
       </div>
 
       <div className="px-4 mt-4 space-y-4">
@@ -103,7 +105,7 @@ export default function Wallet() {
               <WalletIcon className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Current Balance</p>
+              <p className="text-xs text-muted-foreground">{t("wallet.current_balance")}</p>
               <p className="text-3xl font-bold text-foreground">${balance.toFixed(2)}</p>
             </div>
           </div>
@@ -114,7 +116,7 @@ export default function Wallet() {
                 className="h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 flex-1"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Funds
+                {t("wallet.add_funds")}
               </Button>
             )}
             {isCleaner && (
@@ -125,7 +127,7 @@ export default function Wallet() {
                 disabled={balance === 0 && canWithdraw}
               >
                 <Banknote className="w-4 h-4 mr-2" />
-                {canWithdraw ? "Withdraw to Bank" : "Set up bank account"}
+                {canWithdraw ? t("wallet.withdraw_to_bank") : t("wallet.setup_bank")}
               </Button>
             )}
           </div>
@@ -137,18 +139,18 @@ export default function Wallet() {
           transition={{ delay: 0.1 }}
           className="bg-card rounded-2xl shadow-card p-4"
         >
-          <h2 className="text-base font-semibold text-foreground mb-3">Transaction History</h2>
+          <h2 className="text-base font-semibold text-foreground mb-3">{t("wallet.transaction_history")}</h2>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">{t("common.loading")}</p>
           ) : transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No transactions yet</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">{t("wallet.no_transactions")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Description</TableHead>
-                  <TableHead className="text-xs text-right">Amount</TableHead>
+                  <TableHead className="text-xs">{t("wallet.date")}</TableHead>
+                  <TableHead className="text-xs">{t("wallet.description")}</TableHead>
+                  <TableHead className="text-xs text-right">{t("wallet.amount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,8 +188,8 @@ export default function Wallet() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Add funds</DialogTitle>
-            <DialogDescription>Choose how much you'd like to add to your wallet.</DialogDescription>
+            <DialogTitle>{t("wallet.add_funds_title")}</DialogTitle>
+            <DialogDescription>{t("wallet.add_funds_desc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-4 gap-2">
@@ -204,7 +206,7 @@ export default function Wallet() {
               ))}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="custom-amount">Custom amount (USD)</Label>
+              <Label htmlFor="custom-amount">{t("wallet.custom_amount")}</Label>
               <Input
                 id="custom-amount"
                 type="number"
@@ -220,7 +222,7 @@ export default function Wallet() {
               onClick={handleProceed}
               className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90"
             >
-              Continue to payment
+              {t("wallet.continue_payment")}
             </Button>
           </div>
         </DialogContent>
@@ -234,8 +236,8 @@ export default function Wallet() {
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Add ${(checkoutAmountCents / 100).toFixed(2)} to wallet</DialogTitle>
-            <DialogDescription>Complete your payment to top up your balance.</DialogDescription>
+            <DialogTitle>{t("wallet.add_funds_title")} ${(checkoutAmountCents / 100).toFixed(2)}</DialogTitle>
+            <DialogDescription>{t("wallet.complete_payment_desc")}</DialogDescription>
           </DialogHeader>
           {user && checkoutAmountCents > 0 && (
             <WalletStripeCheckout
