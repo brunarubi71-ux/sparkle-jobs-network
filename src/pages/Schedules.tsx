@@ -124,7 +124,7 @@ export default function Schedules() {
 
   const isUnlocked = (id: string) => {
     if (isOwner) return ownerUnlocked;
-    return profile?.plan_tier === "premium" || unlockedIds.has(id);
+    return profile?.plan_tier === "premium" || (profile as any)?.is_premium === true || unlockedIds.has(id);
   };
 
   const openEdit = (s: Schedule) => {

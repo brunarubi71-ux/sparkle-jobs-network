@@ -9,6 +9,7 @@ export type PlanTier = "free" | "pro" | "premium";
 
 interface MinimalProfile {
   plan_tier?: PlanTier | string | null;
+  is_premium?: boolean | null;
 }
 
 export const APPLY_LIMITS: Record<PlanTier, number> = {
@@ -25,7 +26,10 @@ export const CONTACT_LIMITS: Record<PlanTier, number> = {
 
 function tierOf(profile?: MinimalProfile | null): PlanTier {
   const t = (profile?.plan_tier ?? "free") as PlanTier;
-  return t === "pro" || t === "premium" ? t : "free";
+  if (t === "pro" || t === "premium") return t;
+  // Fallback: if webhook set is_premium=true but plan_tier hasn't synced yet, treat as "pro"
+  if (profile?.is_premium) return "pro";
+  return "free";
 }
 
 export function getApplyLimit(profile?: MinimalProfile | null): number {

@@ -94,7 +94,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      ui_mode: "embedded_page",
+      ui_mode: "embedded",
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(user.email && { customer_email: user.email }),
       metadata: {
