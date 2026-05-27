@@ -173,9 +173,9 @@ export default function JobDetails() {
     try {
       if (isTeamJob) {
         // Per-worker start: atomic RPC sets started_at, moves job to in_progress once everyone starts
-        const { data: rpcData, error: rpcErr } = await supabase.rpc("start_team_job", { p_job_id: id });
+        const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)("start_team_job", { p_job_id: id });
         if (rpcErr) throw rpcErr;
-        const result = rpcData as { all_started: boolean; pending_count: number; error?: string };
+        const result = rpcData as unknown as { all_started: boolean; pending_count: number; error?: string };
         if (result?.error) throw new Error(result.error);
         if (result?.all_started) {
           toast.success(t("job.started_success"));
