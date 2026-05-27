@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[useAuth] fetchProfile error:", error);
       return;
     }
-    if (data) setProfile(data as Profile);
+    if (data) setProfile(data as unknown as Profile);
   };
 
   const refreshProfile = async () => {

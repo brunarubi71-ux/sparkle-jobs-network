@@ -77,10 +77,10 @@ export default function Schedules() {
   const fetchSchedules = async () => {
     setLoading(true);
     // Use secure RPC that masks phone/email/contact_name for non-authorized users
-    const { data } = await supabase.rpc("get_schedules_with_access");
-    const sorted = ((data as Schedule[]) || []).sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    const { data } = await (supabase.rpc as any)("get_schedules_with_access");
+    const sorted = ((data as any[]) || []).sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ) as Schedule[];
     setSchedules(sorted);
     setLoading(false);
   };

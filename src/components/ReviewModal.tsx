@@ -33,7 +33,7 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         rating,
         comment: text || null,
         reviewer_role: profile?.role ?? "cleaner",
-      });
+      } as any);
       if (insertError) throw insertError;
 
       // Lookup reviewer name + reviewed person's role for points + notification
