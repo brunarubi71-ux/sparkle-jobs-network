@@ -47,13 +47,14 @@ serve(async (req) => {
       });
     }
 
+    const env = (environment || "sandbox") as StripeEnv;
+    const stripe = createStripeClient(env);
 
     // Check if this user has already used their free trial so we don't grant a second one.
     let trialEligible = true;
-    if (userId) {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    {
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      if (SUPABASE_SERVICE_ROLE_KEY) {
         const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
           auth: { persistSession: false },
         });
