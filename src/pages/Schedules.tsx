@@ -106,22 +106,39 @@ export default function Schedules() {
 
   const unlockContact = async (scheduleId: string) => {
     if (!user || !profile) return;
-  const limit = getLimit();
-    if (limit === Infinity || unlockedIds.has(scheduleId)) {
-      setUnlockedIds((s) => new Set(s).add(scheduleId));
-      return;
-    }
-    if (!canUnlockContact()) {
+    if (unlockedIds.has(scheduleId)) return;
+    const limit = getLimit();
+    if (limit !== Infinity && !canUnlockContact()) {
       setShowPaywall(true);
       return;
     }
-    await supabase
-      .from("profiles")
-      .update({ free_contacts_used: profile.free_contacts_used + 1 })
-      .eq("id", user.id);
+    // Server-side RPC enforces plan limits and atomically increments free_contacts_used.
+    const { data, error } = await (supabase.rpc as any)("unlock_schedule_contact", {
+      p_schedule_id: scheduleId,
+    });
+    if (error) {
+      const msg = (error as any)?.message || "";
+      if (msg.toLowerCase().includes("limit")) {
+        setShowPaywall(true);
+      } else {
+        toast.error(msg || "Could not unlock contact");
+      }
+      return;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row) {
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.id === scheduleId
+            ? { ...s, contact_name: row.contact_name, phone: row.phone, email: row.email }
+            : s
+        )
+      );
+    }
     setUnlockedIds((s) => new Set(s).add(scheduleId));
     await refreshProfile();
   };
+
 
   const isUnlocked = (id: string) => {
     if (isOwner) return ownerUnlocked;

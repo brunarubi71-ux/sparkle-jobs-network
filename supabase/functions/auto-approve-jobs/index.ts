@@ -1,7 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// TEMP: Auto-approve jobs after 24h in pending_review
+// Auto-approve jobs after 24h in pending_review. Protected by a shared CRON_SECRET
+// so only the scheduled cron (which sends the secret in the Authorization header)
+// can invoke the privileged operations performed by this function.
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -9,9 +11,19 @@ const supabase = createClient(
 
 serve(async (req) => {
   try {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const provided = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "")
+      ?? req.headers.get("x-cron-secret")
+      ?? "";
+    if (!cronSecret || provided !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Find jobs in pending_review older than 24h with no open dispute
     const { data: jobs, error } = await supabase
       .from("jobs")
       .select("id, hired_cleaner_id, price, pending_review_at")
@@ -25,7 +37,6 @@ serve(async (req) => {
 
     let approved = 0;
     for (const job of jobs || []) {
-      // Check if there's an open dispute
       const { data: dispute } = await supabase
         .from("disputes")
         .select("id")
@@ -38,7 +49,6 @@ serve(async (req) => {
         continue;
       }
 
-      // Auto-approve
       const { error: updateError } = await supabase
         .from("jobs")
         .update({
@@ -60,6 +70,6 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Auto-approve error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500 });
   }
 });
