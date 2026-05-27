@@ -1089,6 +1089,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      unlock_schedule_contact: {
+        Args: { p_schedule_id: string }
+        Returns: {
+          contact_name: string
+          email: string
+          phone: string
+        }[]
+      }
     }
     Enums: {
       app_role: "cleaner" | "owner" | "admin"
