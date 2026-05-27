@@ -302,7 +302,6 @@ export type Database = {
           created_at: string
           date_time: string | null
           description: string | null
-          door_access_info: string | null
           escrow_status: string
           guest_stay_length: number | null
           helpers_required: number
@@ -314,8 +313,6 @@ export type Database = {
           number_of_guests: number | null
           owner_confirmed_completion: boolean | null
           owner_id: string
-          owner_instructions: string | null
-          parking_instructions: string | null
           pending_review_at: string | null
           platform_fee: number | null
           price: number
@@ -341,7 +338,6 @@ export type Database = {
           created_at?: string
           date_time?: string | null
           description?: string | null
-          door_access_info?: string | null
           escrow_status?: string
           guest_stay_length?: number | null
           helpers_required?: number
@@ -353,8 +349,6 @@ export type Database = {
           number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id: string
-          owner_instructions?: string | null
-          parking_instructions?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
@@ -380,7 +374,6 @@ export type Database = {
           created_at?: string
           date_time?: string | null
           description?: string | null
-          door_access_info?: string | null
           escrow_status?: string
           guest_stay_length?: number | null
           helpers_required?: number
@@ -392,8 +385,6 @@ export type Database = {
           number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id?: string
-          owner_instructions?: string | null
-          parking_instructions?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
@@ -1043,6 +1034,23 @@ export type Database = {
         Returns: {
           contact_name: string
           email: string
+          phone: string
+        }[]
+      }
+      get_schedules_with_access: {
+        Args: never
+        Returns: {
+          asking_price: number
+          city: string
+          contact_name: string
+          created_at: string
+          description: string
+          email: string
+          frequency: string
+          id: string
+          monthly_income_estimate: number
+          number_of_houses: number
+          owner_id: string
           phone: string
         }[]
       }
