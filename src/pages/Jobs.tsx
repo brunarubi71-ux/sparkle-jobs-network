@@ -41,7 +41,6 @@ interface Job {
   price: number;
   bedrooms: number;
   bathrooms: number;
-  address: string | null;
   city: string | null;
   urgency: string;
   status: string;

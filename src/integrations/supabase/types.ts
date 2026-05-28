@@ -155,7 +155,6 @@ export type Database = {
       }
       jobs: {
         Row: {
-          address: string | null
           alarm_instructions: string | null
           allow_solo_start: boolean
           bathrooms: number
@@ -199,7 +198,6 @@ export type Database = {
           urgency: string
         }
         Insert: {
-          address?: string | null
           alarm_instructions?: string | null
           allow_solo_start?: boolean
           bathrooms?: number
@@ -243,7 +241,6 @@ export type Database = {
           urgency?: string
         }
         Update: {
-          address?: string | null
           alarm_instructions?: string | null
           allow_solo_start?: boolean
           bathrooms?: number

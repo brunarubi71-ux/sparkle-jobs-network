@@ -104,7 +104,7 @@ export default function PostJob() {
         price: data.price != null ? String(data.price) : "",
         bedrooms: data.bedrooms != null ? String(data.bedrooms) : "1",
         bathrooms: data.bathrooms != null ? String(data.bathrooms) : "1",
-        address: data.address ?? "",
+        address: priv.address ?? "",
         city: data.city ?? "",
         urgency: data.urgency ?? "scheduled",
         description: data.description ?? "",
@@ -222,7 +222,7 @@ export default function PostJob() {
       const { error } = await supabase.from("jobs").update({
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        city: form.city || null, urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -238,6 +238,7 @@ export default function PostJob() {
         .from("job_private_details" as any)
         .upsert({
           job_id: editJobId,
+          address: form.address || null,
           door_code: form.door_code || null,
           supply_code: form.supply_code || null,
           lockbox_code: form.lockbox_code || null,
@@ -288,7 +289,7 @@ export default function PostJob() {
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
-        address: form.address || null, city: form.city || null, urgency: form.urgency,
+        city: form.city || null, urgency: form.urgency,
         description: form.description || null, total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
@@ -302,14 +303,13 @@ export default function PostJob() {
       } as any).select("id").single();
       if (error) throw error;
 
-      const hasPrivateData =
-        form.door_code || form.supply_code || form.lockbox_code || form.gate_code ||
-        form.alarm_instructions || form.parking_instructions || form.door_access_info;
-      if (hasPrivateData && insertedJob?.id) {
+      // Always write private details (address is now always stored here)
+      if (insertedJob?.id) {
         const { error: privError } = await supabase
           .from("job_private_details" as any)
           .insert({
             job_id: insertedJob.id,
+            address: form.address || null,
             door_code: form.door_code || null,
             supply_code: form.supply_code || null,
             lockbox_code: form.lockbox_code || null,
