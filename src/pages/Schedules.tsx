@@ -338,8 +338,8 @@ export default function Schedules() {
 
       <Tabs defaultValue="browse" className="px-4">
         <TabsList className="grid grid-cols-2 w-full rounded-xl bg-accent">
-          <TabsTrigger value="browse" className="rounded-xl">Browse</TabsTrigger>
-          <TabsTrigger value="mine" className="rounded-xl">My Listings</TabsTrigger>
+          <TabsTrigger value="browse" className="rounded-xl">{t("schedules.browse")}</TabsTrigger>
+          <TabsTrigger value="mine" className="rounded-xl">{t("schedules.my_listings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="browse" className="space-y-3 mt-4">

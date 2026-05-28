@@ -762,7 +762,7 @@ export default function PostJob() {
             onClick={() => { setCheckoutOpen(false); setConfirmOpen(true); }}
             className="w-full text-center text-sm text-muted-foreground hover:text-foreground mt-1"
           >
-            ← Change payment method
+            {t("post.change_payment")}
           </button>
         </DialogContent>
       </Dialog>

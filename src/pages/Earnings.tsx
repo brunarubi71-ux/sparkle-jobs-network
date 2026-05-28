@@ -150,8 +150,8 @@ export default function Earnings() {
             >
               <ArrowUpRight className="w-5 h-5" />
               {walletBalance >= 5
-                ? `Sacar $${walletBalance.toFixed(2)} para conta bancária`
-                : `Saldo disponível: $${walletBalance.toFixed(2)} (mínimo $5)`}
+                ? t("earnings.withdraw_amount").replace("${amount}", walletBalance.toFixed(2))
+                : t("earnings.min_balance").replace("${amount}", walletBalance.toFixed(2))}
             </Button>
           </motion.div>
         )}

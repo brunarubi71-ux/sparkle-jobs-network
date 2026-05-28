@@ -273,12 +273,16 @@ export default function CleanerMyJobs() {
           <span className="flex items-center gap-1">
             <MapPin className="h-3 w-3" /> {job.city || "N/A"}
           </span>
-          <span className="flex items-center gap-1">
-            <Bed className="h-3 w-3" /> {job.bedrooms}
-          </span>
-          <span className="flex items-center gap-1">
-            <Bath className="h-3 w-3" /> {job.bathrooms}
-          </span>
+          {job.bedrooms != null && (
+            <span className="flex items-center gap-1">
+              <Bed className="h-3 w-3" /> {job.bedrooms}
+            </span>
+          )}
+          {job.bathrooms != null && (
+            <span className="flex items-center gap-1">
+              <Bath className="h-3 w-3" /> {job.bathrooms}
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" /> {format(new Date(job.date_time || job.created_at), "MMM d")}
           </span>

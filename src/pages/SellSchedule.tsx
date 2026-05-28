@@ -75,6 +75,10 @@ export default function SellSchedule() {
           </div>
           <Textarea placeholder={t("sell.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
           <Input placeholder={t("sell.contact_name")} value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className="rounded-xl h-12" />
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder={t("sell.phone")} type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} className="rounded-xl h-12" />
+            <Input placeholder={t("sell.email")} type="email" value={form.email} onChange={(e) => update("email", e.target.value)} className="rounded-xl h-12" />
+          </div>
         </div>
         <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90">
           <ShoppingBag className="w-4 h-4 mr-2" />

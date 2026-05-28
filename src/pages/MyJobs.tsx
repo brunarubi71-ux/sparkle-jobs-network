@@ -417,12 +417,12 @@ export default function MyJobs() {
           return (
             <div className="mb-3 bg-primary/5 border border-primary/15 rounded-xl p-3 space-y-2.5">
               <p className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-primary" /> Team job composition
+                <Users className="w-3.5 h-3.5 text-primary" /> {t("myjobs.team_composition")}
               </p>
               {cleanersReq > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-medium text-foreground">🚗 Cleaners: {cleanersFilled}/{cleanersReq} filled</span>
+                    <span className="text-[11px] font-medium text-foreground">{t("myjobs.cleaners_filled").replace("{filled}", String(cleanersFilled)).replace("{required}", String(cleanersReq))}</span>
                     <span className={`text-[11px] font-bold ${cleanersFilled >= cleanersReq ? "text-emerald-600" : "text-primary"}`}>
                       {Math.round(cleanersPct)}%
                     </span>
@@ -438,7 +438,7 @@ export default function MyJobs() {
               {helpersReq > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-medium text-foreground">🤝 Helpers: {helpersFilled}/{helpersReq} filled</span>
+                    <span className="text-[11px] font-medium text-foreground">{t("myjobs.helpers_filled").replace("{filled}", String(helpersFilled)).replace("{required}", String(helpersReq))}</span>
                     <span className={`text-[11px] font-bold ${helpersFilled >= helpersReq ? "text-emerald-600" : "text-primary"}`}>
                       {Math.round(helpersPct)}%
                     </span>

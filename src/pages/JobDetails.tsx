@@ -158,15 +158,15 @@ export default function JobDetails() {
   const approveSoloStart = async () => {
     if (!id) return;
     const { error } = await supabase.from("jobs").update({ allow_solo_start: true } as any).eq("id", id);
-    if (error) { toast.error("Could not approve solo start"); return; }
-    toast.success("Solo start approved — Cleaner can begin without Helper");
+    if (error) { toast.error(t("job.could_not_approve_solo")); return; }
+    toast.success(t("job.solo_start_approved_toast"));
     await fetchJob();
   };
 
   const startJob = async () => {
     if (!id) return;
     if (startBlockedByMissingHelper) {
-      toast.error("Waiting for Helper to be hired or Owner approval");
+      toast.error(t("job.waiting_for_helper"));
       return;
     }
     setStartingJob(true);
@@ -180,7 +180,7 @@ export default function JobDetails() {
         if (result?.all_started) {
           toast.success(t("job.started_success"));
         } else {
-          toast.success(`Você iniciou! Aguardando ${result?.pending_count ?? ""} membro(s) da equipe.`);
+          toast.success(t("job.you_started_waiting").replace("{count}", String(result?.pending_count ?? "")));
         }
       } else {
         // Solo job: direct status update
@@ -311,7 +311,7 @@ export default function JobDetails() {
           .maybeSingle();
 
         if ((myApp as any)?.submitted_at) {
-          toast.info("Você já finalizou sua parte.");
+          toast.info(t("job.already_submitted"));
           return;
         }
 
@@ -862,7 +862,7 @@ export default function JobDetails() {
                   : "gradient-primary text-white"
               }`}
             >
-              {allowSoloStart ? "✓ Solo start approved" : "Allow solo start (Cleaner can begin without Helper)"}
+              {allowSoloStart ? t("job.solo_start_approved") : t("job.allow_solo_start")}
             </Button>
           </motion.div>
         )}
@@ -979,17 +979,17 @@ export default function JobDetails() {
             {isTeamJob && teamMembers.length > 0 && (
               <div className="bg-card rounded-2xl shadow-card p-4">
                 <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" /> Status de início da equipe
+                  <Users className="w-4 h-4 text-primary" /> {t("job.team_start_status")}
                 </h3>
                 <div className="space-y-2">
                   {teamMembers.map(m => (
                     <div key={m.id} className="flex items-center gap-3">
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.started_at ? "bg-emerald-500" : "bg-amber-400"}`} />
                       <span className="text-sm flex-1 text-foreground">
-                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                        {m.id === user?.id ? t("job.you_label") : m.full_name || "Worker"}
                       </span>
                       <span className={`text-xs font-medium ${m.started_at ? "text-emerald-600" : "text-amber-600"}`}>
-                        {m.started_at ? "✅ Iniciado" : "⏳ Aguardando"}
+                        {m.started_at ? t("job.member_started") : t("job.member_waiting")}
                       </span>
                     </div>
                   ))}
@@ -1003,7 +1003,7 @@ export default function JobDetails() {
                 <Button
                   onClick={startJob}
                   disabled={startingJob || startBlockedByMissingHelper}
-                  title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
+                  title={startBlockedByMissingHelper ? t("job.waiting_for_helper") : undefined}
                   className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-6 h-6 mr-2" />
@@ -1011,12 +1011,12 @@ export default function JobDetails() {
                 </Button>
                 {startBlockedByMissingHelper && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
-                    ⏳ Waiting for Helper to be hired or Owner approval
+                    {t("job.waiting_for_helper")}
                   </p>
                 )}
                 {helperMissing && allowSoloStart && (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
-                    ✓ Owner approved solo start
+                    {t("job.owner_approved_solo")}
                   </p>
                 )}
               </>
@@ -1026,11 +1026,11 @@ export default function JobDetails() {
                 <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
                   <Clock className="w-7 h-7 text-indigo-500" />
                 </div>
-                <h3 className="font-bold text-foreground mb-1">Você já iniciou!</h3>
+                <h3 className="font-bold text-foreground mb-1">{t("job.you_started_heading")}</h3>
                 <p className="text-sm text-muted-foreground">
                   {pendingStartCount > 0
-                    ? `Aguardando ${pendingStartCount} membro(s) da equipe iniciar.`
-                    : "Todos iniciaram — o trabalho está em andamento."}
+                    ? t("job.waiting_team_start").replace("{count}", String(pendingStartCount))
+                    : t("job.all_started")}
                 </p>
               </div>
             )}
@@ -1056,7 +1056,7 @@ export default function JobDetails() {
                     <div key={m.id} className="flex items-center gap-3">
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.submitted_at ? "bg-emerald-500" : "bg-amber-400"}`} />
                       <span className="text-sm flex-1 text-foreground">
-                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                        {m.id === user?.id ? t("job.you_label") : m.full_name || "Worker"}
                       </span>
                       <span className={`text-xs font-medium ${m.submitted_at ? "text-emerald-600" : "text-amber-600"}`}>
                         {m.submitted_at ? `✅ ${t("job.submitted")}` : `⏳ ${t("job.not_yet_submitted")}`}
