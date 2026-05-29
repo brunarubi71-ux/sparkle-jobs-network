@@ -10,6 +10,7 @@ import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
 import SupportAlertBanner from "@/components/SupportAlertBanner";
 import { AnimatePresence } from "framer-motion";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const Jobs            = lazy(() => import("./pages/Jobs"));
 const Schedules       = lazy(() => import("./pages/Schedules"));
@@ -80,6 +81,11 @@ function HomeRoute() {
 
 const SPLASH_KEY = "shinely_splash_shown";
 
+function PushInit() {
+  usePushNotifications();
+  return null;
+}
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -101,6 +107,7 @@ const App = () => {
       <BrowserRouter>
         <AuthProvider>
           <NotificationsProvider>
+          <PushInit />
           <TooltipProvider>
             <Sonner />
             <PointsToast />

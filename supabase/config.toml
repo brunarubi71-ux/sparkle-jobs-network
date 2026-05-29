@@ -29,3 +29,7 @@ verify_jwt = false
 # verify_jwt = false so DB triggers can call it without a user JWT.
 [functions.send-email]
 verify_jwt = false
+
+# send-push-notification is called from DB triggers via pg_net.
+[functions.send-push-notification]
+verify_jwt = false
