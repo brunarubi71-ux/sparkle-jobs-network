@@ -1,5 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function sendEmail(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  to: string,
+  template: string,
+  data: Record<string, unknown>,
+) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ to, template, data }),
+    });
+  } catch (err) {
+    // Non-blocking: log but never fail the main operation because of email
+    console.error("[accept-job] sendEmail error:", err);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -116,7 +138,7 @@ Deno.serve(async (req) => {
     // Verify the job exists and is still open
     const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required, cleaners_required, helpers_required")
+      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required, cleaners_required, helpers_required, title")
       .eq("id", jobId)
       .maybeSingle();
 
@@ -218,6 +240,31 @@ Deno.serve(async (req) => {
 
       if (insertConversationError) {
         throw new Error(`Could not create conversation: ${insertConversationError.message}`);
+      }
+    }
+
+    // Notify owner by email when a new applicant applies (fire-and-forget)
+    if (isNewAcceptance) {
+      const { data: ownerProfile } = await admin
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", jobRow.owner_id)
+        .maybeSingle();
+
+      const { data: cleanerProfile } = await admin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (ownerProfile?.email) {
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+        const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await sendEmail(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ownerProfile.email, "job_applied", {
+          ownerName: ownerProfile.full_name ?? "there",
+          cleanerName: cleanerProfile?.full_name ?? "A cleaner",
+          jobTitle: jobRow.title ?? "Cleaning Job",
+        });
       }
     }
 
