@@ -132,16 +132,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const purpose = session.metadata?.purpose;
   const userId = session.metadata?.userId;
 
-  // For subscription checkouts: pre-link stripe_customer_id so future events can
-  // resolve the user without relying on email lookup. Do this regardless of
-  // payment_status (trials have status "no_payment_required").
+  // For subscription checkouts: always keep stripe_customer_id in sync so future
+  // events resolve the user correctly. This also handles the case where a user
+  // previously had a different customer ID (e.g. from an old test checkout).
   if (!purpose && userId && session.customer) {
     const customerId = typeof session.customer === "string" ? session.customer : (session.customer as any).id;
     const { error: linkErr } = await supabase
       .from("profiles")
       .update({ stripe_customer_id: customerId })
-      .eq("id", userId)
-      .is("stripe_customer_id", null);
+      .eq("id", userId);
     if (linkErr) console.error("[checkout.completed] failed to link stripe_customer_id:", linkErr);
     else console.log(`[checkout.completed] linked stripe_customer_id ${customerId} to user ${userId}`);
   }

@@ -364,10 +364,15 @@ export default function Premium() {
                     ))}
                   </ul>
                   <Button
-                    onClick={() => setCheckoutPriceId("premium_monthly")}
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
                     className="w-full h-10 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover:opacity-90"
                   >
-                    {t("premium.upgrade_premium_btn")}
+                    {portalLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      t("premium.upgrade_premium_btn")
+                    )}
                   </Button>
                 </div>
               </motion.div>

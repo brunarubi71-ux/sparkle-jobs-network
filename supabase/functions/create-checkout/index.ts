@@ -50,8 +50,9 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
-    // Check if this user has already used their free trial so we don't grant a second one.
+    // Load profile once: used for trial eligibility, active-subscription guard, and customer ID reuse.
     let trialEligible = true;
+    let existingCustomerId: string | null = null;
     {
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
       if (SUPABASE_SERVICE_ROLE_KEY) {
@@ -60,12 +61,42 @@ serve(async (req) => {
         });
         const { data: profile } = await adminClient
           .from("profiles")
-          .select("free_trial_started_at")
+          .select("free_trial_started_at, stripe_customer_id")
           .eq("id", userId)
           .maybeSingle();
+
         if (profile?.free_trial_started_at) {
           trialEligible = false;
           console.log(`[create-checkout] user ${userId} already used trial — skipping trial_period_days`);
+        }
+        if (profile?.stripe_customer_id) {
+          existingCustomerId = profile.stripe_customer_id;
+        }
+
+        // Guard: block new subscription checkout if user already has an active/trialing subscription.
+        // This prevents accidental double-charges when the user navigates back and re-clicks.
+        // Non-subscription checkouts (wallet top-up, job payment) are NOT blocked.
+        const isSubscriptionPrice = priceId.includes("pro") || priceId.includes("premium");
+        if (isSubscriptionPrice && existingCustomerId) {
+          const { data: activeSub } = await adminClient
+            .from("subscriptions")
+            .select("id, status, stripe_subscription_id")
+            .eq("user_id", userId)
+            .eq("environment", env)
+            .in("status", ["active", "trialing"])
+            .limit(1)
+            .maybeSingle();
+
+          if (activeSub) {
+            console.warn(`[create-checkout] user ${userId} already has active sub ${activeSub.stripe_subscription_id} — blocking new checkout`);
+            return new Response(
+              JSON.stringify({
+                error: "already_subscribed",
+                message: "You already have an active subscription. Use the billing portal to change your plan.",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
         }
       }
     }
@@ -106,7 +137,9 @@ serve(async (req) => {
       payment_method_collection: "always",
       return_url: returnUrl ||
         `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
-      // Do not pass customer_email to avoid triggering Stripe Link auto-recognition
+      // Reuse the existing Stripe customer so subscription history stays on one record.
+      // When no customer exists yet, Stripe creates one automatically.
+      ...(existingCustomerId && { customer: existingCustomerId }),
       ...(userId && { metadata: { userId } }),
       ...(isRecurring && {
         subscription_data: {
