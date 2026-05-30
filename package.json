@@ -11,6 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e:public": "npx playwright test e2e/public-pages.spec.ts",
+    "generate:icons": "node scripts/generate-icons.mjs && npx capacitor-assets generate --assetPath resources --iconBackgroundColor '#F5F0FF' --iconBackgroundColorDark '#140A28' --splashBackgroundColor '#F5F0FF' --splashBackgroundColorDark '#140A28'",
+    "generate:screenshots": "node scripts/take-screenshots.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
     "cap:ios": "npm run build && npx cap sync ios && npx cap open ios",
@@ -85,6 +88,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/typography": "^0.5.16",
@@ -102,6 +106,7 @@
     "jsdom": "^20.0.3",
     "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
