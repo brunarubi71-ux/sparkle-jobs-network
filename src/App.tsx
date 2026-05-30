@@ -89,15 +89,15 @@ function PushInit() {
 const App = () => {
   const [showSplash, setShowSplash] = useState(() => {
     if (typeof window === "undefined") return false;
+    // Only show splash when landing on root path, never on direct deep-link navigation
+    if (window.location.pathname !== "/") return false;
     return sessionStorage.getItem(SPLASH_KEY) !== "1";
   });
 
   useEffect(() => {
     if (!showSplash) return;
-    const t = setTimeout(() => {
-      setShowSplash(false);
-      try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
-    }, 2000);
+    try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
+    const t = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(t);
   }, [showSplash]);
 

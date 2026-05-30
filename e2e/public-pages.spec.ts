@@ -96,7 +96,7 @@ test.describe("Auth Page", () => {
 
 test.describe("Legal Pages", () => {
   test("Terms of Service renders with content", async ({ page }) => {
-    await page.goto(`${BASE}/terms`);
+    await page.goto(`${BASE}/terms`, { waitUntil: "networkidle" });
     const body = await page.textContent("body");
     expect(body).toBeTruthy();
     expect(body!.length).toBeGreaterThan(500);
@@ -104,7 +104,7 @@ test.describe("Legal Pages", () => {
   });
 
   test("Privacy Policy renders with content", async ({ page }) => {
-    await page.goto(`${BASE}/privacy`);
+    await page.goto(`${BASE}/privacy`, { waitUntil: "networkidle" });
     const body = await page.textContent("body");
     expect(body).toBeTruthy();
     expect(body!.length).toBeGreaterThan(500);
@@ -112,7 +112,7 @@ test.describe("Legal Pages", () => {
   });
 
   test("Cancellation Policy renders with content", async ({ page }) => {
-    await page.goto(`${BASE}/cancellation`);
+    await page.goto(`${BASE}/cancellation`, { waitUntil: "networkidle" });
     const body = await page.textContent("body");
     expect(body).toBeTruthy();
     expect(body!.length).toBeGreaterThan(200);
