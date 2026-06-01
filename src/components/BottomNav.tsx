@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
+import { Briefcase, MessageCircle, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,7 +163,6 @@ export default function BottomNav() {
     { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList, badge: 0 },
     { path: "/earnings", label: t("nav.earnings"), icon: DollarSign, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
-    { path: "/premium", label: t("nav.premium"), icon: Crown, badge: 0 },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
 

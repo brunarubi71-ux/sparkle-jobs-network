@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { canApplyToJob, getApplyLimit, weekStartISO } from "@/lib/paywall";
 import NotificationBell from "@/components/NotificationBell";
-import TrialBanner from "@/components/TrialBanner";
+
 import { HelperInfoBanner } from "@/components/HelperInfoBanner";
 
 type Coordinates = [number, number];
@@ -683,8 +683,7 @@ export default function Jobs() {
         <NotificationBell />
       </div>
 
-      <TrialBanner />
-      {profile?.worker_type === "helper" && <HelperInfoBanner />}
+{profile?.worker_type === "helper" && <HelperInfoBanner />}
       <div className="space-y-3 px-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)

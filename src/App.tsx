@@ -16,7 +16,7 @@ const Jobs            = lazy(() => import("./pages/Jobs"));
 const Schedules       = lazy(() => import("./pages/Schedules"));
 const Chat            = lazy(() => import("./pages/Chat"));
 const ChatConversation= lazy(() => import("./pages/ChatConversation"));
-const Premium         = lazy(() => import("./pages/Premium"));
+
 const Profile         = lazy(() => import("./pages/Profile"));
 const PostJob         = lazy(() => import("./pages/PostJob"));
 const MyJobs          = lazy(() => import("./pages/MyJobs"));
@@ -126,7 +126,7 @@ const App = () => {
                 <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                 <Route path="/chat/:id" element={<ProtectedRoute><ChatConversation /></ProtectedRoute>} />
-                <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+                <Route path="/premium" element={<Navigate to="/profile" replace />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
                 <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
