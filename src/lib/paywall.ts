@@ -1,8 +1,7 @@
 /**
  * Paywall enforcement helpers.
- * Limits per spec:
- *  - Job applications/week: free=2, pro=7, premium=∞
- *  - Schedule contacts/week: free=0, pro=2, premium=∞
+ * All tiers are unlimited during the free-growth phase (until ~1000 users).
+ * Subscriptions remain optional; only the 10% platform fee applies.
  */
 
 export type PlanTier = "free" | "pro" | "premium";
@@ -13,14 +12,14 @@ interface MinimalProfile {
 }
 
 export const APPLY_LIMITS: Record<PlanTier, number> = {
-  free: 2,
-  pro: 7,
+  free: Number.POSITIVE_INFINITY,
+  pro: Number.POSITIVE_INFINITY,
   premium: Number.POSITIVE_INFINITY,
 };
 
 export const CONTACT_LIMITS: Record<PlanTier, number> = {
-  free: 0,
-  pro: 1,
+  free: Number.POSITIVE_INFINITY,
+  pro: Number.POSITIVE_INFINITY,
   premium: Number.POSITIVE_INFINITY,
 };
 
