@@ -132,16 +132,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const purpose = session.metadata?.purpose;
   const userId = session.metadata?.userId;
 
-  // For subscription checkouts: pre-link stripe_customer_id so future events can
-  // resolve the user without relying on email lookup. Do this regardless of
-  // payment_status (trials have status "no_payment_required").
+  // For subscription checkouts: always keep stripe_customer_id in sync so future
+  // events resolve the user correctly. This also handles the case where a user
+  // previously had a different customer ID (e.g. from an old test checkout).
   if (!purpose && userId && session.customer) {
     const customerId = typeof session.customer === "string" ? session.customer : (session.customer as any).id;
     const { error: linkErr } = await supabase
       .from("profiles")
       .update({ stripe_customer_id: customerId })
-      .eq("id", userId)
-      .is("stripe_customer_id", null);
+      .eq("id", userId);
     if (linkErr) console.error("[checkout.completed] failed to link stripe_customer_id:", linkErr);
     else console.log(`[checkout.completed] linked stripe_customer_id ${customerId} to user ${userId}`);
   }
@@ -209,12 +208,14 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
     return;
   }
 
-  // Always keep stripe_customer_id in sync on the profile
+  // Always keep stripe_customer_id in sync on the profile (no null guard — always overwrite)
   await supabase
     .from("profiles")
     .update({ stripe_customer_id: customerId })
-    .eq("id", userId)
-    .is("stripe_customer_id", null);
+    .eq("id", userId);
+
+  const toDate = (ts: number | null | undefined): string | null =>
+    ts ? new Date(ts * 1000).toISOString() : null;
 
   const { error: upsertErr } = await supabase.from("subscriptions").upsert({
     user_id: userId,
@@ -225,11 +226,11 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
     product_id: productId,
     price_id: priceId,
     environment,
-    current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-    current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+    current_period_start: toDate(sub.current_period_start),
+    current_period_end: toDate(sub.current_period_end),
     cancel_at_period_end: sub.cancel_at_period_end,
-    trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
-    trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+    trial_start: toDate(sub.trial_start),
+    trial_end: toDate(sub.trial_end),
   }, { onConflict: "stripe_subscription_id" });
   if (upsertErr) console.error("[sub.upsert] subscriptions upsert error:", upsertErr);
 

@@ -30,3 +30,7 @@ supabase/.temp/
 android/app/src/main/assets/public/
 ios/App/App/public/
 
+
+# Playwright test output
+test-results/
+playwright-report/
