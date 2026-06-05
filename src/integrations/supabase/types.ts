@@ -242,6 +242,7 @@ export type Database = {
       }
       job_private_details: {
         Row: {
+          address: string | null
           alarm_instructions: string | null
           door_access_info: string | null
           door_code: string | null
@@ -252,8 +253,10 @@ export type Database = {
           parking_instructions: string | null
           payment_intent_id: string | null
           supply_code: string | null
+          zip_code: string | null
         }
         Insert: {
+          address?: string | null
           alarm_instructions?: string | null
           door_access_info?: string | null
           door_code?: string | null
@@ -264,8 +267,10 @@ export type Database = {
           parking_instructions?: string | null
           payment_intent_id?: string | null
           supply_code?: string | null
+          zip_code?: string | null
         }
         Update: {
+          address?: string | null
           alarm_instructions?: string | null
           door_access_info?: string | null
           door_code?: string | null
@@ -276,6 +281,7 @@ export type Database = {
           parking_instructions?: string | null
           payment_intent_id?: string | null
           supply_code?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -289,7 +295,6 @@ export type Database = {
       }
       jobs: {
         Row: {
-          address: string | null
           allow_solo_start: boolean
           bathrooms: number
           bedrooms: number
@@ -322,10 +327,8 @@ export type Database = {
           title: string
           total_amount: number | null
           urgency: string
-          zip_code: string | null
         }
         Insert: {
-          address?: string | null
           allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
@@ -358,10 +361,8 @@ export type Database = {
           title: string
           total_amount?: number | null
           urgency?: string
-          zip_code?: string | null
         }
         Update: {
-          address?: string | null
           allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
@@ -394,7 +395,6 @@ export type Database = {
           title?: string
           total_amount?: number | null
           urgency?: string
-          zip_code?: string | null
         }
         Relationships: []
       }
@@ -1018,6 +1018,7 @@ export type Database = {
       get_job_sensitive_details: {
         Args: { p_job_id: string }
         Returns: {
+          address: string
           alarm_instructions: string
           door_access_info: string
           door_code: string
@@ -1027,6 +1028,7 @@ export type Database = {
           parking_instructions: string
           payment_intent_id: string
           supply_code: string
+          zip_code: string
         }[]
       }
       get_schedule_contact: {
@@ -1052,6 +1054,14 @@ export type Database = {
           number_of_houses: number
           owner_id: string
           phone: string
+        }[]
+      }
+      get_user_badges: {
+        Args: { p_user_id: string }
+        Returns: {
+          badge_name: string
+          earned_at: string
+          id: string
         }[]
       }
       has_active_subscription: {
