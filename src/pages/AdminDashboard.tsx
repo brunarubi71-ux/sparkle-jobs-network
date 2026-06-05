@@ -62,6 +62,9 @@ export default function AdminDashboard() {
   const [editSetting, setEditSetting] = useState<any | null>(null);
   const [errorReports, setErrorReports] = useState<any[]>([]);
   const [notifyTarget, setNotifyTarget] = useState<any | null>(null);
+  const [activateAllOpen, setActivateAllOpen] = useState(false);
+  const [activateAllPlan, setActivateAllPlan] = useState<"pro" | "premium">("premium");
+  const [activateAllLoading, setActivateAllLoading] = useState(false);
   const [notifyMinutes, setNotifyMinutes] = useState("10");
   const [loading, setLoading] = useState(true);
 
@@ -352,6 +355,28 @@ export default function AdminDashboard() {
     toast.success(`Plan updated to ${newPlan}`);
     setChangePlanUser(null);
     fetchAll();
+  };
+
+  const activatePlanForAll = async () => {
+    setActivateAllLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          plan_tier: activateAllPlan,
+          is_premium: true,
+          premium_status: "active",
+        })
+        .neq("role", "admin");
+      if (error) throw error;
+      toast.success(`Plano ${activateAllPlan === "premium" ? "Premium" : "Pro"} ativado para todos os usuários!`);
+      setActivateAllOpen(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error("Erro ao ativar plano: " + (err?.message || "Tente novamente"));
+    } finally {
+      setActivateAllLoading(false);
+    }
   };
 
   // Filter users (exclude admins always)
@@ -1042,6 +1067,36 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">
               Feature flags and platform-wide configuration. Values are JSON. Editing affects the live app immediately.
             </p>
+
+            {/* Activate plan for all users */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-600" />
+                <p className="text-sm font-semibold text-amber-800">Ativar Plano para Todos os Usuários</p>
+              </div>
+              <p className="text-xs text-amber-700">
+                Ativa o plano selecionado para <strong>todos</strong> os usuários da plataforma (exceto admins). Use durante o período de crescimento gratuito.
+              </p>
+              <div className="flex items-center gap-2">
+                <Select value={activateAllPlan} onValueChange={(v) => setActivateAllPlan(v as "pro" | "premium")}>
+                  <SelectTrigger className="h-8 text-xs w-36 bg-white border-amber-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={() => setActivateAllOpen(true)}
+                  className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  Ativar para Todos
+                </Button>
+              </div>
+            </div>
             {appSettings.length === 0 && (
               <p className="text-muted-foreground text-sm text-center py-8">No settings yet.</p>
             )}
@@ -1217,6 +1272,36 @@ export default function AdminDashboard() {
               setNotifyTarget(null);
             }}>
               <Clock className="w-4 h-4 mr-1" /> Send ({notifyMinutes}min)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activate Plan For All Modal */}
+      <Dialog open={activateAllOpen} onOpenChange={setActivateAllOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <Crown className="w-5 h-5" />
+              Confirmar Ativação em Massa
+            </DialogTitle>
+            <DialogDescription>
+              Isso vai ativar o plano <strong>{activateAllPlan === "premium" ? "Premium" : "Pro"}</strong> para <strong>todos os usuários</strong> da plataforma (exceto admins). Essa ação não pode ser desfeita automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            Todos os usuários terão <code className="font-mono">plan_tier = {activateAllPlan}</code> e <code className="font-mono">is_premium = true</code>.
+          </div>
+          <DialogFooter className="gap-2 mt-2">
+            <Button variant="outline" onClick={() => setActivateAllOpen(false)} className="flex-1" disabled={activateAllLoading}>
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={activatePlanForAll}
+              disabled={activateAllLoading}
+            >
+              {activateAllLoading ? "Ativando..." : `Ativar ${activateAllPlan === "premium" ? "Premium" : "Pro"} para Todos`}
             </Button>
           </DialogFooter>
         </DialogContent>
