@@ -1,4 +1,4 @@
-project_id = "upwzxjjeiuphlqsyztvm"
+project_id = "vntnbjcwwgloprxsfpzc"
 
 [functions.payments-webhook]
 verify_jwt = false
