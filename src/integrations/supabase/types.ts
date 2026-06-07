@@ -91,6 +91,93 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_send_state: {
+        Row: {
+          auth_email_ttl_minutes: number
+          batch_size: number
+          id: number
+          retry_after_until: string | null
+          send_delay_ms: number
+          transactional_email_ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       job_applications: {
         Row: {
           cleaner_id: string
@@ -153,10 +240,61 @@ export type Database = {
         }
         Relationships: []
       }
-      jobs: {
+      job_private_details: {
         Row: {
           address: string | null
           alarm_instructions: string | null
+          door_access_info: string | null
+          door_code: string | null
+          gate_code: string | null
+          job_id: string
+          lockbox_code: string | null
+          owner_instructions: string | null
+          parking_instructions: string | null
+          payment_intent_id: string | null
+          supply_code: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          alarm_instructions?: string | null
+          door_access_info?: string | null
+          door_code?: string | null
+          gate_code?: string | null
+          job_id: string
+          lockbox_code?: string | null
+          owner_instructions?: string | null
+          parking_instructions?: string | null
+          payment_intent_id?: string | null
+          supply_code?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          alarm_instructions?: string | null
+          door_access_info?: string | null
+          door_code?: string | null
+          gate_code?: string | null
+          job_id?: string
+          lockbox_code?: string | null
+          owner_instructions?: string | null
+          parking_instructions?: string | null
+          payment_intent_id?: string | null
+          supply_code?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_private_details_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
           allow_solo_start: boolean
           bathrooms: number
           bedrooms: number
@@ -169,38 +307,28 @@ export type Database = {
           created_at: string
           date_time: string | null
           description: string | null
-          door_access_info: string | null
-          door_code: string | null
           escrow_status: string
-          gate_code: string | null
           guest_stay_length: number | null
           helpers_required: number
           hired_cleaner_id: string | null
           id: string
           latitude: number | null
-          lockbox_code: string | null
           longitude: number | null
           main_property_photo: string | null
           number_of_guests: number | null
           owner_confirmed_completion: boolean | null
           owner_id: string
-          owner_instructions: string | null
-          parking_instructions: string | null
-          payment_intent_id: string | null
           pending_review_at: string | null
           platform_fee: number | null
           price: number
           property_photos: string[] | null
           status: string
-          supply_code: string | null
           team_size_required: number
           title: string
           total_amount: number | null
           urgency: string
         }
         Insert: {
-          address?: string | null
-          alarm_instructions?: string | null
           allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
@@ -213,38 +341,28 @@ export type Database = {
           created_at?: string
           date_time?: string | null
           description?: string | null
-          door_access_info?: string | null
-          door_code?: string | null
           escrow_status?: string
-          gate_code?: string | null
           guest_stay_length?: number | null
           helpers_required?: number
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
-          lockbox_code?: string | null
           longitude?: number | null
           main_property_photo?: string | null
           number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id: string
-          owner_instructions?: string | null
-          parking_instructions?: string | null
-          payment_intent_id?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
           status?: string
-          supply_code?: string | null
           team_size_required?: number
           title: string
           total_amount?: number | null
           urgency?: string
         }
         Update: {
-          address?: string | null
-          alarm_instructions?: string | null
           allow_solo_start?: boolean
           bathrooms?: number
           bedrooms?: number
@@ -257,30 +375,22 @@ export type Database = {
           created_at?: string
           date_time?: string | null
           description?: string | null
-          door_access_info?: string | null
-          door_code?: string | null
           escrow_status?: string
-          gate_code?: string | null
           guest_stay_length?: number | null
           helpers_required?: number
           hired_cleaner_id?: string | null
           id?: string
           latitude?: number | null
-          lockbox_code?: string | null
           longitude?: number | null
           main_property_photo?: string | null
           number_of_guests?: number | null
           owner_confirmed_completion?: boolean | null
           owner_id?: string
-          owner_instructions?: string | null
-          parking_instructions?: string | null
-          payment_intent_id?: string | null
           pending_review_at?: string | null
           platform_fee?: number | null
           price?: number
           property_photos?: string[] | null
           status?: string
-          supply_code?: string | null
           team_size_required?: number
           title?: string
           total_amount?: number | null
@@ -587,7 +697,11 @@ export type Database = {
       reviews: {
         Row: {
           created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
+          is_hidden: boolean
           job_id: string
           rating: number
           review_text: string | null
@@ -596,7 +710,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           job_id: string
           rating: number
           review_text?: string | null
@@ -605,7 +723,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           job_id?: string
           rating?: number
           review_text?: string | null
@@ -734,6 +856,30 @@ export type Database = {
         }
         Relationships: []
       }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       team_invites: {
         Row: {
           cleaner_id: string
@@ -817,12 +963,158 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _caller_is_job_applicant: { Args: { p_job_id: string }; Returns: boolean }
+      admin_adjust_wallet: {
+        Args: { _amount: number; _reason: string; _user_id: string }
+        Returns: number
+      }
+      admin_moderate_review: {
+        Args: { _action: string; _reason?: string; _review_id: string }
+        Returns: undefined
+      }
+      admin_override_subscription: {
+        Args: {
+          _action: string
+          _days?: number
+          _reason?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      admin_reset_violations: {
+        Args: { _reason?: string; _user_id: string }
+        Returns: number
+      }
+      award_points: {
+        Args: { p_points: number; p_reason: string; p_user_id: string }
+        Returns: number
+      }
+      credit_wallet: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      debit_wallet: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      delete_email: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      enqueue_email: {
+        Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
+      get_job_sensitive_details: {
+        Args: { p_job_id: string }
+        Returns: {
+          address: string
+          alarm_instructions: string
+          door_access_info: string
+          door_code: string
+          gate_code: string
+          lockbox_code: string
+          owner_instructions: string
+          parking_instructions: string
+          payment_intent_id: string
+          supply_code: string
+          zip_code: string
+        }[]
+      }
+      get_schedule_contact: {
+        Args: { p_schedule_id: string }
+        Returns: {
+          contact_name: string
+          email: string
+          phone: string
+        }[]
+      }
+      get_schedules_with_access: {
+        Args: never
+        Returns: {
+          asking_price: number
+          city: string
+          contact_name: string
+          created_at: string
+          description: string
+          email: string
+          frequency: string
+          id: string
+          monthly_income_estimate: number
+          number_of_houses: number
+          owner_id: string
+          phone: string
+        }[]
+      }
+      get_user_badges: {
+        Args: { p_user_id: string }
+        Returns: {
+          badge_name: string
+          earned_at: string
+          id: string
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      move_to_dlq: {
+        Args: {
+          dlq_name: string
+          message_id: number
+          payload: Json
+          source_queue: string
+        }
+        Returns: number
+      }
+      read_email_batch: {
+        Args: { batch_size: number; queue_name: string; vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      record_platform_fee: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_job_id: string
+          p_owner_id: string
+        }
+        Returns: undefined
+      }
       seed_sample_data: { Args: { p_user_id: string }; Returns: undefined }
+      send_notification: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_related_id?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      unlock_schedule_contact: {
+        Args: { p_schedule_id: string }
+        Returns: {
+          contact_name: string
+          email: string
+          phone: string
+        }[]
+      }
     }
     Enums: {
       app_role: "cleaner" | "owner" | "admin"

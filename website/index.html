@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO Primary Tags -->
+  <title>Shinely — Find Cleaning Jobs Near You | Hire Verified Cleaners</title>
+  <meta name="description" content="Shinely connects homeowners with trusted, verified cleaners. Find cleaning jobs near you or hire professional cleaners for your home. Fast, safe, and easy." />
+  <meta name="keywords" content="cleaning jobs, cleaning jobs near me, find cleaning jobs, hire cleaners, home cleaning, professional cleaners, cleaning marketplace, residential cleaning jobs, commercial cleaning jobs, cleaners near me" />
+  <meta name="author" content="Shinely" />
+  <link rel="canonical" href="https://shinely.app" />
+
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://shinely.app" />
+  <meta property="og:title" content="Shinely — Find Cleaning Jobs Near You" />
+  <meta property="og:description" content="The #1 app for finding cleaning jobs and hiring verified cleaners near you. Join thousands of cleaners earning great income with Shinely." />
+  <meta property="og:image" content="https://shinely.app/og-image.jpg" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Shinely — Find Cleaning Jobs Near You" />
+  <meta name="twitter:description" content="The #1 app connecting cleaners with homeowners. Find jobs, get paid, grow your business." />
+  <meta name="twitter:image" content="https://shinely.app/og-image.jpg" />
+
+  <!-- Robots -->
+  <meta name="robots" content="index, follow" />
+  <meta name="googlebot" content="index, follow" />
+
+  <!-- Schema.org — MobileApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    "name": "Shinely",
+    "description": "Shinely is the leading marketplace connecting homeowners with verified professional cleaners. Find cleaning jobs near you or post a job and hire a trusted cleaner today.",
+    "url": "https://shinely.app",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "iOS, Android",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- Schema.org — Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Shinely",
+    "url": "https://shinely.app",
+    "description": "Shinely is a cleaning jobs marketplace connecting homeowners with trusted professional cleaners.",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer support",
+      "email": "hello@shinely.app"
+    }
+  }
+  </script>
+
+  <!-- Schema.org — FAQ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I find cleaning jobs near me?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Download the Shinely app, create a free cleaner account, and browse available cleaning jobs in your area. You can filter by distance, price, and job type."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much can I earn as a cleaner on Shinely?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cleaners on Shinely earn competitive rates set by homeowners. Most cleaners earn between $20-$40 per hour depending on the job type and location. You keep 90% of every payment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Shinely free to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! Downloading and creating an account on Shinely is completely free. Cleaners only pay a small 10% platform fee when they complete a job."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I hire a cleaner near me?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Post your cleaning job on Shinely, set your budget, and receive applications from verified local cleaners within minutes. Review their ratings, hire, and pay securely through the app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are cleaners on Shinely verified?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. All cleaners on Shinely go through a profile verification process and are rated by homeowners after each job, ensuring consistent quality and trust."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --purple-dark: #3b0764;
+      --purple: #7c3aed;
+      --purple-mid: #9333ea;
+      --purple-light: #a855f7;
+      --purple-pale: #f5f0ff;
+      --amber: #f59e0b;
+      --amber-dark: #d97706;
+      --gray-900: #111827;
+      --gray-700: #374151;
+      --gray-500: #6b7280;
+      --gray-200: #e5e7eb;
+      --gray-100: #f3f4f6;
+      --white: #ffffff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--gray-900);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--purple), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a { color: var(--gray-700); text-decoration: none; font-size: 15px; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--purple); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--purple), var(--purple-light));
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .nav-cta:hover { opacity: .9; transform: translateY(-1px); }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #3b0764 0%, #7c3aed 40%, #a855f7 70%, #9333ea 100%);
+      display: flex;
+      align-items: center;
+      padding: 100px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      width: 100%;
+    }
+    .hero-text { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      margin-bottom: 24px;
+    }
+    .hero-badge span { font-size: 16px; }
+    h1 {
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 800;
+      color: white;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    h1 em { font-style: normal; color: var(--amber); }
+    .hero-sub {
+      font-size: 18px;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 36px;
+      max-width: 480px;
+    }
+    .hero-buttons { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      background: white;
+      color: var(--purple);
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.3); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1.5px solid rgba(255,255,255,.4);
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+    .hero-stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .stat { color: white; }
+    .stat-num { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 13px; opacity: .75; }
+
+    /* Phone mockup */
+    .hero-visual { position: relative; z-index: 1; display: flex; justify-content: center; }
+    .phone-wrap {
+      width: 260px;
+      background: white;
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.4);
+    }
+    .phone-screen {
+      background: var(--purple-pale);
+      border-radius: 28px;
+      overflow: hidden;
+      aspect-ratio: 9/19;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-header {
+      background: linear-gradient(135deg, var(--purple-dark), var(--purple));
+      padding: 20px 16px 16px;
+      color: white;
+    }
+    .phone-header-title { font-size: 11px; opacity: .7; margin-bottom: 2px; }
+    .phone-header-main { font-size: 16px; font-weight: 700; }
+    .phone-jobs { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .phone-job {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .phone-job-title { font-size: 11px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+    .phone-job-info { font-size: 9px; color: var(--gray-500); }
+    .phone-job-price { font-size: 12px; font-weight: 800; color: var(--purple); margin-top: 6px; }
+    .phone-job-badge {
+      display: inline-block;
+      background: #dcfce7;
+      color: #16a34a;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 100px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .hero-inner { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+      .hero-buttons { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-sub { margin: 0 auto 36px; }
+    }
+
+    /* ── SECTIONS COMMON ── */
+    section { padding: 80px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-tag {
+      display: inline-block;
+      background: var(--purple-pale);
+      color: var(--purple);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 17px;
+      color: var(--gray-500);
+      max-width: 560px;
+      margin-bottom: 56px;
+    }
+
+    /* ── LOGOS / TRUST ── */
+    .trust-bar {
+      background: var(--gray-100);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .trust-bar p { font-size: 13px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .trust-logos { display: flex; gap: 40px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .trust-logo {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gray-500);
+      opacity: .5;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how { background: white; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .step { text-align: center; }
+    .step-icon {
+      width: 64px; height: 64px;
+      background: var(--purple-pale);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 28px;
+    }
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--purple);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 15px; color: var(--gray-500); }
+    @media (max-width: 768px) {
+      .steps-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--gray-100); padding: 4px; border-radius: 12px; width: fit-content; margin-bottom: 48px; }
+    .tab {
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--gray-500);
+      transition: all .2s;
+    }
+    .tab.active { background: white; color: var(--purple); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+    /* ── FEATURES ── */
+    .features { background: var(--purple-pale); }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .feature-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 2px 16px rgba(124,58,237,.08);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(124,58,237,.15); }
+    .feature-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--gray-500); line-height: 1.6; }
+    @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .features-grid { grid-template-columns: 1fr; } }
+
+    /* ── AUDIENCES ── */
+    .audiences { background: white; }
+    .audience-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .audience-card {
+      border-radius: 24px;
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .audience-card.cleaner {
+      background: linear-gradient(145deg, var(--purple-dark), var(--purple));
+      color: white;
+    }
+    .audience-card.owner {
+      background: linear-gradient(145deg, #78350f, var(--amber-dark));
+      color: white;
+    }
+    .audience-card h3 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+    .audience-card .sub { font-size: 15px; opacity: .8; margin-bottom: 28px; }
+    .audience-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .audience-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; }
+    .check { font-size: 18px; flex-shrink: 0; }
+    .audience-btn {
+      display: inline-block;
+      background: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform .15s, opacity .2s;
+    }
+    .audience-card.cleaner .audience-btn { color: var(--purple); }
+    .audience-card.owner .audience-btn { color: var(--amber-dark); }
+    .audience-btn:hover { transform: translateY(-2px); opacity: .9; }
+    @media (max-width: 768px) { .audience-grid { grid-template-columns: 1fr; } }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { background: var(--gray-100); }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .testimonial {
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .stars { color: var(--amber); font-size: 16px; margin-bottom: 12px; }
+    .testimonial p { font-size: 15px; color: var(--gray-700); line-height: 1.6; margin-bottom: 20px; font-style: italic; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--purple-light));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .author-info strong { display: block; font-size: 14px; font-weight: 700; }
+    .author-info span { font-size: 12px; color: var(--gray-500); }
+    @media (max-width: 900px) { .testimonials-grid { grid-template-columns: 1fr; } }
+
+    /* ── FAQ ── */
+    .faq { background: white; }
+    .faq-list { max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      border: 1.5px solid var(--gray-200);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .faq-q {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: left;
+      color: var(--gray-900);
+    }
+    .faq-q:hover { background: var(--purple-pale); }
+    .faq-icon { font-size: 20px; color: var(--purple); flex-shrink: 0; transition: transform .25s; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease;
+    }
+    .faq-item.open .faq-a { max-height: 200px; }
+    .faq-a p {
+      padding: 0 24px 20px;
+      font-size: 15px;
+      color: var(--gray-500);
+      line-height: 1.7;
+    }
+
+    /* ── DOWNLOAD CTA ── */
+    .download {
+      background: linear-gradient(145deg, var(--purple-dark), var(--purple), var(--purple-light));
+      text-align: center;
+      color: white;
+    }
+    .download h2 { color: white; max-width: 600px; margin: 0 auto 16px; }
+    .download p { font-size: 18px; opacity: .85; max-width: 480px; margin: 0 auto 40px; }
+    .app-badges { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .app-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      color: var(--gray-900);
+      padding: 12px 24px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      transition: transform .15s;
+    }
+    .app-badge:hover { transform: translateY(-2px); }
+    .badge-icon { font-size: 28px; }
+    .badge-sub { font-size: 11px; font-weight: 400; color: var(--gray-500); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--gray-900);
+      color: var(--gray-200);
+      padding: 56px 24px 32px;
+    }
+    .footer-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 12px;
+    }
+    .footer-brand-desc {
+      font-size: 14px;
+      line-height: 1.7;
+      opacity: .7;
+      max-width: 280px;
+    }
+    footer h4 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: white;
+      margin-bottom: 16px;
+    }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a { color: var(--gray-200); text-decoration: none; font-size: 14px; opacity: .7; transition: opacity .2s; }
+    .footer-links a:hover { opacity: 1; }
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 0 auto;
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding-top: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: gap;
+      font-size: 13px;
+      opacity: .5;
+    }
+    @media (max-width: 900px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">✦ Shinely</a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#cleaners">For Cleaners</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a href="#download" class="nav-cta">Get the App</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="hero-badge">
+          <span>✦</span> The #1 Cleaning Jobs Marketplace
+        </div>
+        <h1>
+          Find <em>Cleaning Jobs</em><br />
+          Near You — Get Paid Fast
+        </h1>
+        <p class="hero-sub">
+          Shinely connects professional cleaners with homeowners who need help.
+          Browse jobs, apply in seconds, and get paid securely through the app.
+        </p>
+        <div class="hero-buttons">
+          <a href="#download" class="btn-primary">Find Jobs Near Me</a>
+          <a href="#how-it-works" class="btn-secondary">See How It Works</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-num">10K+</div>
+            <div class="stat-label">Active Cleaners</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">$40/hr</div>
+            <div class="stat-label">Avg. Hourly Rate</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">4.9★</div>
+            <div class="stat-label">App Rating</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone Mockup -->
+      <div class="hero-visual">
+        <div class="phone-wrap">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-header-title">Available Jobs Near You</div>
+              <div class="phone-header-main">Miami, FL ▾</div>
+            </div>
+            <div class="phone-jobs">
+              <div class="phone-job">
+                <div class="phone-job-title">Residential Deep Clean</div>
+                <div class="phone-job-info">📍 2.3 mi · 3 beds · 2 baths</div>
+                <div class="phone-job-price">$180</div>
+                <div class="phone-job-badge">Urgent</div>
+              </div>
+              <div class="phone-job">
+                <div class="phone-job-title">Move-out Cleaning</div>
+                <div class="phone-job-info">📍 4.1 mi · Apartment</div>
+                <div class="phone-job-price">$220</div>
+                <div class="phone-job-badge">New</div>
+              </div>
+              <div class="phone-job">
+                <div class="phone-job-title">Weekly House Cleaning</div>
+                <div class="phone-job-info">📍 1.8 mi · 4 beds · 3 baths</div>
+                <div class="phone-job-price">$260</div>
+                <div class="phone-job-badge">Recurring</div>
+              </div>
+              <div class="phone-job">
+                <div class="phone-job-title">Airbnb Turnover Clean</div>
+                <div class="phone-job-info">📍 3.5 mi · Studio</div>
+                <div class="phone-job-price">$95</div>
+                <div class="phone-job-badge">New</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST BAR -->
+  <div class="trust-bar">
+    <p>Trusted by cleaners and homeowners across the US</p>
+    <div class="trust-logos">
+      <span class="trust-logo">MIAMI</span>
+      <span class="trust-logo">ORLANDO</span>
+      <span class="trust-logo">TAMPA</span>
+      <span class="trust-logo">ATLANTA</span>
+      <span class="trust-logo">DALLAS</span>
+      <span class="trust-logo">HOUSTON</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how-it-works">
+    <div class="container">
+      <div class="section-tag">How It Works</div>
+      <h2>Start Earning in 3 Simple Steps</h2>
+      <p class="section-sub">Whether you're a cleaner looking for jobs or a homeowner needing help, Shinely makes it effortless.</p>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" onclick="showTab('cleaners')" role="tab">For Cleaners</button>
+        <button class="tab" onclick="showTab('owners')" role="tab">For Homeowners</button>
+      </div>
+
+      <div id="tab-cleaners" class="steps-grid">
+        <div class="step">
+          <div class="step-icon">📱</div>
+          <div class="step-num">Step 01</div>
+          <h3>Create Your Free Profile</h3>
+          <p>Sign up in minutes. Add your experience, service area, and availability. No fees to join.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">🔍</div>
+          <div class="step-num">Step 02</div>
+          <h3>Browse & Apply to Jobs</h3>
+          <p>See cleaning jobs near you filtered by distance, price, and job type. Apply with one tap.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">💰</div>
+          <div class="step-num">Step 03</div>
+          <h3>Complete & Get Paid Fast</h3>
+          <p>Finish the job, confirm completion in the app, and receive payment — instantly or in 2-5 days.</p>
+        </div>
+      </div>
+
+      <div id="tab-owners" class="steps-grid" style="display:none">
+        <div class="step">
+          <div class="step-icon">📝</div>
+          <div class="step-num">Step 01</div>
+          <h3>Post Your Cleaning Job</h3>
+          <p>Describe your home, set your budget, and post the job. Takes under 2 minutes.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">👥</div>
+          <div class="step-num">Step 02</div>
+          <h3>Review & Hire a Cleaner</h3>
+          <p>Receive applications from verified cleaners near you. Check ratings and hire the best fit.</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">✅</div>
+          <div class="step-num">Step 03</div>
+          <h3>Enjoy a Spotless Home</h3>
+          <p>Your cleaner arrives, does the job, and you confirm through the app. Secure payment, no cash needed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-tag">Features</div>
+      <h2>Everything You Need to Succeed</h2>
+      <p class="section-sub">Shinely is built with cleaners in mind — from finding jobs to getting paid, we've got you covered.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">📍</span>
+          <h3>Jobs Near You</h3>
+          <p>Filter cleaning jobs by distance — 5, 10, 25, or 50 miles from your location. Never waste time on far commutes.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Instant Payouts</h3>
+          <p>Need money now? Get paid in ~30 minutes with our instant payout option. Standard payouts arrive in 2-5 days, free of charge.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3>Secure Payments</h3>
+          <p>All payments are handled through the app. No cash, no awkward conversations, no risk of non-payment.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">👥</span>
+          <h3>Team Up with Helpers</h3>
+          <p>Bigger jobs? Invite a helper to work with you. Helpers earn 30% and cleaners earn 70% — fair for everyone.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⭐</span>
+          <h3>Build Your Reputation</h3>
+          <p>Every completed job earns you ratings and badges. The better your reputation, the more jobs you attract.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💬</span>
+          <h3>In-App Messaging</h3>
+          <p>Chat directly with homeowners before and during the job. No need to share your personal phone number.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIENCES -->
+  <section class="audiences" id="cleaners">
+    <div class="container">
+      <div class="section-tag">Who Is Shinely For?</div>
+      <h2>Built for Cleaners and Homeowners</h2>
+      <p class="section-sub">Two sides of the same marketplace — both get exactly what they need.</p>
+
+      <div class="audience-grid">
+        <div class="audience-card cleaner">
+          <h3>For Cleaners & Helpers</h3>
+          <p class="sub">Start earning more, on your schedule.</p>
+          <ul class="audience-list">
+            <li><span class="check">✓</span> Browse cleaning jobs near you anytime</li>
+            <li><span class="check">✓</span> Keep 90% of every payment</li>
+            <li><span class="check">✓</span> Instant or standard payouts to your bank</li>
+            <li><span class="check">✓</span> No car? Join as a helper and team up</li>
+            <li><span class="check">✓</span> Build reviews and grow your clientele</li>
+          </ul>
+          <a href="#download" class="audience-btn">Find Jobs Near Me →</a>
+        </div>
+
+        <div class="audience-card owner">
+          <h3>For Homeowners</h3>
+          <p class="sub">Hire a trusted cleaner in minutes.</p>
+          <ul class="audience-list">
+            <li><span class="check">✓</span> Post a job in under 2 minutes</li>
+            <li><span class="check">✓</span> Receive applications fast from local cleaners</li>
+            <li><span class="check">✓</span> See ratings and reviews before hiring</li>
+            <li><span class="check">✓</span> Pay securely through the app — no cash</li>
+            <li><span class="check">✓</span> Reschedule or cancel with ease</li>
+          </ul>
+          <a href="#download" class="audience-btn">Post a Cleaning Job →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-tag">Reviews</div>
+      <h2>Loved by Cleaners Across the US</h2>
+      <p class="section-sub">Don't take our word for it — here's what cleaners and homeowners say about Shinely.</p>
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <p>"I found 3 cleaning jobs in my first week. The instant payout feature is a game changer — I get paid the same day!"</p>
+          <div class="testimonial-author">
+            <div class="avatar">A</div>
+            <div class="author-info">
+              <strong>Ana S.</strong>
+              <span>Professional Cleaner — Miami, FL</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <p>"Finally an app that makes it easy to hire a reliable cleaner. Posted the job, got 4 applications in an hour, hired someone amazing."</p>
+          <div class="testimonial-author">
+            <div class="avatar">M</div>
+            <div class="author-info">
+              <strong>Michael R.</strong>
+              <span>Homeowner — Orlando, FL</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="stars">★★★★★</div>
+          <p>"As a helper without a car, I was worried I couldn't find work. Shinely paired me with a cleaner in my area and now I work every weekend."</p>
+          <div class="testimonial-author">
+            <div class="avatar">C</div>
+            <div class="author-info">
+              <strong>Carla M.</strong>
+              <span>Cleaning Helper — Tampa, FL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-tag">FAQ</div>
+      <h2>Frequently Asked Questions</h2>
+      <p class="section-sub">Everything you need to know about finding cleaning jobs or hiring cleaners with Shinely.</p>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            How do I find cleaning jobs near me?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>Download the Shinely app, create a free cleaner account, and browse available cleaning jobs in your area. You can filter jobs by distance (5, 10, 25, or 50 miles), job type (residential, commercial, Airbnb), and price.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            How much can I earn as a cleaner on Shinely?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>Cleaners on Shinely keep 90% of every job payment. Most cleaners earn between $20–$40 per hour depending on job type, location, and experience. Full-time cleaners on Shinely can earn $2,000–$4,000/month.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Is Shinely free to use?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>Downloading the app and creating an account is completely free. Cleaners pay a small 10% platform fee only when they complete a paid job — no monthly fees, no subscriptions required.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            How fast do I get paid after completing a job?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>Standard payouts arrive in your bank account within 2–5 business days, completely free. Need money faster? Our instant payout option delivers funds in approximately 30 minutes for a small 1.5% fee.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            I don't have a car. Can I still find cleaning jobs?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>Yes! Shinely has a Helper role designed for cleaners without transportation. You team up with a cleaner who has a car. The cleaner earns 70% of the job payment and the helper earns 30%. It's a great way to build experience and income without needing your own vehicle.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Are cleaners on Shinely verified and trustworthy?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">
+            <p>All cleaners on Shinely create verified accounts and are rated by homeowners after every job. You can see ratings, reviews, and job history before hiring anyone. Our community-driven rating system ensures consistent quality.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD CTA -->
+  <section class="download" id="download">
+    <div class="container" style="text-align:center">
+      <div class="section-tag" style="background:rgba(255,255,255,.15);color:white">Download Free</div>
+      <h2>Start Finding Cleaning Jobs Today</h2>
+      <p>Join thousands of cleaners already earning great income with Shinely. Free to download, free to join.</p>
+      <div class="app-badges">
+        <a href="#" class="app-badge">
+          <span class="badge-icon">🍎</span>
+          <div>
+            <div class="badge-sub">Download on the</div>
+            <strong>App Store</strong>
+          </div>
+        </a>
+        <a href="#" class="app-badge">
+          <span class="badge-icon">▶</span>
+          <div>
+            <div class="badge-sub">Get it on</div>
+            <strong>Google Play</strong>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name">✦ Shinely</div>
+        <p class="footer-brand-desc">The marketplace connecting professional cleaners with homeowners who need help. Find jobs near you or hire a trusted cleaner today.</p>
+      </div>
+      <div>
+        <h4>For Cleaners</h4>
+        <ul class="footer-links">
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#download">Download the App</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>For Homeowners</h4>
+        <ul class="footer-links">
+          <li><a href="#how-it-works">Post a Job</a></li>
+          <li><a href="#cleaners">Hire a Cleaner</a></li>
+          <li><a href="#download">Get Started</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="#">About Shinely</a></li>
+          <li><a href="#">Contact Us</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Shinely. All rights reserved.</span>
+      <span>Cleaning jobs marketplace — USA</span>
+    </div>
+  </footer>
+
+  <script>
+    // FAQ accordion
+    function toggleFaq(btn) {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    }
+
+    // How it works tabs
+    function showTab(type) {
+      document.getElementById('tab-cleaners').style.display = type === 'cleaners' ? 'grid' : 'none';
+      document.getElementById('tab-owners').style.display = type === 'owners' ? 'grid' : 'none';
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && type === 'cleaners') || (i === 1 && type === 'owners'));
+      });
+    }
+
+    // Smooth nav appearance on scroll
+    window.addEventListener('scroll', () => {
+      document.querySelector('nav').style.boxShadow =
+        window.scrollY > 20 ? '0 4px 24px rgba(0,0,0,.1)' : 'none';
+    });
+  </script>
+</body>
+</html>

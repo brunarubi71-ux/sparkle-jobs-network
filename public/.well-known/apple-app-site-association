@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REPLACE_WITH_YOUR_TEAM_ID.com.shinely.app"],
+        "components": [
+          { "/": "/job/*",           "comment": "Job detail pages" },
+          { "/": "/profile/*",       "comment": "User profiles" },
+          { "/": "/chat/*",          "comment": "Chat conversations" },
+          { "/": "/checkout/*",      "comment": "Checkout return" },
+          { "/": "/jobs",            "comment": "Job listing" },
+          { "/": "/earnings",        "comment": "Earnings page" },
+          { "/": "/wallet",          "comment": "Wallet page" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["REPLACE_WITH_YOUR_TEAM_ID.com.shinely.app"]
+  }
+}

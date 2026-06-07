@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveSubscriptionPriceId } from "../_shared/subscription-prices.ts";
 
@@ -9,16 +10,96 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, quantity, customerEmail, userId, returnUrl, environment } = await req.json();
-    if (!priceId || typeof priceId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(priceId)) {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return new Response(JSON.stringify({ error: "Server not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Require an authenticated caller. Never trust client-supplied userId.
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authorization } },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { priceId, quantity, customerEmail, returnUrl, environment } = await req.json();
+    const userId = user.id; // ignore any client-supplied userId
+    if (!priceId || typeof priceId !== "string" || !/^[a-zA-Z0-9_-]+$/.test(priceId)) {
       return new Response(JSON.stringify({ error: "Invalid priceId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const env = (environment || 'sandbox') as StripeEnv;
+    const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
+
+    // Load profile once: used for trial eligibility, active-subscription guard, and customer ID reuse.
+    let trialEligible = true;
+    let existingCustomerId: string | null = null;
+    {
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_SERVICE_ROLE_KEY) {
+        const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          auth: { persistSession: false },
+        });
+        const { data: profile } = await adminClient
+          .from("profiles")
+          .select("free_trial_started_at, stripe_customer_id")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile?.free_trial_started_at) {
+          trialEligible = false;
+          console.log(`[create-checkout] user ${userId} already used trial — skipping trial_period_days`);
+        }
+        if (profile?.stripe_customer_id) {
+          existingCustomerId = profile.stripe_customer_id;
+        }
+
+        // Guard: block new subscription checkout if user already has an active/trialing subscription.
+        // This prevents accidental double-charges when the user navigates back and re-clicks.
+        // Non-subscription checkouts (wallet top-up, job payment) are NOT blocked.
+        const isSubscriptionPrice = priceId.includes("pro") || priceId.includes("premium");
+        if (isSubscriptionPrice && existingCustomerId) {
+          const { data: activeSub } = await adminClient
+            .from("subscriptions")
+            .select("id, status, stripe_subscription_id")
+            .eq("user_id", userId)
+            .eq("environment", env)
+            .in("status", ["active", "trialing"])
+            .limit(1)
+            .maybeSingle();
+
+          if (activeSub) {
+            console.warn(`[create-checkout] user ${userId} already has active sub ${activeSub.stripe_subscription_id} — blocking new checkout`);
+            return new Response(
+              JSON.stringify({
+                error: "already_subscribed",
+                message: "You already have an active subscription. Use the billing portal to change your plan.",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
+      }
+    }
 
     const resolvedPriceId = resolveSubscriptionPriceId(priceId, env);
     const stripePrice = await stripe.prices.retrieve(resolvedPriceId, { expand: ["product"] });
@@ -49,20 +130,36 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
-      ui_mode: "embedded_page",
+      ui_mode: "embedded",
       payment_method_types: ["card"],
-      return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
-      ...(customerEmail && { customer_email: customerEmail }),
+      // Always collect card info upfront, even during a free trial, so the subscription
+      // auto-renews without interruption when the trial period ends.
+      payment_method_collection: "always",
+      return_url: returnUrl ||
+        `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+      // Reuse the existing Stripe customer so subscription history stays on one record.
+      // When no customer exists yet, Stripe creates one automatically.
+      ...(existingCustomerId && { customer: existingCustomerId }),
       ...(userId && { metadata: { userId } }),
       ...(isRecurring && {
         subscription_data: {
-          trial_period_days: 7,
-          ...(userId && { metadata: { userId } }),
+          // Only grant trial to users who haven't tried before.
+          ...(trialEligible && { trial_period_days: 7 }),
+          // If payment method is removed before trial ends, cancel instead of leaving a broken sub.
+          trial_settings: {
+            end_behavior: { missing_payment_method: "cancel" },
+          },
+          // Embed userId AND planTier in metadata so the webhook can link user + determine
+          // tier even when the price ID isn't in its lookup map (e.g. test mode prices).
+          metadata: {
+            ...(userId && { userId }),
+            planTier: priceId.includes("premium") ? "premium" : "pro",
+          },
         },
       }),
     });
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+    return new Response(JSON.stringify({ clientSecret: session.client_secret, trialEligible }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

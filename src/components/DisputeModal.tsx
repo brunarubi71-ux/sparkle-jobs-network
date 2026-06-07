@@ -28,9 +28,8 @@ export default function DisputeModal({ open, onClose, jobId, reportedId }: Dispu
 
     const { error } = await supabase.from("disputes").insert({
       job_id: jobId,
-      reporter_id: user.id,
-      reported_id: reportedId,
-      reporter_type: "owner",
+      raised_by: user.id,
+      against: reportedId,
       reason: reason.trim(),
     } as any);
 

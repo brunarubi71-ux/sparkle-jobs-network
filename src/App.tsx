@@ -8,13 +8,15 @@ import { NotificationsProvider } from "@/hooks/useNotifications";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
+import SupportAlertBanner from "@/components/SupportAlertBanner";
 import { AnimatePresence } from "framer-motion";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const Jobs            = lazy(() => import("./pages/Jobs"));
 const Schedules       = lazy(() => import("./pages/Schedules"));
 const Chat            = lazy(() => import("./pages/Chat"));
 const ChatConversation= lazy(() => import("./pages/ChatConversation"));
-const Premium         = lazy(() => import("./pages/Premium"));
+
 const Profile         = lazy(() => import("./pages/Profile"));
 const PostJob         = lazy(() => import("./pages/PostJob"));
 const MyJobs          = lazy(() => import("./pages/MyJobs"));
@@ -32,6 +34,7 @@ const Wallet          = lazy(() => import("./pages/Wallet"));
 const Terms           = lazy(() => import("./pages/Terms"));
 const Privacy         = lazy(() => import("./pages/Privacy"));
 const Cancellation    = lazy(() => import("./pages/Cancellation"));
+const LandingPage     = lazy(() => import("./pages/LandingPage"));
 
 const queryClient = new QueryClient();
 
@@ -69,20 +72,32 @@ function RoleHome() {
   return <Jobs />;
 }
 
+function HomeRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <LandingPage />;
+  return <RoleHome />;
+}
+
 const SPLASH_KEY = "shinely_splash_shown";
+
+function PushInit() {
+  usePushNotifications();
+  return null;
+}
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(() => {
     if (typeof window === "undefined") return false;
+    // Only show splash when landing on root path, never on direct deep-link navigation
+    if (window.location.pathname !== "/") return false;
     return sessionStorage.getItem(SPLASH_KEY) !== "1";
   });
 
   useEffect(() => {
     if (!showSplash) return;
-    const t = setTimeout(() => {
-      setShowSplash(false);
-      try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
-    }, 2000);
+    try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
+    const t = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(t);
   }, [showSplash]);
 
@@ -92,9 +107,11 @@ const App = () => {
       <BrowserRouter>
         <AuthProvider>
           <NotificationsProvider>
+          <PushInit />
           <TooltipProvider>
             <Sonner />
             <PointsToast />
+            <SupportAlertBanner />
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Suspense fallback={<PageLoader />}>
               <Routes>
@@ -104,12 +121,12 @@ const App = () => {
                 <Route path="/cancellation" element={<Cancellation />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/" element={<ProtectedRoute><RoleHome /></ProtectedRoute>} />
+                <Route path="/" element={<HomeRoute />} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
                 <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                 <Route path="/chat/:id" element={<ProtectedRoute><ChatConversation /></ProtectedRoute>} />
-                <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+                <Route path="/premium" element={<Navigate to="/profile" replace />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
                 <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />

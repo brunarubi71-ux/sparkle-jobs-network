@@ -38,11 +38,7 @@ export default function BadgeDisplay({ userId, compact = false }: Props) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("rewards")
-        .select("*")
-        .eq("user_id", userId)
-        .order("earned_at", { ascending: false });
+      const { data } = await supabase.rpc("get_user_badges" as any, { p_user_id: userId });
       setRewards((data as Reward[]) || []);
       setLoading(false);
     })();

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, MessageCircle, Crown, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
+import { Briefcase, MessageCircle, User, PlusCircle, List, ClipboardList, DollarSign, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,32 +23,40 @@ export default function BottomNav() {
     }
 
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", user.id)
-        .eq("status", "pending_review");
-      setPendingReviewCount(count || 0);
+      try {
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", user.id)
+          .eq("status", "pending_review");
+        setPendingReviewCount(count || 0);
+      } catch (e) {
+        console.error("[BottomNav] fetchCount error:", e);
+      }
     };
 
     const fetchPendingApplicants = async () => {
-      // Get owner's open jobs
-      const { data: openJobs } = await supabase
-        .from("jobs")
-        .select("id")
-        .eq("owner_id", user.id)
-        .eq("status", "open");
-      const jobIds = (openJobs || []).map((j) => j.id);
-      if (jobIds.length === 0) {
-        setPendingApplicantsCount(0);
-        return;
+      try {
+        // Get owner's open jobs
+        const { data: openJobs } = await supabase
+          .from("jobs")
+          .select("id")
+          .eq("owner_id", user.id)
+          .eq("status", "open");
+        const jobIds = (openJobs || []).map((j) => j.id);
+        if (jobIds.length === 0) {
+          setPendingApplicantsCount(0);
+          return;
+        }
+        const { count } = await supabase
+          .from("job_applications")
+          .select("id", { count: "exact", head: true })
+          .in("job_id", jobIds)
+          .eq("status", "pending");
+        setPendingApplicantsCount(count || 0);
+      } catch (e) {
+        console.error("[BottomNav] fetchPendingApplicants error:", e);
       }
-      const { count } = await supabase
-        .from("job_applications")
-        .select("id", { count: "exact", head: true })
-        .in("job_id", jobIds)
-        .eq("status", "pending");
-      setPendingApplicantsCount(count || 0);
     };
 
     fetchCount();
@@ -155,7 +163,6 @@ export default function BottomNav() {
     { path: "/cleaner-my-jobs", label: t("nav.my_jobs"), icon: ClipboardList, badge: 0 },
     { path: "/earnings", label: t("nav.earnings"), icon: DollarSign, badge: 0 },
     { path: "/chat", label: t("nav.chat"), icon: MessageCircle, badge: unreadMessages },
-    { path: "/premium", label: t("nav.premium"), icon: Crown, badge: 0 },
     { path: "/profile", label: t("nav.profile"), icon: User, badge: 0 },
   ];
 
@@ -200,11 +207,11 @@ export default function BottomNav() {
         </div>
         <div className="border-t border-border/60 py-1.5 px-4 flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-3">
-            <Link to="/terms" className="hover:text-primary">Terms</Link>
+            <Link to="/terms" className="hover:text-primary">{t("footer.terms")}</Link>
             <span aria-hidden="true">·</span>
-            <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+            <Link to="/privacy" className="hover:text-primary">{t("footer.privacy")}</Link>
             <span aria-hidden="true">·</span>
-            <Link to="/cancellation" className="hover:text-primary">Cancellation</Link>
+            <Link to="/cancellation" className="hover:text-primary">{t("footer.cancellation")}</Link>
           </div>
           <LanguageSwitcher variant="floating" />
         </div>

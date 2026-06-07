@@ -39,6 +39,8 @@ interface Profile {
   worker_type: "cleaner" | "helper";
   helper_earnings?: number | null;
   is_available_now: boolean;
+  stripe_connect_account_id: string | null;
+  stripe_connect_onboarded: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -65,12 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
-      .single();
-    if (data) setProfile(data as Profile);
+      .maybeSingle();
+    if (error) {
+      console.error("[useAuth] fetchProfile error:", error);
+      return;
+    }
+    if (data) setProfile(data as unknown as Profile);
   };
 
   const refreshProfile = async () => {
@@ -102,22 +108,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => {
-    const { data, error } = await supabase.auth.signUp({
+    const workerType = role === "cleaner" && hasTransportation === false ? "helper" : "cleaner";
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          worker_type: workerType,
+          has_transportation: hasTransportation ?? true,
+        },
+      },
     });
     if (error) throw error;
-    if (data.user) {
-      const workerType = role === "cleaner" && hasTransportation === false ? "helper" : "cleaner";
-      await supabase.from("profiles").update({
-        role,
-        full_name: fullName,
-        has_transportation: hasTransportation ?? true,
-        worker_type: workerType,
-      }).eq("id", data.user.id);
-      await supabase.rpc("seed_sample_data", { p_user_id: data.user.id });
-    }
   };
 
   const signIn = async (email: string, password: string) => {

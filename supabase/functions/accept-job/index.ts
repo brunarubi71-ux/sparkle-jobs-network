@@ -1,5 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function sendEmail(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  to: string,
+  template: string,
+  data: Record<string, unknown>,
+) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ to, template, data }),
+    });
+  } catch (err) {
+    // Non-blocking: log but never fail the main operation because of email
+    console.error("[accept-job] sendEmail error:", err);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -85,23 +107,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Weekly job limits (week starts Monday) ──
+    // ── Weekly job limits: count confirmed (accepted/hired) applications this week ──
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
-    const day = today.getUTCDay(); // 0=Sun..6=Sat
+    const day = today.getUTCDay();
     const diff = day === 0 ? -6 : 1 - day;
     const weekStartDate = new Date(today);
     weekStartDate.setUTCDate(today.getUTCDate() + diff);
     const weekStartIso = weekStartDate.toISOString().slice(0, 10);
 
-    const usedThisWeek =
-      profile.jobs_used_date && profile.jobs_used_date >= weekStartIso
-        ? profile.jobs_used_today ?? 0
-        : 0;
+    const { count: confirmedThisWeek } = await admin
+      .from("job_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("cleaner_id", user.id)
+      .in("status", ["accepted", "hired"])
+      .gte("created_at", weekStartIso);
 
+    const usedThisWeek = confirmedThisWeek ?? 0;
     const tier = profile.plan_tier ?? "free";
     const maxJobsPerWeek =
-      tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 5 : 1;
+      tier === "premium" ? Number.POSITIVE_INFINITY : tier === "pro" ? 7 : 2;
 
     if (Number.isFinite(maxJobsPerWeek) && usedThisWeek >= maxJobsPerWeek) {
       return new Response(JSON.stringify({ success: false, error: "Weekly job limit reached. Upgrade your plan for more jobs." }), {
@@ -113,7 +138,7 @@ Deno.serve(async (req) => {
     // Verify the job exists and is still open
     const { data: jobRow, error: jobError } = await admin
       .from("jobs")
-      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required, cleaners_required, helpers_required")
+      .select("id, owner_id, status, hired_cleaner_id, urgency, team_size_required, cleaners_required, helpers_required, title")
       .eq("id", jobId)
       .maybeSingle();
 
@@ -149,56 +174,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Solo cleaner-only job: classic flow (owner approves a single cleaner)
-    if (!isTeamJob) {
-      if (jobRow.status !== "open" || jobRow.hired_cleaner_id) {
-        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      // Team jobs: still accept while status is open OR applied (partially filled).
-      if (!["open", "applied"].includes(jobRow.status)) {
-        return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Cleaner spot already filled?
-      if (workerType === "cleaner" && cleanersRequired > 0) {
-        const { count: cleanersFilled } = await admin
-          .from("job_applications")
-          .select("id, profiles!inner(worker_type)", { count: "exact", head: true })
-          .eq("job_id", jobId)
-          .eq("status", "accepted")
-          .eq("profiles.worker_type", "cleaner");
-        if ((cleanersFilled ?? 0) >= cleanersRequired) {
-          return new Response(JSON.stringify({ success: false, error: "All Cleaner spots for this team job are filled." }), {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-      if (workerType === "helper") {
-        const { count: helpersFilled } = await admin
-          .from("job_applications")
-          .select("id, profiles!inner(worker_type)", { count: "exact", head: true })
-          .eq("job_id", jobId)
-          .eq("status", "accepted")
-          .eq("profiles.worker_type", "helper");
-        if ((helpersFilled ?? 0) >= helpersRequired) {
-          return new Response(JSON.stringify({ success: false, error: "All Helper spots for this team job are filled." }), {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
+    // All jobs accept applications while status is open or applied.
+    // For solo jobs: also block when hired_cleaner_id is already set.
+    // For team jobs (helpers_required > 0): hired_cleaner_id being set is fine —
+    //   the helper slot may still be open.
+    const soloJobFilled = helpersRequired === 0 && !!jobRow.hired_cleaner_id;
+    if (!["open", "applied"].includes(jobRow.status) || soloJobFilled) {
+      return new Response(JSON.stringify({ success: false, error: "This job is no longer accepting applications." }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // For solo jobs the application is PENDING (owner approves).
-    // For team jobs the application is auto-ACCEPTED so a spot is reserved.
-    const applicationStatus = isTeamJob ? "accepted" : "pending";
+    // All applications start as pending — owner selects from the applicant pool.
+    const applicationStatus = "pending";
 
     // Create or update the cleaner's application
     const { data: existingApplication } = await admin
@@ -231,44 +220,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (isTeamJob) {
-      // Reserve the lead Cleaner spot (first cleaner) on the job for backwards compat
-      if (workerType === "cleaner" && !jobRow.hired_cleaner_id && cleanersRequired > 0) {
-        await admin.from("jobs").update({ hired_cleaner_id: user.id }).eq("id", jobId);
-      }
-
-      // Count filled spots = accepted applications for this job
-      const { count: filledCount } = await admin
-        .from("job_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("job_id", jobId)
-        .eq("status", "accepted");
-
-      const filled = filledCount ?? 0;
-
-      if (filled >= totalRequired) {
-        // Team is complete — flip job to 'accepted'
-        await admin.from("jobs").update({ status: "accepted" }).eq("id", jobId);
-      } else if (jobRow.status === "open") {
-        // Mark as 'applied' so the owner sees activity
-        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
-      }
-    } else {
-      // Solo job: mark as having applicants so the owner sees it in the active queue
-      if (jobRow.status === "open") {
-        await admin.from("jobs").update({ status: "applied" }).eq("id", jobId).eq("status", "open");
-      }
-    }
-
-    if (isNewAcceptance) {
-      const { error: updateProfileError } = await admin
-        .from("profiles")
-        .update({ jobs_used_today: usedThisWeek + 1, jobs_used_date: todayIso })
-        .eq("id", user.id);
-
-      if (updateProfileError) {
-        throw new Error(`Could not update usage counters: ${updateProfileError.message}`);
-      }
+    // Mark job as "applied" so the owner sees activity (first application triggers this).
+    if (jobRow.status === "open") {
+      await admin.from("jobs").update({ status: "applied" }).eq("id", jobId);
     }
 
     // Open a conversation between worker and owner so they can chat
@@ -286,6 +240,31 @@ Deno.serve(async (req) => {
 
       if (insertConversationError) {
         throw new Error(`Could not create conversation: ${insertConversationError.message}`);
+      }
+    }
+
+    // Notify owner by email when a new applicant applies (fire-and-forget)
+    if (isNewAcceptance) {
+      const { data: ownerProfile } = await admin
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", jobRow.owner_id)
+        .maybeSingle();
+
+      const { data: cleanerProfile } = await admin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (ownerProfile?.email) {
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+        const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await sendEmail(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ownerProfile.email, "job_applied", {
+          ownerName: ownerProfile.full_name ?? "there",
+          cleanerName: cleanerProfile?.full_name ?? "A cleaner",
+          jobTitle: jobRow.title ?? "Cleaning Job",
+        });
       }
     }
 

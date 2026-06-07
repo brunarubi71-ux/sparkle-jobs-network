@@ -2,6 +2,7 @@ import { Bell, Briefcase, CheckCircle2, MessageCircle, UserPlus, Sparkles } from
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { useNotifications, type AppNotification, type NotificationType } from "@/hooks/useNotifications";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,8 +27,16 @@ const iconFor = (type: NotificationType) => {
 };
 
 export default function NotificationBell({ className }: { className?: string }) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications: allNotifications, unreadCount: rawUnread, markAsRead, markAllAsRead } = useNotifications();
+  const { profile } = useAuth();
   const navigate = useNavigate();
+
+  // Workers (cleaners/helpers) must never see owner-specific notification types.
+  const isWorker = profile?.role === "cleaner";
+  const notifications = isWorker
+    ? allNotifications.filter((n) => n.type !== "new_application")
+    : allNotifications;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleClick = async (n: AppNotification) => {
     if (!n.read) await markAsRead(n.id);

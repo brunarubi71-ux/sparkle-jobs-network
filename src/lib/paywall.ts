@@ -1,31 +1,34 @@
 /**
  * Paywall enforcement helpers.
- * Limits per spec:
- *  - Job applications/week: free=2, pro=7, premium=∞
- *  - Schedule contacts/week: free=0, pro=2, premium=∞
+ * All tiers are unlimited during the free-growth phase (until ~1000 users).
+ * Subscriptions remain optional; only the 10% platform fee applies.
  */
 
 export type PlanTier = "free" | "pro" | "premium";
 
 interface MinimalProfile {
   plan_tier?: PlanTier | string | null;
+  is_premium?: boolean | null;
 }
 
 export const APPLY_LIMITS: Record<PlanTier, number> = {
-  free: 2,
-  pro: 7,
+  free: Number.POSITIVE_INFINITY,
+  pro: Number.POSITIVE_INFINITY,
   premium: Number.POSITIVE_INFINITY,
 };
 
 export const CONTACT_LIMITS: Record<PlanTier, number> = {
-  free: 0,
-  pro: 1,
+  free: Number.POSITIVE_INFINITY,
+  pro: Number.POSITIVE_INFINITY,
   premium: Number.POSITIVE_INFINITY,
 };
 
 function tierOf(profile?: MinimalProfile | null): PlanTier {
   const t = (profile?.plan_tier ?? "free") as PlanTier;
-  return t === "pro" || t === "premium" ? t : "free";
+  if (t === "pro" || t === "premium") return t;
+  // Fallback: if webhook set is_premium=true but plan_tier hasn't synced yet, treat as "pro"
+  if (profile?.is_premium) return "pro";
+  return "free";
 }
 
 export function getApplyLimit(profile?: MinimalProfile | null): number {

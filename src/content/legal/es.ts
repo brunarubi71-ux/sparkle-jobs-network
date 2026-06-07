@@ -2,7 +2,7 @@ const notice = `> 🌐 *Esta es una traducción de conveniencia. La versión en 
 
 export const TERMS_OF_SERVICE_ES = notice + `# Términos de Servicio de Shinely
 
-_Última actualización: 27 de abril de 2026_
+_Última actualización: 12 de mayo de 2026_
 
 Estos Términos de Servicio ("Términos") rigen su acceso y uso de Shinely ("Plataforma"), operada por Rubi Solutions Corp. ("Shinely," "nosotros" o "nuestro"), una corporación de Florida.
 
@@ -62,7 +62,7 @@ Shinely es una plataforma tecnológica que conecta a Propietarios con Limpiadore
 
 **Total = Precio del Trabajo + Tarifa de la Plataforma**
 
-La **Tarifa de la Plataforma** es actualmente **10% del Precio del Trabajo** durante nuestra promoción de lanzamiento (primeros 60 días después del 27 de abril de 2026), después de lo cual será **15%**. Notificaremos a los Usuarios sobre cambios de tarifas con al menos 30 días de anticipación.
+La **Tarifa de la Plataforma** es actualmente **10% del Precio del Trabajo**. Notificaremos a los Usuarios sobre cualquier cambio de tarifas con al menos 30 días de anticipación.
 
 ### 6.2 Procesamiento de pagos
 
@@ -183,7 +183,7 @@ Email: support@shinelyapp.com
 
 export const PRIVACY_POLICY_ES = notice + `# Política de Privacidad de Shinely
 
-_Última actualización: 27 de abril de 2026_
+_Última actualización: 12 de mayo de 2026_
 
 Esta Política de Privacidad explica cómo Rubi Solutions Corp. ("Shinely," "nosotros") recopila, usa y comparte información cuando usa la plataforma Shinely ("Plataforma").
 
@@ -287,7 +287,7 @@ Email: privacy@shinelyapp.com
 
 export const CANCELLATION_POLICY_ES = notice + `# Política de Cancelación y Reembolso de Shinely
 
-_Última actualización: 27 de abril de 2026_
+_Última actualización: 12 de mayo de 2026_
 
 Esta Política explica cómo cancelar un Plan de Suscripción o un Trabajo de Shinely y qué reembolsos (si los hay) aplican. Es parte de nuestros [Términos de Servicio](/terms).
 

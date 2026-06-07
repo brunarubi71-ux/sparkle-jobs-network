@@ -106,33 +106,48 @@ export default function ChatConversation() {
 
   const fetchUserProfile = async () => {
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("role, violation_score").eq("id", user.id).single();
-    if (data) {
-      setUserRole((data as any).role === "owner" ? "owner" : "cleaner");
-      setViolationScore((data as any).violation_score || 0);
+    try {
+      const { data, error } = await supabase.from("profiles").select("role, violation_score").eq("id", user.id).maybeSingle();
+      if (error) { console.error("[ChatConversation] fetchUserProfile error:", error); return; }
+      if (data) {
+        setUserRole((data as any).role === "owner" ? "owner" : "cleaner");
+        setViolationScore((data as any).violation_score || 0);
+      }
+    } catch (e) {
+      console.error("[ChatConversation] fetchUserProfile exception:", e);
     }
   };
 
   const checkJobStatus = async () => {
-    const { data: conv } = await supabase.from("conversations").select("job_id, cleaner_id, owner_id").eq("id", id!).single();
-    if (conv) {
-      const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
-      setOtherUserId(otherId);
-      const { data: otherProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).single();
-      if (otherProfile) {
-        setOtherUserName((otherProfile as any).full_name || null);
-        setOtherUserAvatar((otherProfile as any).avatar_url || null);
+    try {
+      const { data: conv, error: convErr } = await supabase.from("conversations").select("job_id, cleaner_id, owner_id").eq("id", id!).maybeSingle();
+      if (convErr) { console.error("[ChatConversation] checkJobStatus conv error:", convErr); return; }
+      if (conv) {
+        const otherId = conv.cleaner_id === user!.id ? conv.owner_id : conv.cleaner_id;
+        setOtherUserId(otherId);
+        const { data: otherProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", otherId).maybeSingle();
+        if (otherProfile) {
+          setOtherUserName((otherProfile as any).full_name || null);
+          setOtherUserAvatar((otherProfile as any).avatar_url || null);
+        }
       }
-    }
-    if (conv?.job_id) {
-      const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).single();
-      if (job) setJobStatus(job.status as JobStatus);
+      if (conv?.job_id) {
+        const { data: job } = await supabase.from("jobs").select("status").eq("id", conv.job_id).maybeSingle();
+        if (job) setJobStatus(job.status as JobStatus);
+      }
+    } catch (e) {
+      console.error("[ChatConversation] checkJobStatus exception:", e);
     }
   };
 
   const fetchMessages = async () => {
-    const { data } = await supabase.from("messages").select("*").eq("conversation_id", id!).order("created_at", { ascending: true });
-    setMessages((data as Message[]) || []);
+    try {
+      const { data, error } = await supabase.from("messages").select("*").eq("conversation_id", id!).order("created_at", { ascending: true });
+      if (error) { console.error("[ChatConversation] fetchMessages error:", error); return; }
+      setMessages((data as Message[]) || []);
+    } catch (e) {
+      console.error("[ChatConversation] fetchMessages exception:", e);
+    }
   };
 
   const sendMessage = async () => {

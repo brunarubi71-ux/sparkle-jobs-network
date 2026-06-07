@@ -17,12 +17,8 @@ import ReviewModal from "@/components/ReviewModal";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { syncBadges } from "@/lib/badges";
+import { getWorkerShare } from "@/lib/earnings";
 
-/** Worker's estimated earnings: 90% of job price split equally between all workers. */
-const getWorkerEarnings = (job: { price: number; cleaners_required?: number | null; helpers_required?: number | null }) => {
-  const workers = Math.max(1, (job.cleaners_required ?? 1) + (job.helpers_required ?? 0));
-  return (Number(job.price || 0) * 0.9) / workers;
-};
 
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +29,7 @@ export default function JobDetails() {
   const [ownerVerified, setOwnerVerified] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<{ id: string; full_name: string | null; avatar_url: string | null } | null>(null);
   const [hiredCleaner, setHiredCleaner] = useState<{ id: string; full_name: string | null; avatar_url: string | null; avg_rating: number | null } | null>(null);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper" }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; worker_type: "cleaner" | "helper"; submitted_at: string | null; started_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionPhotos, setCompletionPhotos] = useState<string[]>([]);
   const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
@@ -42,6 +38,7 @@ export default function JobDetails() {
   const [completing, setCompleting] = useState(false);
   const MIN_COMPLETION_PHOTOS = 10;
   const [startingJob, setStartingJob] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
@@ -107,9 +104,11 @@ export default function JobDetails() {
       if (totalReq >= 2) {
         const { data: apps } = await supabase
           .from("job_applications")
-          .select("cleaner_id, status")
+          .select("cleaner_id, status, submitted_at, started_at")
           .eq("job_id", (data as any).id)
           .eq("status", "accepted");
+        const submittedMap = new Map((apps || []).map((a: any) => [a.cleaner_id, (a as any).submitted_at ?? null]));
+        const startedMap = new Map((apps || []).map((a: any) => [a.cleaner_id, (a as any).started_at ?? null]));
         const ids = (apps || []).map((a: any) => a.cleaner_id);
         if (ids.length > 0) {
           const { data: profs } = await supabase
@@ -122,6 +121,8 @@ export default function JobDetails() {
               full_name: p.full_name,
               avatar_url: p.avatar_url,
               worker_type: p.worker_type === "helper" ? "helper" : "cleaner",
+              submitted_at: submittedMap.get(p.id) ?? null,
+              started_at: startedMap.get(p.id) ?? null,
             }))
           );
         } else {
@@ -140,6 +141,12 @@ export default function JobDetails() {
   // Any hired team member (lead cleaner or accepted helper/cleaner) can act as the worker
   const isCleaner = isHiredLead || isTeamMember;
   const isStarted = ["in_progress", "pending_review", "completed"].includes(job?.status);
+  const isTeamJob = ((job?.cleaners_required ?? 1) + (job?.helpers_required ?? 0)) > 1;
+  const myMember = teamMembers.find(m => m.id === user?.id);
+  const mySubmittedAt = myMember?.submitted_at ?? null;
+  const myStartedAt = isTeamJob ? (myMember?.started_at ?? null) : null;
+  const pendingSubmitCount = teamMembers.filter(m => !m.submitted_at).length;
+  const pendingStartCount = isTeamJob ? teamMembers.filter(m => !m.started_at).length : 0;
 
   // Solo start logic: helpers required but none accepted yet
   const helpersRequired = job?.helpers_required ?? 0;
@@ -163,10 +170,36 @@ export default function JobDetails() {
       return;
     }
     setStartingJob(true);
-    await supabase.from("jobs").update({ status: "in_progress" }).eq("id", id);
-    toast.success(t("job.started_success"));
-    await fetchJob();
-    setStartingJob(false);
+    try {
+      if (isTeamJob) {
+        // Per-worker start: atomic RPC sets started_at, moves job to in_progress once everyone starts
+        const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)("start_team_job", { p_job_id: id });
+        if (rpcErr) throw rpcErr;
+        const result = rpcData as unknown as { all_started: boolean; pending_count: number; error?: string };
+        if (result?.error) throw new Error(result.error);
+        if (result?.all_started) {
+          toast.success(t("job.started_success"));
+        } else {
+          toast.success(`Você iniciou! Aguardando ${result?.pending_count ?? ""} membro(s) da equipe.`);
+        }
+      } else {
+        // Solo job: direct status update
+        const { data, error } = await supabase
+          .from("jobs")
+          .update({ status: "in_progress" })
+          .eq("id", id)
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error("permission_denied");
+        toast.success(t("job.started_success"));
+      }
+      await fetchJob();
+    } catch (e: any) {
+      console.error("[JobDetails] startJob failed:", e);
+      toast.error(t("errors.generic"));
+    } finally {
+      setStartingJob(false);
+    }
   };
 
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -182,7 +215,7 @@ export default function JobDetails() {
 
     const uploadOne = async (file: File, offset: number) => {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${id}/completion/foto_${baseIndex + offset + 1}_${Date.now()}_${offset}.${ext}`;
+      const path = `${user!.id}/${id}/completion/foto_${baseIndex + offset + 1}_${Date.now()}_${offset}.${ext}`;
       const { error } = await supabase.storage.from("property-photos").upload(path, file);
       completed += 1;
       setUploadProgress({ done: completed, total: files.length });
@@ -200,13 +233,18 @@ export default function JobDetails() {
 
     if (newUrls.length > 0) {
       const updated = [...completionPhotos, ...newUrls];
-      await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
-      setCompletionPhotos(updated);
-      toast.success(
-        newUrls.length === 1
-          ? t("job.photo_uploaded")
-          : `${newUrls.length} photos uploaded`
-      );
+      const { error: dbError } = await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+      if (dbError) {
+        console.error("[JobDetails] save photos failed:", dbError);
+        toast.error(t("errors.generic"));
+      } else {
+        setCompletionPhotos(updated);
+        toast.success(
+          newUrls.length === 1
+            ? t("job.photo_uploaded")
+            : `${newUrls.length} photos uploaded`
+        );
+      }
     }
     if (failed > 0) toast.error(t("job.upload_failed"));
     setUploading(false);
@@ -224,7 +262,12 @@ export default function JobDetails() {
       delete next[url];
       return next;
     });
-    await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    const { error: dbError } = await supabase.from("jobs").update({ completion_photos: updated }).eq("id", id);
+    if (dbError) {
+      console.error("[JobDetails] removeCompletionPhoto DB update failed:", dbError);
+      // Rollback optimistic update
+      setCompletionPhotos(completionPhotos);
+    }
     // Best-effort delete from storage (path is the part after the bucket public URL)
     try {
       const marker = "/property-photos/";
@@ -239,31 +282,125 @@ export default function JobDetails() {
   };
 
   const submitCompletion = async () => {
-    if (!id) return;
+    if (!id || !job) return;
     if (completionPhotos.length < MIN_COMPLETION_PHOTOS) {
       toast.error(`Please add at least ${MIN_COMPLETION_PHOTOS} photos to complete this job.`);
       return;
     }
     setCompleting(true);
-    // Append captions to notes (so they persist without a schema change)
-    const captionLines = completionPhotos
-      .map((url, i) => {
-        const cap = (photoCaptions[url] || "").trim();
-        return cap ? `Photo ${i + 1}: ${cap}` : null;
-      })
-      .filter(Boolean) as string[];
-    const finalNotes = captionLines.length > 0
-      ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
-      : completionNotes;
-    await supabase.from("jobs").update({ status: "pending_review", completion_photos: completionPhotos, completion_notes: finalNotes, pending_review_at: new Date().toISOString() } as any).eq("id", id);
-    toast.success(t("job.submitted_review"));
-    await fetchJob();
-    setCompleting(false);
+    try {
+      const captionLines = completionPhotos
+        .map((url, i) => {
+          const cap = (photoCaptions[url] || "").trim();
+          return cap ? `Photo ${i + 1}: ${cap}` : null;
+        })
+        .filter(Boolean) as string[];
+      const finalNotes = captionLines.length > 0
+        ? `${completionNotes}${completionNotes ? "\n\n" : ""}— Photo captions —\n${captionLines.join("\n")}`
+        : completionNotes;
+
+      const jobIsTeam = ((job.cleaners_required ?? 1) + (job.helpers_required ?? 0)) > 1;
+
+      if (jobIsTeam) {
+        // Find this worker's application row
+        const { data: myApp } = await supabase
+          .from("job_applications")
+          .select("id, submitted_at")
+          .eq("job_id", id)
+          .eq("cleaner_id", user!.id)
+          .maybeSingle();
+
+        if ((myApp as any)?.submitted_at) {
+          toast.info("Você já finalizou sua parte.");
+          return;
+        }
+
+        // Mark this worker as submitted
+        if (myApp) {
+          await supabase
+            .from("job_applications")
+            .update({ submitted_at: new Date().toISOString(), completion_notes: finalNotes } as any)
+            .eq("id", (myApp as any).id);
+        }
+
+        // Persist photos to shared job record
+        await supabase.from("jobs").update({
+          completion_photos: completionPhotos,
+          completion_notes: finalNotes,
+        }).eq("id", id);
+
+        // Check if ALL accepted team members have now submitted
+        const { data: stillPending } = await supabase
+          .from("job_applications")
+          .select("id")
+          .eq("job_id", id)
+          .eq("status", "accepted")
+          .is("submitted_at", null);
+
+        if (!stillPending || stillPending.length === 0) {
+          // Everyone done — move job to pending_review
+          const { error } = await supabase.from("jobs").update({
+            status: "pending_review",
+            pending_review_at: new Date().toISOString(),
+          } as any).eq("id", id);
+          if (error) throw error;
+
+          if (job.owner_id) {
+            await sendNotification({
+              userId: job.owner_id,
+              title: "Work Completed! 🎉",
+              message: `The team finished "${job.title}". Please review and approve.`,
+              type: "pending_review",
+              relatedId: id,
+              link: `/job/${id}`,
+            });
+          }
+          toast.success(t("job.submitted_review"));
+        } else {
+          toast.success(t("job.team_submitted_waiting"));
+        }
+      } else {
+        // Solo job: original behavior
+        const { error } = await supabase.from("jobs").update({
+          status: "pending_review",
+          completion_photos: completionPhotos,
+          completion_notes: finalNotes,
+          pending_review_at: new Date().toISOString(),
+        } as any).eq("id", id);
+        if (error) throw error;
+
+        if (job.owner_id) {
+          await sendNotification({
+            userId: job.owner_id,
+            title: "Work Completed! 🎉",
+            message: `"${job.title}" has been submitted for your review.`,
+            type: "pending_review",
+            relatedId: id,
+            link: `/job/${id}`,
+          });
+        }
+        toast.success(t("job.submitted_review"));
+      }
+
+      await fetchJob();
+    } catch (e) {
+      console.error("[JobDetails] submitCompletion failed:", e);
+      toast.error(t("errors.generic"));
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const confirmCompletion = async () => {
-    if (!id || !job) return;
-    await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
+    if (!id || !job || confirmingPayment) return;
+    setConfirmingPayment(true);
+    try {
+    const { error: confirmError } = await supabase.from("jobs").update({ status: "completed", owner_confirmed_completion: true }).eq("id", id);
+    if (confirmError) {
+      console.error("[JobDetails] confirmCompletion failed:", confirmError);
+      toast.error(t("errors.generic"));
+      return;
+    }
 
     // ----- "Job Approved 🎉" notifications for ALL hired workers -----
     try {
@@ -292,8 +429,11 @@ export default function JobDetails() {
       console.error("[JobDetails] job_approved batch failed", e);
     }
 
-    // ----- Payment split: 10% platform fee, 90% split equally among ALL hired workers -----
-    const total = Number(job.total_amount || job.price || 0);
+    // ----- Payment split -----
+    // Platform keeps 10%. Of the remaining 90%:
+    //   - If the job has BOTH cleaners and helpers: cleaners share 70%, helpers share 30%
+    //   - If the job is cleaner-only: cleaners share 100% of the pool
+    const total = Number(job.price || 0);
     const platformFee = Math.round(total * 0.10 * 100) / 100;
     const workerPool = Math.round((total - platformFee) * 100) / 100;
 
@@ -310,30 +450,44 @@ export default function JobDetails() {
     } catch {}
 
     const workerIds = Array.from(hiredIds);
-    const perWorker = workerIds.length > 0
-      ? Math.round((workerPool / workerIds.length) * 100) / 100
-      : 0;
+
+    // Fetch all workers' types in one query so we can split correctly
+    const { data: workerProfiles } = await supabase
+      .from("profiles")
+      .select("id, jobs_completed, total_earnings, helper_earnings, worker_type")
+      .in("id", workerIds);
+    const profileMap = new Map((workerProfiles || []).map((p: any) => [p.id, p]));
+
+    const cleanerIds = workerIds.filter(id => profileMap.get(id)?.worker_type !== "helper");
+    const helperIds  = workerIds.filter(id => profileMap.get(id)?.worker_type === "helper");
 
     // Update each worker's profile + atomically credit their wallet
     for (const workerId of workerIds) {
       try {
-        const { data: wp } = await supabase
-          .from("profiles")
-          .select("jobs_completed, total_earnings, worker_type")
-          .eq("id", workerId)
-          .single();
+        const wp = profileMap.get(workerId);
         if (!wp) continue;
-        const newJobs = (wp.jobs_completed || 0) + 1;
-        const newEarnings = Math.round((Number(wp.total_earnings || 0) + perWorker) * 100) / 100;
-        await supabase.from("profiles").update({
+        const isHelper = wp.worker_type === "helper";
+        const earned = Math.round(
+          getWorkerShare(total, cleanerIds.length, helperIds.length, isHelper ? "helper" : "cleaner") * 100
+        ) / 100;
+        if (earned <= 0) continue;
+
+        const newJobs     = (wp.jobs_completed || 0) + 1;
+        const newEarnings = Math.round((Number(wp.total_earnings || 0) + earned) * 100) / 100;
+
+        const profileUpdate: Record<string, unknown> = {
           jobs_completed: newJobs,
           total_earnings: newEarnings,
-        } as any).eq("id", workerId);
+        };
+        if (isHelper) {
+          profileUpdate.helper_earnings = Math.round((Number(wp.helper_earnings || 0) + earned) * 100) / 100;
+        }
+        await supabase.from("profiles").update(profileUpdate as any).eq("id", workerId);
 
         // Atomic credit (handles concurrent updates safely)
         await supabase.rpc("credit_wallet", {
           p_user_id: workerId,
-          p_amount: perWorker,
+          p_amount: earned,
           p_description: `Earnings from "${job.title}"`,
           p_job_id: id,
         });
@@ -342,13 +496,13 @@ export default function JobDetails() {
         await sendNotification({
           userId: workerId,
           title: "Payment Received 💰",
-          message: `You received $${perWorker.toFixed(2)} for completing "${job.title}"!`,
+          message: `You received $${earned.toFixed(2)} for completing "${job.title}"!`,
           type: "payment_received",
           relatedId: id,
           link: "/wallet",
         });
 
-        const workerType = ((wp as any).worker_type === "helper" ? "helper" : "cleaner") as "helper" | "cleaner";
+        const workerType = (isHelper ? "helper" : "cleaner") as "helper" | "cleaner";
         const { data: revs } = await supabase.from("reviews").select("rating").eq("reviewed_id", workerId).eq("is_hidden", false);
         const avg = revs && revs.length ? revs.reduce((s, r) => s + r.rating, 0) / revs.length : 0;
         await syncBadges(workerId, { jobsCompleted: newJobs, avgRating: avg, totalEarnings: newEarnings }, workerType);
@@ -357,25 +511,13 @@ export default function JobDetails() {
       }
     }
 
-    // Record platform fee transaction (against owner)
-    if (platformFee > 0 && job.owner_id) {
-      try {
-        await supabase.from("wallet_transactions" as any).insert({
-          user_id: job.owner_id,
-          amount: platformFee,
-          type: "platform_fee",
-          description: `Platform fee (10%) for "${job.title}"`,
-          job_id: id,
-        });
-      } catch (e) {
-        console.error("[JobDetails] platform fee record failed", e);
-      }
-    }
-
     setShowPaymentSuccess(true);
     setTimeout(() => setShowPaymentSuccess(false), 3000);
     toast.success(t("job.completion_confirmed"));
     await fetchJob();
+    } finally {
+      setConfirmingPayment(false);
+    }
   };
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
@@ -447,10 +589,12 @@ export default function JobDetails() {
         <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card rounded-2xl shadow-card p-5">
           <div className="flex items-start justify-between mb-2 gap-3">
             <h1 className="text-xl font-bold text-foreground flex-1">{job.title}</h1>
-            {profile?.role === "cleaner" && !isOwner ? (
+            {!isOwner ? (
               <div className="text-right">
-                <span className="block text-2xl font-bold text-emerald-600">${getWorkerEarnings(job).toFixed(2)}</span>
-                <span className="block text-[11px] font-medium text-muted-foreground">Your earnings</span>
+                <span className="block text-2xl font-bold text-emerald-600">
+                  ${getWorkerShare(job.price, job.cleaners_required ?? 1, job.helpers_required ?? 0, profile?.worker_type === "helper" ? "helper" : "cleaner").toFixed(2)}
+                </span>
+                <span className="block text-[11px] font-medium text-muted-foreground">{t("jobs.your_earnings")}</span>
               </div>
             ) : (
               <span className="text-2xl font-bold text-primary">${job.price}</span>
@@ -815,25 +959,65 @@ export default function JobDetails() {
 
         {/* Cleaner: Start Job */}
         {isCleaner && ["accepted", "hired"].includes(job.status) && (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            <Button
-              onClick={startJob}
-              disabled={startingJob || startBlockedByMissingHelper}
-              title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
-              className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Play className="w-6 h-6 mr-2" />
-              {startingJob ? t("job.starting") : t("job.start")}
-            </Button>
-            {startBlockedByMissingHelper && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
-                ⏳ Waiting for Helper to be hired or Owner approval
-              </p>
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="space-y-3">
+            {/* Team start status panel */}
+            {isTeamJob && teamMembers.length > 0 && (
+              <div className="bg-card rounded-2xl shadow-card p-4">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Status de início da equipe
+                </h3>
+                <div className="space-y-2">
+                  {teamMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.started_at ? "bg-emerald-500" : "bg-amber-400"}`} />
+                      <span className="text-sm flex-1 text-foreground">
+                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                      </span>
+                      <span className={`text-xs font-medium ${m.started_at ? "text-emerald-600" : "text-amber-600"}`}>
+                        {m.started_at ? "✅ Iniciado" : "⏳ Aguardando"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            {helperMissing && allowSoloStart && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 text-center font-medium">
-                ✓ Owner approved solo start
-              </p>
+
+            {/* Show button if this worker hasn't started yet */}
+            {!myStartedAt ? (
+              <>
+                <Button
+                  onClick={startJob}
+                  disabled={startingJob || startBlockedByMissingHelper}
+                  title={startBlockedByMissingHelper ? "Waiting for Helper to be hired or Owner approval" : undefined}
+                  className="w-full h-16 rounded-2xl gradient-primary text-white font-bold text-lg shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:shadow-[0_6px_20px_0_hsla(271,91%,65%,0.5)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Play className="w-6 h-6 mr-2" />
+                  {startingJob ? t("job.starting") : t("job.start")}
+                </Button>
+                {startBlockedByMissingHelper && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                    ⏳ Waiting for Helper to be hired or Owner approval
+                  </p>
+                )}
+                {helperMissing && allowSoloStart && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+                    ✓ Owner approved solo start
+                  </p>
+                )}
+              </>
+            ) : (
+              /* This worker started — waiting for others */
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-7 h-7 text-indigo-500" />
+                </div>
+                <h3 className="font-bold text-foreground mb-1">Você já iniciou!</h3>
+                <p className="text-sm text-muted-foreground">
+                  {pendingStartCount > 0
+                    ? `Aguardando ${pendingStartCount} membro(s) da equipe iniciar.`
+                    : "Todos iniciaram — o trabalho está em andamento."}
+                </p>
+              </div>
             )}
           </motion.div>
         )}
@@ -846,6 +1030,43 @@ export default function JobDetails() {
               <p className="text-sm font-semibold text-primary">{t("job.in_progress")}</p>
             </div>
 
+            {/* Team submission status panel */}
+            {isTeamJob && teamMembers.length > 0 && (
+              <div className="bg-card rounded-2xl shadow-card p-4">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> {t("job.team_status")}
+                </h3>
+                <div className="space-y-2">
+                  {teamMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.submitted_at ? "bg-emerald-500" : "bg-amber-400"}`} />
+                      <span className="text-sm flex-1 text-foreground">
+                        {m.id === user?.id ? "Você" : m.full_name || "Worker"}
+                      </span>
+                      <span className={`text-xs font-medium ${m.submitted_at ? "text-emerald-600" : "text-amber-600"}`}>
+                        {m.submitted_at ? `✅ ${t("job.submitted")}` : `⏳ ${t("job.not_yet_submitted")}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* If already submitted own part, show waiting message */}
+            {mySubmittedAt ? (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-7 h-7 text-indigo-500" />
+                </div>
+                <h3 className="font-bold text-foreground mb-1">{t("job.your_part_submitted")}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {pendingSubmitCount > 0
+                    ? t("job.waiting_others").replace("{count}", String(pendingSubmitCount))
+                    : t("job.all_team_submitted")}
+                </p>
+              </div>
+            ) : (
+            <>
             <div className="bg-card rounded-2xl shadow-card p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -980,6 +1201,8 @@ export default function JobDetails() {
                 ? `${t("job.mark_finished")} (${completionPhotos.length}/${MIN_COMPLETION_PHOTOS})`
                 : t("job.mark_finished")}
             </Button>
+            </>
+            )}
           </motion.div>
         )}
 
@@ -1041,8 +1264,10 @@ export default function JobDetails() {
                 </div>
               )}
               <Button onClick={confirmCompletion}
-                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold">
-                <CheckCircle className="w-4 h-4 mr-2" /> {t("job.approve_payment")}
+                disabled={confirmingPayment}
+                className="w-full h-12 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 font-semibold disabled:opacity-60">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {confirmingPayment ? t("common.processing") : t("job.approve_payment")}
               </Button>
             </div>
           </motion.div>
