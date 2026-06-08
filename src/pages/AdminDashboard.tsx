@@ -345,12 +345,11 @@ export default function AdminDashboard() {
   };
 
   const changeUserPlan = async (userId: string, newPlan: "free" | "premium" | "pro") => {
-    const update: any = {
-      plan_tier: newPlan,
-      is_premium: newPlan !== "free",
-      premium_status: newPlan === "free" ? "free" : "active",
-    };
-    const { error } = await supabase.from("profiles").update(update).eq("id", userId);
+    const action = newPlan === "free" ? "revoke" : newPlan === "pro" ? "grant_pro" : "grant_premium";
+    const { error } = await supabase.rpc("admin_override_subscription" as any, {
+      _user_id: userId,
+      _action: action,
+    });
     if (error) { toast.error("Failed to change plan"); return; }
     toast.success(`Plan updated to ${newPlan}`);
     setChangePlanUser(null);
@@ -360,16 +359,11 @@ export default function AdminDashboard() {
   const activatePlanForAll = async () => {
     setActivateAllLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          plan_tier: activateAllPlan,
-          is_premium: true,
-          premium_status: "active",
-        })
-        .neq("role", "admin");
+      const { data, error } = await supabase.rpc("admin_activate_plan_for_all" as any, {
+        _plan: activateAllPlan,
+      });
       if (error) throw error;
-      toast.success(`Plano ${activateAllPlan === "premium" ? "Premium" : "Pro"} ativado para todos os usuários!`);
+      toast.success(`Plano ${activateAllPlan === "premium" ? "Premium" : "Pro"} ativado para ${data} usuários!`);
       setActivateAllOpen(false);
       fetchAll();
     } catch (err: any) {
