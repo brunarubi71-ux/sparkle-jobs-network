@@ -1,0 +1,86 @@
+workflows:
+  ios-release:
+    name: Shinely iOS — App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.shinely.app
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+      node: 20.11.0
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build web app
+        script: npm run build
+
+      - name: Capacitor sync iOS
+        script: npx cap sync ios
+
+      - name: Set version from codemagic
+        script: |
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_ID" --pre-release-version 1.0)
+          BUILD=$((LATEST + 1))
+          agvtool new-version -all $BUILD
+          agvtool new-marketing-version 1.0
+        working_directory: ios/App
+
+      - name: Build and sign IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Testers internos
+
+  android-release:
+    name: Shinely Android — Google Play
+    max_build_duration: 60
+    instance_type: linux_x2
+
+    environment:
+      android_signing:
+        - shinely_keystore
+      vars:
+        PACKAGE_NAME: "com.shinely.app"
+      node: 20.11.0
+
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build web app
+        script: npm run build
+
+      - name: Capacitor sync Android
+        script: npx cap sync android
+
+      - name: Build Android App Bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
