@@ -58,9 +58,9 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isPasswordRecovery } = useAuth();
   if (loading) return <PageLoader />;
-  if (user) return <Navigate to="/" replace />;
+  if (user && !isPasswordRecovery) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

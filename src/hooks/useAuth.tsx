@@ -50,12 +50,14 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isPasswordRecovery: boolean;
   /** Jobs used during the CURRENT week (resets when jobs_used_date is from a previous week). */
   jobsUsedThisWeek: number;
   signUp: (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -85,13 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setIsPasswordRecovery(true);
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          return;
+        }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
+          setIsPasswordRecovery(false);
         }
         setLoading(false);
       }
@@ -132,14 +143,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setIsPasswordRecovery(false);
   };
+
+  const clearPasswordRecovery = () => setIsPasswordRecovery(false);
 
   const jobsUsedThisWeek = profile
     ? getJobsUsedThisWeek(profile.jobs_used_date, profile.jobs_used_today)
     : 0;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, jobsUsedThisWeek, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, isPasswordRecovery, jobsUsedThisWeek, signUp, signIn, signOut, refreshProfile, clearPasswordRecovery }}>
       {children}
     </AuthContext.Provider>
   );

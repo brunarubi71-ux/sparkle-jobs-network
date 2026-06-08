@@ -16,6 +16,9 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"cleaner" | "owner">("cleaner");
   const [hasTransportation, setHasTransportation] = useState(true);
@@ -27,7 +30,8 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-  const { signUp, signIn } = useAuth();
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+  const { signUp, signIn, isPasswordRecovery, clearPasswordRecovery } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -75,6 +79,30 @@ export default function Auth() {
       setError(err.message);
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    setError("");
+    if (newPassword.length < 8) {
+      setError("A senha deve ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordUpdated(true);
+      clearPasswordRecovery();
+      setTimeout(() => navigate("/", { replace: true }), 2000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,13 +182,68 @@ export default function Auth() {
         style={{ borderRadius: "28px", paddingTop: "28px" }}
       >
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          {showForgotPassword ? (resetEmailSent ? "Email enviado!" : "Esqueceu a senha?") : isSignUp ? t("auth.create_account") : t("auth.welcome")}
+          {isPasswordRecovery ? "Definir nova senha" : showForgotPassword ? (resetEmailSent ? "Email enviado!" : "Esqueceu a senha?") : isSignUp ? t("auth.create_account") : t("auth.welcome")}
         </h2>
-        {!showForgotPassword && <p className="text-sm text-gray-500 mb-6">
+        {!showForgotPassword && !isPasswordRecovery && <p className="text-sm text-gray-500 mb-6">
           {isSignUp ? t("auth.tagline") : t("auth.sign_in_continue")}
         </p>}
 
-        {showForgotPassword && (
+        {isPasswordRecovery && (
+          <div className="space-y-4 mt-4">
+            {passwordUpdated ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">Senha atualizada!</p>
+                <p className="text-xs text-gray-500">Redirecionando...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">Digite e confirme sua nova senha.</p>
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Nova senha"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    minLength={8}
+                    className="rounded-xl h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-primary pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <Input
+                  type="password"
+                  placeholder="Confirmar nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={8}
+                  className="rounded-xl h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-primary"
+                />
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                <Button
+                  type="button"
+                  onClick={handleUpdatePassword}
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl gradient-primary text-white font-semibold text-base shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)] hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {loading ? "..." : "Salvar nova senha"}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
+        {!isPasswordRecovery && showForgotPassword && (
           <div className="space-y-4 mt-6">
             {resetEmailSent ? (
               <div className="text-center py-4">
@@ -213,7 +296,7 @@ export default function Auth() {
             )}
           </div>
         )}
-        <form onSubmit={handleSubmit} className={`space-y-4${showForgotPassword ? " hidden" : ""}`}>
+        <form onSubmit={handleSubmit} className={`space-y-4${showForgotPassword || isPasswordRecovery ? " hidden" : ""}`}>
           {isSignUp && (
             <>
               <Input
@@ -363,13 +446,13 @@ export default function Auth() {
           </Button>
         </form>
 
-        {!showForgotPassword && <div className="flex items-center gap-3 my-5">
+        {!showForgotPassword && !isPasswordRecovery && <div className="flex items-center gap-3 my-5">
           <div className="flex-1 h-px bg-gray-200" />
           <span className="text-xs text-gray-400 font-medium">{t("auth.or_continue")}</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>}
 
-        {!showForgotPassword && <Button
+        {!showForgotPassword && !isPasswordRecovery && <Button
           variant="outline"
           onClick={handleGoogleLogin}
           className="w-full h-12 rounded-xl border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-all"
@@ -384,7 +467,7 @@ export default function Auth() {
         </Button>}
 
 
-        {!showForgotPassword && <p className="text-center text-sm text-gray-500 mt-5">
+        {!showForgotPassword && !isPasswordRecovery && <p className="text-center text-sm text-gray-500 mt-5">
           {isSignUp ? t("auth.has_account") : t("auth.no_account")} {" "}
           <button
             onClick={() => {
