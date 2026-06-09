@@ -67,6 +67,8 @@ export default function AdminDashboard() {
   const [activateAllLoading, setActivateAllLoading] = useState(false);
   const [notifyMinutes, setNotifyMinutes] = useState("10");
   const [loading, setLoading] = useState(true);
+  const [systemHealth, setSystemHealth] = useState<any | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
 
   useEffect(() => {
     if (profile && (profile.role as string) !== "admin") {
@@ -108,6 +110,13 @@ export default function AdminDashboard() {
     const { data } = await (supabase.from as any)("error_reports")
       .select("*").order("created_at", { ascending: false }).limit(100);
     setErrorReports(data || []);
+  };
+
+  const fetchSystemHealth = async () => {
+    setHealthLoading(true);
+    const { data } = await supabase.rpc("admin_get_system_health" as any);
+    if (data) setSystemHealth(data);
+    setHealthLoading(false);
   };
 
   const fetchAll = async () => {
@@ -1166,6 +1175,90 @@ export default function AdminDashboard() {
         {/* ─── MONITOR ─── */}
         {tab === "monitor" && (
           <div className="space-y-4">
+            {/* System Health */}
+            <div className="bg-card border rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-primary" />
+                  <h2 className="text-sm font-bold text-foreground">Saúde do Sistema</h2>
+                  <span className="text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">Plano Free</span>
+                </div>
+                <Button size="sm" variant="outline" onClick={fetchSystemHealth} disabled={healthLoading} className="h-7 text-xs gap-1">
+                  <Activity className={`w-3 h-3 ${healthLoading ? "animate-spin" : ""}`} />
+                  {systemHealth ? "Atualizar" : "Verificar agora"}
+                </Button>
+              </div>
+
+              {!systemHealth && !healthLoading && (
+                <p className="text-xs text-muted-foreground text-center py-3">Clique em "Verificar agora" para checar os limites do plano</p>
+              )}
+
+              {systemHealth && (() => {
+                const metrics = [
+                  {
+                    label: "Banco de dados",
+                    used: `${systemHealth.db_size_mb} MB`,
+                    limit: "500 MB",
+                    pct: systemHealth.db_pct,
+                    warn: "Faça upgrade quando chegar em 400 MB",
+                  },
+                  {
+                    label: "Usuários cadastrados",
+                    used: systemHealth.total_users.toLocaleString(),
+                    limit: "50.000 MAU",
+                    pct: systemHealth.mau_pct,
+                    warn: "Faça upgrade quando chegar em 40.000",
+                  },
+                ];
+                return (
+                  <div className="space-y-3">
+                    {metrics.map((m) => {
+                      const color = m.pct >= 90 ? "bg-red-500" : m.pct >= 70 ? "bg-amber-400" : "bg-emerald-500";
+                      const labelColor = m.pct >= 90 ? "text-red-600" : m.pct >= 70 ? "text-amber-600" : "text-emerald-600";
+                      const status = m.pct >= 90 ? "🔴 CRÍTICO" : m.pct >= 70 ? "⚠️ Atenção" : "✅ OK";
+                      return (
+                        <div key={m.label} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-foreground">{m.label}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-semibold ${labelColor}`}>{status}</span>
+                              <span className="text-xs text-muted-foreground">{m.used} / {m.limit}</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${Math.min(m.pct, 100)}%` }} />
+                          </div>
+                          {m.pct >= 70 && (
+                            <p className="text-[10px] text-amber-600">{m.warn}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {(systemHealth.db_pct >= 70 || systemHealth.mau_pct >= 70) && (
+                      <a
+                        href={systemHealth.upgrade_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 w-full mt-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
+                      >
+                        <Crown className="w-3.5 h-3.5" /> Fazer upgrade para Supabase Pro — $25/mês
+                      </a>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-foreground">{systemHealth.total_jobs.toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">Jobs criados</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-foreground">{systemHealth.total_messages.toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">Mensagens</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-foreground">Live Monitor</h2>
