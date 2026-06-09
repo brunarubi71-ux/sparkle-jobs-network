@@ -9,6 +9,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
 import SupportAlertBanner from "@/components/SupportAlertBanner";
+import AISupportChat from "@/components/AISupportChat";
 import { AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -112,6 +113,7 @@ const App = () => {
             <Sonner />
             <PointsToast />
             <SupportAlertBanner />
+            <AISupportChat />
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Suspense fallback={<PageLoader />}>
               <Routes>

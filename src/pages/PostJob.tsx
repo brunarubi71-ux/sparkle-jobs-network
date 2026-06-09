@@ -264,6 +264,28 @@ export default function PostJob() {
     if (!user || !mainPhotoFile) return;
     setConfirmOpen(false);
     setLoading(true);
+
+    // AI content moderation — non-blocking: if AI is unavailable, we proceed
+    try {
+      const { data: modResult } = await supabase.functions.invoke("moderate-job", {
+        body: { title: form.title, description: form.description, city: form.city },
+      });
+      if (modResult && !modResult.approved && modResult.severity === "high") {
+        toast.error(
+          modResult.reason
+            ? `Job rejected: ${modResult.reason}`
+            : "Your job post was flagged and could not be submitted. Please review the content and try again.",
+        );
+        setLoading(false);
+        return;
+      }
+      if (modResult && !modResult.approved && modResult.severity === "low") {
+        toast.warning("Note: your job post may contain content that violates our guidelines. Please review before submitting.");
+      }
+    } catch {
+      // Moderation failure should not block posting
+    }
+
     setUploadingPhotos(true);
     try {
       // Model B: Owner types what cleaner receives, platform adds 10% on top
