@@ -69,6 +69,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [systemHealth, setSystemHealth] = useState<any | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [bugReports, setBugReports] = useState<any[]>([]);
 
   useEffect(() => {
     if (profile && (profile.role as string) !== "admin") {
@@ -82,6 +83,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     const channel = supabase
       .channel("admin-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bug_reports" }, (payload) => {
+        setBugReports((prev) => [payload.new as any, ...prev]);
+        toast(`🐛 New bug report: ${(payload.new as any).category}`, {
+          description: (payload.new as any).user_email,
+          duration: 8000,
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bug_reports" }, (payload) => {
+        setBugReports((prev) => prev.map((r) => r.id === (payload.new as any).id ? payload.new : r));
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "error_reports" }, (payload) => {
         setErrorReports((prev) => [payload.new as any, ...prev]);
         toast(`🚨 New error: ${(payload.new as any).context}`, {
@@ -110,6 +121,12 @@ export default function AdminDashboard() {
     const { data } = await (supabase.from as any)("error_reports")
       .select("*").order("created_at", { ascending: false }).limit(100);
     setErrorReports(data || []);
+  };
+
+  const fetchBugReports = async () => {
+    const { data } = await (supabase.from as any)("bug_reports")
+      .select("*").order("created_at", { ascending: false }).limit(200);
+    setBugReports(data || []);
   };
 
   const fetchSystemHealth = async () => {
@@ -147,6 +164,7 @@ export default function AdminDashboard() {
     setTeamMembers(teamMembersRes.data || []);
     setTeamInvites(teamInvitesRes.data || []);
     await fetchErrorReports();
+    await fetchBugReports();
     setStats({
       users: p.length,
       cleaners: p.filter((u: any) => u.role === "cleaner").length,
@@ -1316,6 +1334,72 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* ─── Bug Reports ─── */}
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                  🐛 Bug Reports
+                  {bugReports.filter((r: any) => !r.resolved).length > 0 && (
+                    <span className="text-[10px] bg-destructive text-destructive-foreground rounded-full px-2 py-0.5 font-bold">
+                      {bugReports.filter((r: any) => !r.resolved).length} open
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Submitted by users from the Profile page</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={fetchBugReports} className="h-8 text-xs gap-1">
+                <Activity className="w-3.5 h-3.5" /> Refresh
+              </Button>
+            </div>
+
+            {bugReports.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
+                <p className="text-sm font-medium">No bug reports yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bugReports.map((report: any) => {
+                  const categoryColors: Record<string, string> = {
+                    bug: "bg-red-100 text-red-700",
+                    payment: "bg-amber-100 text-amber-700",
+                    account: "bg-blue-100 text-blue-700",
+                    other: "bg-gray-100 text-gray-700",
+                  };
+                  return (
+                    <div key={report.id} className={`rounded-2xl border p-4 space-y-2 ${report.resolved ? "bg-card opacity-50" : "bg-card border-border"}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${categoryColors[report.category] || categoryColors.other}`}>
+                              {report.category}
+                            </span>
+                            {report.resolved && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">resolved</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{report.user_email} · {new Date(report.created_at).toLocaleString()}</p>
+                          {report.page_url && (
+                            <p className="text-[10px] text-muted-foreground font-mono">page: {report.page_url}</p>
+                          )}
+                        </div>
+                        {!report.resolved && (
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] text-emerald-600 border-emerald-200 gap-1 shrink-0"
+                            onClick={async () => {
+                              await (supabase.from as any)("bug_reports").update({ resolved: true, resolved_at: new Date().toISOString() }).eq("id", report.id);
+                              setBugReports((prev) => prev.map((r) => r.id === report.id ? { ...r, resolved: true, resolved_at: new Date().toISOString() } : r));
+                            }}>
+                            <Check className="w-3 h-3" /> Resolve
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-foreground bg-muted/50 rounded-xl px-3 py-2 leading-relaxed">{report.description}</p>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

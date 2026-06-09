@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Bug,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BugReportModal from "@/components/BugReportModal";
 import { awardPoints } from "@/lib/points";
 import NotificationBell from "@/components/NotificationBell";
 import {
@@ -53,6 +54,7 @@ export default function Profile() {
   const [activePlanTier, setActivePlanTier] = useState<"free" | "premium" | "pro">("free");
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [showPhotoGuide, setShowPhotoGuide] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Worker stats via React Query (Avg Rating, Jobs Completed, Total Earned)
@@ -552,6 +554,15 @@ export default function Profile() {
           <LanguageSwitcher variant="inline" />
         </div>
 
+        {/* Report a problem */}
+        <Button
+          variant="outline"
+          className="w-full h-12 rounded-xl border-border text-muted-foreground"
+          onClick={() => setBugReportOpen(true)}
+        >
+          <Bug className="w-4 h-4 mr-2" /> Report a problem
+        </Button>
+
         {/* Logout */}
         <Button
           variant="outline"
@@ -578,6 +589,7 @@ export default function Profile() {
       />
       <IdentityVerificationModal open={identityOpen} onOpenChange={setIdentityOpen} />
       <EditProfileModal open={editOpen} onOpenChange={setEditOpen} />
+      <BugReportModal open={bugReportOpen} onOpenChange={setBugReportOpen} />
 
       {/* Photo guidelines dialog */}
       <Dialog open={showPhotoGuide} onOpenChange={setShowPhotoGuide}>
