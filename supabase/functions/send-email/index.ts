@@ -171,6 +171,18 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Internal-only: must be invoked with the service role key (DB triggers via pg_net
+  // or trusted edge functions). Rejects all unauthenticated/user-token calls.
+  const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!SERVICE_ROLE_KEY || provided !== SERVICE_ROLE_KEY) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   if (!RESEND_API_KEY) {
     console.error("[send-email] RESEND_API_KEY is not set");
     return new Response(
