@@ -372,7 +372,7 @@ export default function AdminDashboard() {
         _plan: activateAllPlan,
       });
       if (error) throw error;
-      toast.success(`Plano ${activateAllPlan === "premium" ? "Premium" : "Pro"} ativado para ${data} usuários!`);
+      toast.success(`Plano ${activateAllPlan === "premium" ? "Premium" : "Pro"} ativado para ${Number(data) || 0} usuários!`);
       setActivateAllOpen(false);
       fetchAll();
     } catch (err: any) {

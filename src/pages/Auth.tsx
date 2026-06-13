@@ -97,8 +97,10 @@ export default function Auth() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       setPasswordUpdated(true);
-      clearPasswordRecovery();
-      setTimeout(() => navigate("/", { replace: true }), 2000);
+      setTimeout(() => {
+        clearPasswordRecovery();
+        navigate("/", { replace: true });
+      }, 2000);
     } catch (err: any) {
       setError(err.message);
     } finally {
