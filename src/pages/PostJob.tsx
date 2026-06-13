@@ -17,6 +17,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { toast } from "sonner";
 import { PlusCircle, Camera, X, Upload, Star, ShieldAlert, Clock } from "lucide-react";
 import { awardPoints } from "@/lib/points";
+import { geocodeAddress } from "@/lib/geocode";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 const DRAFT_KEY = "postjob_draft";
@@ -219,6 +220,9 @@ export default function PostJob() {
       const helpersReq = parseInt(form.helpers_required) || 0;
       const teamSize = cleanersReq + helpersReq;
 
+      const geoQuery = [form.address, form.city].filter(Boolean).join(", ");
+      const geoResult = await geocodeAddress(geoQuery);
+
       const { error } = await supabase.from("jobs").update({
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
@@ -231,6 +235,7 @@ export default function PostJob() {
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
         guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
+        ...(geoResult ? { latitude: geoResult.lat, longitude: geoResult.lng } : {}),
       } as any).eq("id", editJobId).eq("owner_id", user.id);
       if (error) throw error;
 
@@ -286,6 +291,9 @@ export default function PostJob() {
       const helpersReq = parseInt(form.helpers_required) || 0;
       const teamSize = cleanersReq + helpersReq;
 
+      const geoQuery = [form.address, form.city].filter(Boolean).join(", ");
+      const geoResult = await geocodeAddress(geoQuery);
+
       const { data: insertedJob, error } = await supabase.from("jobs").insert({
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
@@ -300,6 +308,7 @@ export default function PostJob() {
         status,
         number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
         guest_stay_length: form.guest_stay_length ? (parseInt(form.guest_stay_length) || null) : null,
+        ...(geoResult ? { latitude: geoResult.lat, longitude: geoResult.lng } : {}),
       } as any).select("id").single();
       if (error) throw error;
 
