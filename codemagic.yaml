@@ -10,7 +10,7 @@ workflows:
         XCODE_SCHEME: "App"
         APP_STORE_ID: "6780314043"
         BUNDLE_ID: "com.shinely.app"
-      node: 20.11.0
+      node: 22.13.1
 
     scripts:
       - name: Install dependencies
@@ -68,7 +68,7 @@ workflows:
         - shinely_keystore
       vars:
         PACKAGE_NAME: "com.shinely.app"
-      node: 20.11.0
+      node: 22.13.1
 
     scripts:
       - name: Install dependencies
