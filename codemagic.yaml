@@ -5,12 +5,11 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.shinely.app
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        APP_STORE_ID: "6780314043"
+        BUNDLE_ID: "com.shinely.app"
       node: 20.11.0
 
     scripts:
@@ -22,6 +21,15 @@ workflows:
 
       - name: Capacitor sync iOS
         script: npx cap sync ios
+
+      - name: Set up keychain and code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
 
       - name: Set version from codemagic
         script: |
