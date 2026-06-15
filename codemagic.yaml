@@ -27,13 +27,20 @@ workflows:
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create
+            --create \
+            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
           keychain add-certificates
           xcode-project use-profiles
 
       - name: Set version from codemagic
         script: |
-          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_ID" --pre-release-version 1.0 2>/dev/null || echo "0")
+          LATEST=$(app-store-connect get-latest-app-store-build-number \
+            --app-store-connect-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            "$APP_STORE_ID" --pre-release-version 1.0 2>/dev/null || echo "0")
           BUILD=$((LATEST + 1))
           agvtool new-version -all $BUILD
           agvtool new-marketing-version 1.0
@@ -41,9 +48,16 @@ workflows:
 
       - name: Build and sign IPA
         script: |
-          xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+          WORKSPACE="ios/App/App.xcworkspace"
+          if [ -d "$WORKSPACE" ]; then
+            xcode-project build-ipa \
+              --workspace "$WORKSPACE" \
+              --scheme "$XCODE_SCHEME"
+          else
+            xcode-project build-ipa \
+              --project "$XCODE_PROJECT" \
+              --scheme "$XCODE_SCHEME"
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
