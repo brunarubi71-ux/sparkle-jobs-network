@@ -26,42 +26,26 @@ workflows:
       - name: Capacitor sync iOS
         script: npx cap sync ios
 
-      - name: Set up code signing
+      - name: Get Team ID from App Store Connect API
         script: |
-          keychain initialize
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/AuthKey.p8
-
-          # Explicitly create a new Distribution certificate (CLI manages the private key)
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
+          TEAM_ID=$(app-store-connect bundle-ids list \
+            --identifier "$BUNDLE_ID" \
             --private-key @file:/tmp/AuthKey.p8 \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-
-          keychain add-certificates
-
-          # Create provisioning profile using the new certificate
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --private-key @file:/tmp/AuthKey.p8 \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-
-          # Extract Team ID from the downloaded provisioning profile
-          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
-          if [ -z "$PROFILE" ]; then
-            echo "ERROR: No provisioning profile downloaded"
-            exit 1
-          fi
-          TEAM_ID=$(security cms -D -i "$PROFILE" | python3 -c \
-            "import sys, plistlib; d = plistlib.loads(sys.stdin.buffer.read()); print(d.get('TeamIdentifier', [''])[0])")
-          echo "Detected Team ID: $TEAM_ID"
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --json 2>/dev/null | python3 -c \
+            "import json,sys; d=json.load(sys.stdin); print(d[0]['attributes']['seedId']) if d else exit(1)" 2>/dev/null)
+          if [ -z "$TEAM_ID" ]; then echo "ERROR: Could not get Team ID"; exit 1; fi
+          echo "Team ID: $TEAM_ID"
           echo "TEAM_ID=$TEAM_ID" >> $CM_ENV
 
       - name: Set version from codemagic
         script: |
           LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_ID" \
+            --private-key @file:/tmp/AuthKey.p8 \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --pre-release-version 1.0 2>/dev/null || echo "0")
           BUILD=$((LATEST + 1))
           agvtool new-version -all $BUILD
@@ -93,17 +77,17 @@ workflows:
             archive
 
           cat > /tmp/ExportOptions.plist << PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>$TEAM_ID</string>
-          </dict>
-          </plist>
-          PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store</string>
+  <key>teamID</key>
+  <string>$TEAM_ID</string>
+</dict>
+</plist>
+PLIST
 
           mkdir -p build/ios/ipa
           xcodebuild \
