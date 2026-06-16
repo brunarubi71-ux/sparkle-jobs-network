@@ -439,12 +439,11 @@ export default function JobDetails() {
     }
 
     // ----- Payment split -----
-    // Platform keeps 10%. Of the remaining 90%:
-    //   - If the job has BOTH cleaners and helpers: cleaners share 70%, helpers share 30%
-    //   - If the job is cleaner-only: cleaners share 100% of the pool
+    // Platform keeps 10%.
+    // If job.helper_pay is set: each helper gets that fixed amount, cleaners split the rest.
+    // Otherwise: use % pool split (cleaners 70%, helpers 30%).
     const total = Number(job.price || 0);
     const platformFee = Math.round(total * 0.10 * 100) / 100;
-    const workerPool = Math.round((total - platformFee) * 100) / 100;
 
     // Collect all hired workers: lead cleaner + accepted team members (deduped)
     const hiredIds = new Set<string>();
@@ -467,8 +466,27 @@ export default function JobDetails() {
       .in("id", workerIds);
     const profileMap = new Map((workerProfiles || []).map((p: any) => [p.id, p]));
 
-    const cleanerIds = workerIds.filter(id => profileMap.get(id)?.worker_type !== "helper");
-    const helperIds  = workerIds.filter(id => profileMap.get(id)?.worker_type === "helper");
+    const cleanerIds = workerIds.filter(wid => profileMap.get(wid)?.worker_type !== "helper");
+    const helperIds  = workerIds.filter(wid => profileMap.get(wid)?.worker_type === "helper");
+
+    // Earnings per worker — use helper_pay if set, otherwise % split
+    const helperPayFixed = Number(job.helper_pay || 0);
+    const useFixedHelperPay = helperPayFixed > 0 && helperIds.length > 0;
+    const totalHelperPay = useFixedHelperPay ? helperPayFixed * helperIds.length : 0;
+    const cleanerPool = useFixedHelperPay
+      ? Math.max(0, Math.round((total - platformFee - totalHelperPay) * 100) / 100)
+      : 0;
+
+    const getEarned = (workerId: string): number => {
+      const isHelper = profileMap.get(workerId)?.worker_type === "helper";
+      if (useFixedHelperPay) {
+        if (isHelper) return Math.round(helperPayFixed * 100) / 100;
+        return cleanerIds.length > 0 ? Math.round((cleanerPool / cleanerIds.length) * 100) / 100 : 0;
+      }
+      return Math.round(
+        getWorkerShare(total, cleanerIds.length, helperIds.length, isHelper ? "helper" : "cleaner") * 100
+      ) / 100;
+    };
 
     // Update each worker's profile + atomically credit their wallet
     for (const workerId of workerIds) {
@@ -476,9 +494,7 @@ export default function JobDetails() {
         const wp = profileMap.get(workerId);
         if (!wp) continue;
         const isHelper = wp.worker_type === "helper";
-        const earned = Math.round(
-          getWorkerShare(total, cleanerIds.length, helperIds.length, isHelper ? "helper" : "cleaner") * 100
-        ) / 100;
+        const earned = getEarned(workerId);
         if (earned <= 0) continue;
 
         const newJobs     = (wp.jobs_completed || 0) + 1;

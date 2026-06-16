@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Crown, Star, LogOut, Camera, FileText,
   ShieldCheck, Clock, ShieldAlert, Sparkles, Home, Users,
-  DollarSign, CalendarDays, Briefcase, Pencil,
+  DollarSign, CalendarDays, Briefcase, Pencil, Share2, Copy, CheckCheck,
 } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
@@ -42,6 +42,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [editOpen, setEditOpen] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -463,6 +464,41 @@ export default function Profile() {
             identityApproved={identityStatus === "approved"}
           />
         </motion.div>
+
+        {/* Referral link — workers only */}
+        {isWorker && user && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.10 }}
+            className="bg-card rounded-2xl shadow-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Share2 className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">{t("profile.referral_title")}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">{t("profile.referral_desc")}</p>
+            <button
+              onClick={async () => {
+                const link = `${window.location.origin}/invite/${user.id}`;
+                try {
+                  await navigator.clipboard.writeText(link);
+                  setReferralCopied(true);
+                  setTimeout(() => setReferralCopied(false), 2500);
+                } catch {
+                  // fallback for mobile
+                  if (navigator.share) {
+                    navigator.share({ title: "Shinely Jobs", url: link });
+                  }
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary/10 text-primary font-semibold text-sm transition-colors hover:bg-primary/20"
+            >
+              {referralCopied ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {referralCopied ? t("profile.referral_copied") : t("profile.referral_copy")}
+            </button>
+          </motion.div>
+        )}
 
         {/* About Me — workers only */}
         {isWorker && (

@@ -63,6 +63,7 @@ export default function PostJob() {
       title: "", cleaning_type: "residential", price: "",
       bedrooms: "1", bathrooms: "1", address: "", city: "",
       urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      helper_pay: "",
       door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
       alarm_instructions: "", parking_instructions: "", door_access_info: "",
       guest_stay_length: "", number_of_guests: "",
@@ -111,6 +112,7 @@ export default function PostJob() {
         description: data.description ?? "",
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
         helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
+        helper_pay: data.helper_pay != null ? String(data.helper_pay) : "",
         door_code: priv.door_code ?? "",
         supply_code: priv.supply_code ?? "",
         lockbox_code: priv.lockbox_code ?? "",
@@ -231,6 +233,7 @@ export default function PostJob() {
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
         cleaners_required: cleanersReq, helpers_required: helpersReq,
+        helper_pay: helpersReq > 0 && form.helper_pay ? (parseFloat(form.helper_pay) || null) : null,
         main_property_photo: mainPhotoUrl,
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
@@ -534,6 +537,20 @@ export default function PostJob() {
                 </SelectContent>
               </Select>
             </div>
+            {parseInt(form.helpers_required) > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">💵 {t("post.helper_pay_label")}</p>
+                <Input
+                  placeholder="ex: 50"
+                  type="number"
+                  min="0"
+                  value={form.helper_pay}
+                  onChange={(e) => update("helper_pay", e.target.value)}
+                  className="rounded-xl h-12"
+                />
+                <p className="text-xs text-muted-foreground">{t("post.helper_pay_hint")}</p>
+              </div>
+            )}
             {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
               <p className="text-xs text-destructive">{t("post.min_worker_required")}</p>
             )}
