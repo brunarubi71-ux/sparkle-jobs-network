@@ -6,7 +6,7 @@ workflows:
 
     environment:
       groups:
-        - app_store_credentials
+        - Shinely
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
