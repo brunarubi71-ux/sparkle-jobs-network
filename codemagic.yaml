@@ -29,16 +29,24 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          # Decode base64 API key to file
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/AuthKey.p8
-          # Fetch distribution certificate + provisioning profile via API key
+
+          # Explicitly create a new Distribution certificate (CLI manages the private key)
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --private-key @file:/tmp/AuthKey.p8 \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
+
+          keychain add-certificates
+
+          # Create provisioning profile using the new certificate
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --private-key @file:/tmp/AuthKey.p8 \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-          keychain add-certificates
 
           # Extract Team ID from the downloaded provisioning profile
           PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
