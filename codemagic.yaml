@@ -5,11 +5,15 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
+      groups:
+        - app_store_credentials
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_ID: "6780314043"
         BUNDLE_ID: "com.shinely.app"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "X6QPQYB8X8"
+        APP_STORE_CONNECT_ISSUER_ID: "da315e05-ca3e-41db-a227-28f08bbb017b"
       node: 22.13.1
 
     scripts:
