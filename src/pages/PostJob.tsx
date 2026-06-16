@@ -194,6 +194,11 @@ export default function PostJob() {
       toast.error("Please request at least 1 Cleaner or Helper.");
       return;
     }
+    const helpersReqNum = parseInt(form.helpers_required) || 0;
+    if (helpersReqNum > 0 && (!(parseFloat(form.helper_pay) > 0))) {
+      toast.error(t("post.helper_pay_required"));
+      return;
+    }
     if (isEditMode) {
       saveEdits();
       return;

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import BottomNav from "@/components/BottomNav";
 import ReviewModal from "@/components/ReviewModal";
+import HelperPayEditor from "@/components/HelperPayEditor";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { syncBadges } from "@/lib/badges";
@@ -1049,6 +1050,11 @@ export default function JobDetails() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Helper pay — editable by lead cleaner before job starts */}
+            {job.helpers_required > 0 && !myStartedAt && (
+              <HelperPayEditor jobId={job.id} currentPay={job.helper_pay} onSaved={fetchJob} />
             )}
 
             {/* Show button if this worker hasn't started yet */}
