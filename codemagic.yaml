@@ -76,12 +76,7 @@ workflows:
             CODE_SIGN_STYLE=Automatic \
             archive
 
-          python3 -c "
-import plistlib, os
-d = {'method': 'app-store', 'teamID': os.environ['TEAM_ID']}
-with open('/tmp/ExportOptions.plist', 'wb') as f:
-    plistlib.dump(d, f)
-"
+          python3 -c "import plistlib,os; plistlib.dump({'method':'app-store','teamID':os.environ.get('TEAM_ID','')},open('/tmp/ExportOptions.plist','wb'))"
 
           mkdir -p build/ios/ipa
           xcodebuild \
