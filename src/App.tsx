@@ -34,7 +34,6 @@ const Wallet          = lazy(() => import("./pages/Wallet"));
 const Terms           = lazy(() => import("./pages/Terms"));
 const Privacy         = lazy(() => import("./pages/Privacy"));
 const Cancellation    = lazy(() => import("./pages/Cancellation"));
-const LandingPage     = lazy(() => import("./pages/LandingPage"));
 
 const queryClient = new QueryClient();
 
@@ -75,7 +74,7 @@ function RoleHome() {
 function HomeRoute() {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
-  if (!user) return <LandingPage />;
+  if (!user) return <Navigate to="/auth" replace />;
   return <RoleHome />;
 }
 

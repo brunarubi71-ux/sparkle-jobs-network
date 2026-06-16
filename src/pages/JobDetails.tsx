@@ -652,9 +652,7 @@ export default function JobDetails() {
             >
               <button
                 onClick={() => {
-                  const text = encodeURIComponent(
-                    "Preciso de limpeza! Encontre profissionais no Shinely Jobs 🧹✨ Baixe o app: https://shinely.app"
-                  );
+                  const text = encodeURIComponent(t("share.whatsapp_message"));
                   window.open(`https://wa.me/?text=${text}`, "_blank");
                 }}
                 className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold text-sm rounded-xl py-3 transition-colors"

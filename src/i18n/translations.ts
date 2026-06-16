@@ -656,6 +656,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "helper.got_it": "Got it",
     "confirm.team_split": "Final earnings split equally among all {count} hired workers on this team job.",
     "jobs.your_earnings": "Your earnings",
+    "share.whatsapp_message": "I need cleaning services! Find professionals on Shinely Jobs 🧹✨ Download the app: https://shinely.app",
   },
   pt: {
     "auth.welcome": "Bem-vindo de Volta",
@@ -1282,6 +1283,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "helper.got_it": "Entendi",
     "confirm.team_split": "Ganhos finais divididos igualmente entre todos os {count} trabalhadores contratados nesta vaga em equipe.",
     "jobs.your_earnings": "Seus ganhos",
+    "share.whatsapp_message": "Preciso de limpeza! Encontre profissionais no Shinely Jobs 🧹✨ Baixe o app: https://shinely.app",
   },
   es: {
     "auth.welcome": "Bienvenido",
@@ -1898,5 +1900,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "helper.got_it": "Entendido",
     "confirm.team_split": "Ganancias finales divididas igualmente entre los {count} trabajadores contratados en este trabajo en equipo.",
     "jobs.your_earnings": "Tus ganancias",
+    "share.whatsapp_message": "¡Necesito servicio de limpieza! Encuentra profesionales en Shinely Jobs 🧹✨ Descarga la app: https://shinely.app",
   },
 };
