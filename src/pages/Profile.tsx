@@ -553,34 +553,7 @@ export default function Profile() {
         )}
 
 
-        {/* Manage Subscription (paid users) */}
-        {hasActiveSubscription && (
-          <Button
-            variant="outline"
-            className="w-full h-12 rounded-xl border-primary/30 text-primary hover:bg-primary/5 font-semibold"
-            onClick={async () => {
-              const { getStripeEnvironment } = await import("@/lib/stripe");
-              const { data, error } = await supabase.functions.invoke("create-portal-session", {
-                body: { environment: getStripeEnvironment(), returnUrl: `${window.location.origin}/profile` },
-              });
-              if (error) {
-                toast.error(error.message || "Could not open billing portal");
-                return;
-              }
-              if (data?.error) {
-                toast.error(data.message || "No active subscription on this account.");
-                return;
-              }
-              if (!data?.url) {
-                toast.error("Could not open billing portal");
-                return;
-              }
-              window.open(data.url, "_blank");
-            }}
-          >
-            {t("profile.manage_subscription")}
-          </Button>
-        )}
+        {/* Subscription management hidden — all plans free for launch */}
 
         {/* Language */}
         <div className="w-full flex items-center justify-between px-1">

@@ -191,8 +191,6 @@ export default function Jobs() {
         if (profile?.worker_type === "cleaner" && cleanersReq < 1) return;
         // Plan limits never hide jobs — only the APPLY action is restricted.
         if (newJob.status === "open" && !newJob.hired_cleaner_id) {
-          const tier = profile?.plan_tier || "free";
-          const delay = tier === "pro" ? 0 : tier === "premium" ? 0 : 15000;
           setTimeout(() => {
             setJobs((prev) => {
               if (prev.some(j => j.id === newJob.id)) return prev;
@@ -203,7 +201,7 @@ export default function Jobs() {
               action: { label: t("jobs.claim_now"), onClick: () => setSelectedJob({ ...newJob, distanceMiles: null, etaMinutes: null }) },
               duration: 8000,
             });
-          }, delay);
+          }, 0);
         }
       })
       // When a job is updated (e.g. cleaner accepted on a team job → status flips to "applied"),
@@ -419,41 +417,14 @@ export default function Jobs() {
       setShowIdentityModal(true);
       return;
     }
-    if (!canAcceptJob()) {
-      const tier = profile.plan_tier ?? "free";
-      if (tier === "free") {
-        setPaywallContent({
-          title: "You've reached your free limit",
-          message: `Free plan: ${getApplyLimit({ plan_tier: "free" })} job applications per week. Upgrade to Pro for 7/week!`,
-        });
-      } else if (tier === "pro") {
-        setPaywallContent({
-          title: "Weekly limit reached",
-          message: `Pro plan: ${getApplyLimit({ plan_tier: "pro" })} job applications per week. Upgrade to Premium for unlimited!`,
-        });
-      } else {
-        setPaywallContent({ title: "Limit reached", message: "Upgrade your plan to apply to more jobs." });
-      }
-      setShowPaywall(true);
-      return;
-    }
     setConfirmJob(job);
   };
 
-  const confirmAcceptJob = async (wantsProUpgrade: boolean) => {
+  const confirmAcceptJob = async (_wantsProUpgrade?: boolean) => {
     if (!confirmJob || !user || !profile) return;
     const job = confirmJob;
     setAccepting(job.id);
     try {
-      if (wantsProUpgrade) {
-        const now = new Date();
-        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        await supabase.from("profiles").update({
-          plan_tier: "pro", is_premium: true, premium_status: "trial",
-          free_trial_started_at: now.toISOString(), free_trial_ends_at: trialEnd.toISOString(),
-        }).eq("id", user.id);
-        toast.success(t("common.upgraded_pro"));
-      }
       const { data, error } = await supabase.functions.invoke("accept-job", { body: { jobId: job.id } });
       if (error) {
         const message = await error.context?.json().then((p: { error?: string }) => p.error).catch(() => null);

@@ -212,9 +212,9 @@ export default function PostJob() {
     setUploadingPhotos(true);
     try {
       const price = parseFloat(form.price) || 0;
-      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const platformFee = 0;
       const cleanerEarnings = price;
-      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const totalCharged = price;
 
       let mainPhotoUrl = existingMainPhoto;
       if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
@@ -281,9 +281,9 @@ export default function PostJob() {
     try {
       // Model B: Owner types what cleaner receives, platform adds 10% on top
       const price = parseFloat(form.price) || 0;
-      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const platformFee = 0;
       const cleanerEarnings = price;
-      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const totalCharged = price;
 
       const mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
       const additionalUrls: string[] = [];

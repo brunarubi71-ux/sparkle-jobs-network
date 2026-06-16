@@ -444,7 +444,7 @@ export default function JobDetails() {
     // If job.helper_pay is set: each helper gets that fixed amount, cleaners split the rest.
     // Otherwise: use % pool split (cleaners 70%, helpers 30%).
     const total = Number(job.price || 0);
-    const platformFee = Math.round(total * 0.10 * 100) / 100;
+    const platformFee = Number(job.platform_fee || 0);
 
     // Collect all hired workers: lead cleaner + accepted team members (deduped)
     const hiredIds = new Set<string>();
