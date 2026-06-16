@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +18,8 @@ interface Props {
 }
 
 export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { t } = useLanguage();
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,12 +33,10 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         reviewer_id: user.id,
         reviewed_id: reviewedId,
         rating,
-        comment: text || null,
-        reviewer_role: profile?.role ?? "cleaner",
+        review_text: text || null,
       } as any);
       if (insertError) throw insertError;
 
-      // Lookup reviewer name + reviewed person's role for points + notification
       let reviewerName = "Someone";
       try {
         const { data: reviewerProfile } = await supabase
@@ -47,7 +47,6 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         reviewerName = (reviewerProfile as any)?.full_name || "Someone";
       } catch {}
 
-      // Notify the reviewed user about the new review
       await sendNotification({
         userId: reviewedId,
         title: "New Review ⭐",
@@ -57,7 +56,6 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         link: `/profile/${reviewedId}`,
       });
 
-      // Award points to the reviewer (depends on the role of the person being reviewed)
       try {
         const { data: reviewedProfile } = await supabase
           .from("profiles")
@@ -73,16 +71,15 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
         } else {
           await awardPoints(user.id, "review_given_cleaner");
         }
-        // Bonus for the reviewed person if they got 5 stars (and they are a worker)
         if (rating === 5 && reviewedRole !== "owner") {
           await awardPoints(reviewedId, "received_5_star");
         }
       } catch {}
 
-      toast.success("Review submitted!");
+      toast.success(t("review.success"));
       onClose();
     } catch {
-      toast.error("Failed to submit review");
+      toast.error(t("review.error"));
     } finally {
       setLoading(false);
     }
@@ -92,7 +89,7 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="rounded-2xl max-w-sm mx-auto">
         <DialogHeader>
-          <DialogTitle className="text-center">Rate your experience</DialogTitle>
+          <DialogTitle className="text-center">{t("review.modal_title")}</DialogTitle>
         </DialogHeader>
         <div className="flex justify-center gap-2 my-4">
           {[1, 2, 3, 4, 5].map((s) => (
@@ -101,9 +98,14 @@ export default function ReviewModal({ open, onClose, jobId, reviewedId }: Props)
             </button>
           ))}
         </div>
-        <Textarea placeholder="Write a review (optional)" value={text} onChange={(e) => setText(e.target.value)} className="rounded-xl" />
+        <Textarea
+          placeholder={t("review.placeholder")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="rounded-xl"
+        />
         <Button onClick={submit} disabled={loading} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold">
-          {loading ? "Submitting..." : "Submit Review"}
+          {loading ? t("review.submitting") : t("review.submit")}
         </Button>
       </DialogContent>
     </Dialog>
