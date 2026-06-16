@@ -22,25 +22,10 @@ workflows:
       - name: Capacitor sync iOS
         script: npx cap sync ios
 
-      - name: Set up keychain and code signing
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --certificate-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-          keychain add-certificates
-          xcode-project use-profiles
-
       - name: Set version from codemagic
         script: |
-          LATEST=$(app-store-connect get-latest-app-store-build-number \
-            --app-store-connect-key @env:APP_STORE_CONNECT_PRIVATE_KEY \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            "$APP_STORE_ID" --pre-release-version 1.0 2>/dev/null || echo "0")
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_ID" \
+            --pre-release-version 1.0 2>/dev/null || echo "0")
           BUILD=$((LATEST + 1))
           agvtool new-version -all $BUILD
           agvtool new-marketing-version 1.0
@@ -48,16 +33,50 @@ workflows:
 
       - name: Build and sign IPA
         script: |
+          # Write API key to file for xcodebuild -allowProvisioningUpdates
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > /tmp/AuthKey.p8
+
           WORKSPACE="ios/App/App.xcworkspace"
           if [ -d "$WORKSPACE" ]; then
-            xcode-project build-ipa \
-              --workspace "$WORKSPACE" \
-              --scheme "$XCODE_SCHEME"
+            BUILD_FLAGS="-workspace $WORKSPACE"
           else
-            xcode-project build-ipa \
-              --project "$XCODE_PROJECT" \
-              --scheme "$XCODE_SCHEME"
+            BUILD_FLAGS="-project $XCODE_PROJECT"
           fi
+
+          # Archive with automatic provisioning via App Store Connect API
+          xcodebuild \
+            $BUILD_FLAGS \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath /tmp/App.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/AuthKey.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            archive
+
+          # Export IPA
+          cat > /tmp/ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+          </dict>
+          </plist>
+          PLIST
+
+          mkdir -p build/ios/ipa
+          xcodebuild \
+            -exportArchive \
+            -archivePath /tmp/App.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/AuthKey.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
 
     artifacts:
       - build/ios/ipa/*.ipa
