@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendNotification, sendNotifications } from "@/lib/notifications";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,12 +43,20 @@ export default function JobDetails() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const autoReviewPopped = useRef(false);
 
   useEffect(() => { if (id) fetchJob(); }, [id]);
   useEffect(() => {
     if (job?.status === "completed" && user && id) {
       supabase.from("reviews").select("id").eq("job_id", id).eq("reviewer_id", user.id).maybeSingle()
-        .then(({ data }) => setHasReviewed(!!data));
+        .then(({ data }) => {
+          const alreadyReviewed = !!data;
+          setHasReviewed(alreadyReviewed);
+          if (!alreadyReviewed && !autoReviewPopped.current) {
+            autoReviewPopped.current = true;
+            setReviewOpen(true);
+          }
+        });
     }
   }, [job?.status, user, id]);
 
