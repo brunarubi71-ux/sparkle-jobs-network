@@ -76,18 +76,12 @@ workflows:
             CODE_SIGN_STYLE=Automatic \
             archive
 
-          cat > /tmp/ExportOptions.plist << PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store</string>
-  <key>teamID</key>
-  <string>$TEAM_ID</string>
-</dict>
-</plist>
-PLIST
+          python3 -c "
+import plistlib, os
+d = {'method': 'app-store', 'teamID': os.environ['TEAM_ID']}
+with open('/tmp/ExportOptions.plist', 'wb') as f:
+    plistlib.dump(d, f)
+"
 
           mkdir -p build/ios/ipa
           xcodebuild \
