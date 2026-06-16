@@ -26,6 +26,26 @@ workflows:
       - name: Capacitor sync iOS
         script: npx cap sync ios
 
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          # Fetch distribution certificate + provisioning profile via API key
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+
+          # Extract Team ID from the downloaded provisioning profile
+          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
+          if [ -z "$PROFILE" ]; then
+            echo "ERROR: No provisioning profile downloaded"
+            exit 1
+          fi
+          TEAM_ID=$(security cms -D -i "$PROFILE" | python3 -c \
+            "import sys, plistlib; d = plistlib.loads(sys.stdin.buffer.read()); print(d.get('TeamIdentifier', [''])[0])")
+          echo "Detected Team ID: $TEAM_ID"
+          echo "TEAM_ID=$TEAM_ID" >> $CM_ENV
+
       - name: Set version from codemagic
         script: |
           LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_ID" \
@@ -37,8 +57,6 @@ workflows:
 
       - name: Build and sign IPA
         script: |
-          # Write API key to file for xcodebuild -allowProvisioningUpdates
-          # Variable is stored as base64 to preserve PEM newlines
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/AuthKey.p8
 
           WORKSPACE="ios/App/App.xcworkspace"
@@ -48,7 +66,6 @@ workflows:
             BUILD_FLAGS="-project $XCODE_PROJECT"
           fi
 
-          # Archive with automatic provisioning via App Store Connect API
           xcodebuild \
             $BUILD_FLAGS \
             -scheme "$XCODE_SCHEME" \
@@ -58,16 +75,19 @@ workflows:
             -authenticationKeyPath /tmp/AuthKey.p8 \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
             archive
 
-          # Export IPA
-          cat > /tmp/ExportOptions.plist << 'PLIST'
+          cat > /tmp/ExportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
             <string>app-store</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
           </dict>
           </plist>
           PLIST
