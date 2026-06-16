@@ -38,7 +38,8 @@ workflows:
       - name: Build and sign IPA
         script: |
           # Write API key to file for xcodebuild -allowProvisioningUpdates
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > /tmp/AuthKey.p8
+          # Variable is stored as base64 to preserve PEM newlines
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/AuthKey.p8
 
           WORKSPACE="ios/App/App.xcworkspace"
           if [ -d "$WORKSPACE" ]; then
