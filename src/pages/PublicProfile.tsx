@@ -59,7 +59,7 @@ export default function PublicProfile() {
   }, [id]);
 
   const fetchAll = async () => {
-    const { data: p } = await supabase.from("profiles").select("*").eq("id", id!).single();
+    const { data: p } = await supabase.from("public_profiles" as any).select("*").eq("id", id!).single();
     setProfile(p);
     if (!p) return;
 
@@ -124,7 +124,7 @@ export default function PublicProfile() {
     if (revs.length > 0) {
       const reviewerIds = Array.from(new Set(revs.map((r) => r.reviewer_id)));
       const { data: reviewers } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("id, full_name, avatar_url")
         .in("id", reviewerIds);
       const map = new Map((reviewers || []).map((u: any) => [u.id, u]));

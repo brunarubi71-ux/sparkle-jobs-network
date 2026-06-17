@@ -78,7 +78,7 @@ export default function JobDetails() {
       setCompletionNotes((merged as any).completion_notes || "");
       // Fetch owner profile + verification status
       const { data: ownerData } = await supabase
-        .from("profiles")
+        .from("public_profiles" as any)
         .select("id, full_name, avatar_url, identity_status")
         .eq("id", (data as any).owner_id)
         .maybeSingle();
@@ -95,7 +95,7 @@ export default function JobDetails() {
       const cleanerId = (data as any).hired_cleaner_id;
       if (cleanerId) {
         const [{ data: cp }, { data: revs }] = await Promise.all([
-          supabase.from("profiles").select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
+          supabase.from("public_profiles" as any).select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
           supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId).eq("is_hidden", false),
         ]);
         const ratings = (revs || []).map((r: any) => r.rating);
@@ -122,7 +122,7 @@ export default function JobDetails() {
         const ids = (apps || []).map((a: any) => a.cleaner_id);
         if (ids.length > 0) {
           const { data: profs } = await supabase
-            .from("profiles")
+            .from("public_profiles" as any)
             .select("id, full_name, avatar_url, worker_type")
             .in("id", ids);
           setTeamMembers(
