@@ -95,7 +95,7 @@ export default function JobDetails() {
       const cleanerId = (data as any).hired_cleaner_id;
       if (cleanerId) {
         const [{ data: cp }, { data: revs }] = await Promise.all([
-          supabase.from("public_profiles" as any).select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
+          (supabase as any).from("public_profiles").select("id, full_name, avatar_url").eq("id", cleanerId).maybeSingle(),
           supabase.from("reviews").select("rating").eq("reviewed_id", cleanerId).eq("is_hidden", false),
         ]);
         const ratings = (revs || []).map((r: any) => r.rating);

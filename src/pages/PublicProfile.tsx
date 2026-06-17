@@ -59,7 +59,7 @@ export default function PublicProfile() {
   }, [id]);
 
   const fetchAll = async () => {
-    const { data: p } = await supabase.from("public_profiles" as any).select("*").eq("id", id!).single();
+    const { data: p } = await (supabase as any).from("public_profiles").select("*").eq("id", id!).single();
     setProfile(p);
     if (!p) return;
 
