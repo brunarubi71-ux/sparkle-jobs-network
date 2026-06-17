@@ -9,6 +9,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import SplashScreen from "@/components/SplashScreen";
 import PointsToast from "@/components/PointsToast";
 import SupportAlertBanner from "@/components/SupportAlertBanner";
+import AIChatWidget from "@/components/AIChatWidget";
 import { AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -34,6 +35,7 @@ const Wallet          = lazy(() => import("./pages/Wallet"));
 const Terms           = lazy(() => import("./pages/Terms"));
 const Privacy         = lazy(() => import("./pages/Privacy"));
 const Cancellation    = lazy(() => import("./pages/Cancellation"));
+const InvitePage      = lazy(() => import("./pages/InvitePage"));
 
 const queryClient = new QueryClient();
 
@@ -111,10 +113,12 @@ const App = () => {
             <Sonner />
             <PointsToast />
             <SupportAlertBanner />
+            <AIChatWidget />
             <AnimatePresence>{showSplash && <SplashScreen key="splash" />}</AnimatePresence>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/invite/:referrerId" element={<InvitePage />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/cancellation" element={<Cancellation />} />

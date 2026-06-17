@@ -10,6 +10,7 @@ export type PointReason =
   | "review_given_owner"
   | "no_cancellations_month"
   | "fast_hire_response"
+  | "referral_signup"
   // Owner
   | "job_posted"
   | "owner_job_completed"
@@ -26,6 +27,7 @@ export const POINT_VALUES: Record<PointReason, number> = {
   review_given_owner: 15,
   no_cancellations_month: 25,
   fast_hire_response: 5,
+  referral_signup: 40,
   job_posted: 10,
   owner_job_completed: 25,
   review_given_cleaner: 15,
@@ -42,6 +44,7 @@ export const POINT_LABELS: Record<PointReason, string> = {
   review_given_owner: "Review given to owner",
   no_cancellations_month: "No cancellations this month",
   fast_hire_response: "Fast hire response",
+  referral_signup: "New member referred! 🎉",
   job_posted: "Job posted",
   owner_job_completed: "Job completed",
   review_given_cleaner: "Review given to cleaner",

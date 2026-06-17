@@ -63,6 +63,7 @@ export default function PostJob() {
       title: "", cleaning_type: "residential", price: "",
       bedrooms: "1", bathrooms: "1", address: "", city: "",
       urgency: "scheduled", description: "", cleaners_required: "1", helpers_required: "0",
+      helper_pay: "",
       door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
       alarm_instructions: "", parking_instructions: "", door_access_info: "",
       guest_stay_length: "", number_of_guests: "",
@@ -111,6 +112,7 @@ export default function PostJob() {
         description: data.description ?? "",
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
         helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
+        helper_pay: data.helper_pay != null ? String(data.helper_pay) : "",
         door_code: priv.door_code ?? "",
         supply_code: priv.supply_code ?? "",
         lockbox_code: priv.lockbox_code ?? "",
@@ -192,6 +194,11 @@ export default function PostJob() {
       toast.error("Please request at least 1 Cleaner or Helper.");
       return;
     }
+    const helpersReqNum = parseInt(form.helpers_required) || 0;
+    if (helpersReqNum > 0 && (!(parseFloat(form.helper_pay) > 0))) {
+      toast.error(t("post.helper_pay_required"));
+      return;
+    }
     if (isEditMode) {
       saveEdits();
       return;
@@ -205,9 +212,9 @@ export default function PostJob() {
     setUploadingPhotos(true);
     try {
       const price = parseFloat(form.price) || 0;
-      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const platformFee = 0;
       const cleanerEarnings = price;
-      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const totalCharged = price;
 
       let mainPhotoUrl = existingMainPhoto;
       if (mainPhotoFile) mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
@@ -231,6 +238,7 @@ export default function PostJob() {
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
         cleaners_required: cleanersReq, helpers_required: helpersReq,
+        helper_pay: helpersReq > 0 && form.helper_pay ? (parseFloat(form.helper_pay) || null) : null,
         main_property_photo: mainPhotoUrl,
         property_photos: allAdditional.length > 0 ? allAdditional : null,
         number_of_guests: form.number_of_guests ? (parseInt(form.number_of_guests) || null) : null,
@@ -273,9 +281,9 @@ export default function PostJob() {
     try {
       // Model B: Owner types what cleaner receives, platform adds 10% on top
       const price = parseFloat(form.price) || 0;
-      const platformFee = Math.round(price * 0.1 * 100) / 100;
+      const platformFee = 0;
       const cleanerEarnings = price;
-      const totalCharged = Math.round((price + platformFee) * 100) / 100;
+      const totalCharged = price;
 
       const mainPhotoUrl = await uploadFile(mainPhotoFile, "main");
       const additionalUrls: string[] = [];
@@ -534,6 +542,20 @@ export default function PostJob() {
                 </SelectContent>
               </Select>
             </div>
+            {parseInt(form.helpers_required) > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">💵 {t("post.helper_pay_label")}</p>
+                <Input
+                  placeholder="ex: 50"
+                  type="number"
+                  min="0"
+                  value={form.helper_pay}
+                  onChange={(e) => update("helper_pay", e.target.value)}
+                  className="rounded-xl h-12"
+                />
+                <p className="text-xs text-muted-foreground">{t("post.helper_pay_hint")}</p>
+              </div>
+            )}
             {(parseInt(form.cleaners_required) || 0) + (parseInt(form.helpers_required) || 0) === 0 && (
               <p className="text-xs text-destructive">{t("post.min_worker_required")}</p>
             )}

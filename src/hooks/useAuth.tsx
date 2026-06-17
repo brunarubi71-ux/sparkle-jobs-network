@@ -79,7 +79,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[useAuth] fetchProfile error:", error);
       return;
     }
-    if (data) setProfile(data as unknown as Profile);
+    if (data) {
+      // First-time referral capture: if localStorage has a ref and profile has none, apply it
+      const ref = typeof window !== "undefined" ? localStorage.getItem("shinely_ref") : null;
+      if (ref && ref !== userId && !(data as any).referred_by) {
+        try {
+          await supabase.from("profiles").update({ referred_by: ref } as any).eq("id", userId);
+          // Award points to referrer
+          const { awardPoints } = await import("@/lib/points");
+          await awardPoints(ref, "referral_signup");
+          localStorage.removeItem("shinely_ref");
+          // Reload profile with referred_by set
+          const { data: updated } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+          if (updated) setProfile(updated as unknown as Profile);
+          return;
+        } catch (e) {
+          console.error("[useAuth] referral capture failed:", e);
+        }
+      }
+      setProfile(data as unknown as Profile);
+    }
   };
 
   const refreshProfile = async () => {
