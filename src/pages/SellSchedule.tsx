@@ -58,7 +58,7 @@ export default function SellSchedule() {
       </div>
       <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="px-4 mt-4 space-y-4">
         <div className="bg-card rounded-2xl shadow-card p-4 space-y-4">
-          <LocationAutocomplete type="city" value={form.city} onChange={(v) => update("city", v)} placeholder={t("sell.city")} className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+          <LocationAutocomplete type="city" value={form.city} onChange={(v) => update("city", v)} placeholder={t("sell.city")} showMyLocation className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <div className="grid grid-cols-2 gap-3">
             <Input placeholder={t("sell.houses")} type="number" value={form.number_of_houses} onChange={(e) => update("number_of_houses", e.target.value)} className="rounded-xl h-12" />
             <Select value={form.frequency} onValueChange={(v) => update("frequency", v)}>

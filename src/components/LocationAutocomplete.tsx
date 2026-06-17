@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, LocateFixed } from "lucide-react";
 
 interface Suggestion {
   display_name: string;
@@ -21,6 +21,7 @@ interface Props {
   placeholder?: string;
   className?: string;
   type?: "city" | "address";
+  showMyLocation?: boolean;
 }
 
 function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
@@ -42,9 +43,10 @@ function formatSuggestion(s: Suggestion, type: "city" | "address"): string {
   return s.display_name;
 }
 
-export default function LocationAutocomplete({ value, onChange, placeholder, className, type = "address" }: Props) {
+export default function LocationAutocomplete({ value, onChange, placeholder, className, type = "address", showMyLocation = false }: Props) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +93,35 @@ export default function LocationAutocomplete({ value, onChange, placeholder, cla
     setOpen(false);
   };
 
+  const handleMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json&accept-language=pt,en`
+          );
+          const data = await res.json();
+          const a = data.address || {};
+          if (type === "city") {
+            const city = a.city || a.town || a.village || a.municipality || "";
+            const state = a.state || "";
+            onChange([city, state].filter(Boolean).join(", "));
+          } else {
+            const road = a.road || "";
+            const number = a.house_number || "";
+            const city = a.city || a.town || a.village || "";
+            onChange([number, road, city].filter(Boolean).join(", "));
+          }
+        } catch {}
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -104,19 +135,30 @@ export default function LocationAutocomplete({ value, onChange, placeholder, cla
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <div className="relative">
+      <div className="relative flex items-center gap-2">
         <input
           value={value}
           onChange={handleInput}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder={placeholder}
-          className={className}
+          className={`${className} ${showMyLocation ? "pr-10" : ""}`}
           autoComplete="off"
+          style={{ flex: 1 }}
         />
-        {loading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        {(loading || locating) && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
+        )}
+        {showMyLocation && !loading && !locating && (
+          <button
+            type="button"
+            onClick={handleMyLocation}
+            title="Usar minha localização"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <LocateFixed className="w-4 h-4" />
+          </button>
         )}
       </div>
 
