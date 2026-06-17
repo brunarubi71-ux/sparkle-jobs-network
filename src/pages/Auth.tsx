@@ -162,7 +162,7 @@ export default function Auth() {
       ))}
 
       <div className="absolute top-4 right-4 z-20">
-        <LanguageSwitcher />
+        <LanguageSwitcher dropDirection="down" />
       </div>
 
       <motion.div
