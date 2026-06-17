@@ -16,7 +16,7 @@ export default function InvitePage() {
     // Store referral code for capture on signup
     try { localStorage.setItem("shinely_ref", referrerId); } catch {}
     // Load referrer's name
-    (supabase as any).from("public_profiles").select("full_name").eq("id", referrerId).maybeSingle()
+    supabase.from("public_profiles").select("full_name").eq("id", referrerId).maybeSingle()
       .then(({ data }) => {
         if (data) setReferrerName((data as any).full_name);
       });
