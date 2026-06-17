@@ -10,7 +10,7 @@ const languages: { code: Language; label: string; flag: string }[] = [
   { code: "es", label: "Español", flag: "🇪🇸" },
 ];
 
-export default function LanguageSwitcher({ variant = "floating" }: { variant?: "floating" | "inline" }) {
+export default function LanguageSwitcher({ variant = "floating", dropDirection = "up" }: { variant?: "floating" | "inline"; dropDirection?: "up" | "down" }) {
   const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
   const current = languages.find(l => l.code === language)!;
@@ -41,8 +41,8 @@ export default function LanguageSwitcher({ variant = "floating" }: { variant?: "
         {open && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: 5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.95 }}
-              className="absolute right-0 bottom-full mb-1 bg-card rounded-xl shadow-elevated border border-border z-50 overflow-hidden min-w-[140px]">
+            <motion.div initial={{ opacity: 0, y: dropDirection === "down" ? -5 : 5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: dropDirection === "down" ? -5 : 5, scale: 0.95 }}
+              className={`absolute right-0 ${dropDirection === "down" ? "top-full mt-1" : "bottom-full mb-1"} bg-card rounded-xl shadow-elevated border border-border z-50 overflow-hidden min-w-[140px]`}>
               {languages.map(l => (
                 <button key={l.code} onClick={() => { setLanguage(l.code); setOpen(false); }}
                   className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
