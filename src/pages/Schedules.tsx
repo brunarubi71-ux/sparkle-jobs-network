@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import NotificationBell from "@/components/NotificationBell";
 import { canViewScheduleContact, getContactLimit } from "@/lib/paywall";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 
 interface Schedule {
   id: string;
@@ -428,11 +429,12 @@ export default function Schedules() {
             <DialogTitle>Edit Listing</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Input
-              placeholder="City"
+            <LocationAutocomplete
+              type="city"
               value={editForm.city}
-              onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-              className="rounded-xl h-12"
+              onChange={(v) => setEditForm({ ...editForm, city: v })}
+              placeholder="City"
+              className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <div className="grid grid-cols-2 gap-3">
               <Input
