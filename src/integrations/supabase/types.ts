@@ -960,7 +960,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          business_type: string | null
+          city: string | null
+          company_name: string | null
+          created_at: string | null
+          experience_years: number | null
+          full_name: string | null
+          has_transportation: boolean | null
+          id: string | null
+          identity_status: string | null
+          is_available_now: boolean | null
+          is_premium: boolean | null
+          jobs_completed: number | null
+          languages: string[] | null
+          plan_tier: string | null
+          points: number | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          specialties: string[] | null
+          transportation: string | null
+          worker_type: string | null
+          years_in_business: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          experience_years?: number | null
+          full_name?: string | null
+          has_transportation?: boolean | null
+          id?: string | null
+          identity_status?: string | null
+          is_available_now?: boolean | null
+          is_premium?: boolean | null
+          jobs_completed?: number | null
+          languages?: string[] | null
+          plan_tier?: string | null
+          points?: number | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          specialties?: string[] | null
+          transportation?: string | null
+          worker_type?: string | null
+          years_in_business?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          business_type?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          experience_years?: number | null
+          full_name?: string | null
+          has_transportation?: boolean | null
+          id?: string | null
+          identity_status?: string | null
+          is_available_now?: boolean | null
+          is_premium?: boolean | null
+          jobs_completed?: number | null
+          languages?: string[] | null
+          plan_tier?: string | null
+          points?: number | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          specialties?: string[] | null
+          transportation?: string | null
+          worker_type?: string | null
+          years_in_business?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _caller_is_job_applicant: { Args: { p_job_id: string }; Returns: boolean }

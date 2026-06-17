@@ -296,7 +296,7 @@ export default function Jobs() {
       const ownerMap = new Map<string, { verified: boolean; name: string | null; avatar: string | null }>();
       if (ownerIds.length > 0) {
         const { data: ownerProfiles } = await supabase
-          .from("profiles")
+          .from("public_profiles")
           .select("id, identity_status, full_name, avatar_url")
           .in("id", ownerIds);
         (ownerProfiles || []).forEach((p: any) => {
