@@ -28,11 +28,13 @@ export default function Auth() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [googleRolePicker, setGoogleRolePicker] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
   const { signUp, signIn, isPasswordRecovery, clearPasswordRecovery } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lang = (language as string) || "pt";
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,7 +110,13 @@ export default function Auth() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
+    setGoogleRolePicker(true);
+  };
+
+  const handleGoogleWithRole = async (selectedRole: "cleaner" | "owner") => {
+    setGoogleRolePicker(false);
+    localStorage.setItem("pending_google_role", selectedRole);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin },
@@ -484,6 +492,44 @@ export default function Auth() {
       </motion.div>
 
       <TermsModal open={termsOpen} onOpenChange={setTermsOpen} defaultTab={(localStorage.getItem("shinely_lang") as "en" | "pt" | "es") || "en"} />
+
+      {/* Google role picker modal */}
+      {googleRolePicker && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4">
+          <motion.div
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="w-full max-w-sm bg-background rounded-t-3xl sm:rounded-3xl p-6 space-y-4"
+          >
+            <h2 className="text-xl font-bold text-center">
+              {lang === "pt" ? "Como você vai usar o Shinely?" : lang === "es" ? "¿Cómo vas a usar Shinely?" : "How will you use Shinely?"}
+            </h2>
+            <p className="text-sm text-muted-foreground text-center">
+              {lang === "pt" ? "Escolha seu perfil para continuar" : lang === "es" ? "Elige tu perfil para continuar" : "Choose your profile to continue"}
+            </p>
+            <button
+              onClick={() => handleGoogleWithRole("cleaner")}
+              className="w-full p-4 border-2 border-border rounded-2xl text-left hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <p className="font-semibold">{lang === "pt" ? "Sou Cleaner / Helper" : lang === "es" ? "Soy Cleaner / Helper" : "I'm a Cleaner / Helper"}</p>
+              <p className="text-sm text-muted-foreground">{lang === "pt" ? "Quero encontrar trabalhos de limpeza" : lang === "es" ? "Quiero encontrar trabajos de limpieza" : "I want to find cleaning jobs"}</p>
+            </button>
+            <button
+              onClick={() => handleGoogleWithRole("owner")}
+              className="w-full p-4 border-2 border-border rounded-2xl text-left hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <p className="font-semibold">{lang === "pt" ? "Sou Dono(a) de Imóvel" : lang === "es" ? "Soy Propietario(a)" : "I'm a Property Owner"}</p>
+              <p className="text-sm text-muted-foreground">{lang === "pt" ? "Quero contratar limpadores" : lang === "es" ? "Quiero contratar limpiadores" : "I want to hire cleaners"}</p>
+            </button>
+            <button
+              onClick={() => setGoogleRolePicker(false)}
+              className="w-full text-sm text-muted-foreground hover:text-foreground py-2"
+            >
+              {lang === "pt" ? "Cancelar" : lang === "es" ? "Cancelar" : "Cancel"}
+            </button>
+          </motion.div>
+        </div>
+      )}
 
       <div className="relative z-10 mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
         <Link to="/terms" className="hover:text-white hover:underline">Terms</Link>

@@ -80,6 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (data) {
+      // Apply pending Google role selection (set before OAuth redirect)
+      const pendingRole = typeof window !== "undefined" ? localStorage.getItem("pending_google_role") : null;
+      if (pendingRole && (pendingRole === "cleaner" || pendingRole === "owner")) {
+        localStorage.removeItem("pending_google_role");
+        try {
+          await supabase.rpc("choose_initial_role" as any, { p_role: pendingRole });
+          const { data: updated } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+          if (updated) { setProfile(updated as unknown as Profile); return; }
+        } catch (e) {
+          console.error("[useAuth] choose_initial_role failed:", e);
+        }
+      }
+
       // First-time referral capture: if localStorage has a ref and profile has none, apply it
       const ref = typeof window !== "undefined" ? localStorage.getItem("shinely_ref") : null;
       if (ref && ref !== userId && !(data as any).referred_by) {
