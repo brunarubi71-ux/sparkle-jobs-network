@@ -317,7 +317,7 @@ export default function Profile() {
               <Sparkles className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">📸 {t("profile.add_photo_title")}</p>
+              <p className="text-sm font-semibold text-amber-900">{t("profile.add_photo_title")}</p>
               <p className="text-xs text-amber-700">{t("profile.add_photo_bonus")}</p>
             </div>
             <button
