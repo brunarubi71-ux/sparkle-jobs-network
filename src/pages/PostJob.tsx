@@ -515,8 +515,8 @@ export default function PostJob() {
               <Input placeholder="1" type="number" value={form.bathrooms} onChange={(e) => update("bathrooms", e.target.value)} className="rounded-xl h-12" />
             </div>
           </div>
-          <LocationAutocomplete type="address" value={form.address} onChange={(v) => update("address", v)} placeholder={t("post.address")} className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          <LocationAutocomplete type="city" value={form.city} onChange={(v) => update("city", v)} placeholder={t("post.city")} className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+          <LocationAutocomplete type="address" value={form.address} onChange={(v) => update("address", v)} placeholder={t("post.address")} showMyLocation className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+          <LocationAutocomplete type="city" value={form.city} onChange={(v) => update("city", v)} placeholder={t("post.city")} showMyLocation className="w-full rounded-xl h-12 border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <Textarea placeholder={t("post.description")} value={form.description} onChange={(e) => update("description", e.target.value)} className="rounded-xl min-h-[80px]" />
           <div className="space-y-3">
             <div>
