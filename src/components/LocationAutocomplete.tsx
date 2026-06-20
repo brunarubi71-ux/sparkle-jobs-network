@@ -64,7 +64,10 @@ export default function LocationAutocomplete({ value, onChange, placeholder, cla
           ...(type === "city" ? { featuretype: "city" } : {}),
         });
         const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-          headers: { "Accept-Language": "pt,en" },
+          headers: {
+            "Accept-Language": "pt,en",
+            "User-Agent": "ShinelyjobsApp/1.0",
+          },
         });
         const data: Suggestion[] = await res.json();
         const unique = Array.from(
@@ -100,7 +103,8 @@ export default function LocationAutocomplete({ value, onChange, placeholder, cla
       async ({ coords }) => {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json&accept-language=pt,en`
+            `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json&accept-language=pt,en`,
+            { headers: { "User-Agent": "ShinelyjobsApp/1.0" } }
           );
           const data = await res.json();
           const a = data.address || {};
