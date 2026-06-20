@@ -1063,6 +1063,7 @@ export type Database = {
         Args: { p_points: number; p_reason: string; p_user_id: string }
         Returns: number
       }
+      choose_initial_role: { Args: { p_role: string }; Returns: undefined }
       credit_wallet: {
         Args: {
           p_amount: number
