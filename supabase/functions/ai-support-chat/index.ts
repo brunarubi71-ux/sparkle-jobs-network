@@ -1,4 +1,5 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.27.3";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,7 +70,41 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { messages, userId, userRole, language } = await req.json();
+    // Require a valid Supabase JWT; derive user identity from it (do not trust client body).
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.slice(7);
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const verifiedUserId = claimsData.claims.sub as string;
+
+    const { messages, language } = await req.json();
+
+    // Look up role server-side rather than trusting client claim.
+    let verifiedRole = "unknown";
+    try {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", verifiedUserId)
+        .maybeSingle();
+      if (prof?.role) verifiedRole = String(prof.role);
+    } catch (_) { /* ignore */ }
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
@@ -81,12 +116,13 @@ Deno.serve(async (req) => {
 
     const client = new Anthropic({ apiKey });
 
+    const safeLang = typeof language === "string" ? language.slice(0, 16) : "unknown";
     const systemWithContext = `${SYSTEM_PROMPT}
 
 Current user context:
-- User ID: ${userId || "unknown"}
-- Role: ${userRole || "unknown"}
-- App language: ${language || "unknown"}`;
+- User ID: ${verifiedUserId}
+- Role: ${verifiedRole}
+- App language: ${safeLang}`;
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

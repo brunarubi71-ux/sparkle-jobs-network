@@ -30,13 +30,21 @@ type Templates = {
 
 type TemplateName = keyof Templates;
 
+const esc = (s: unknown) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 function buildEmail(template: TemplateName, data: Record<string, unknown>) {
   switch (template) {
     case "welcome":
       return {
-        subject: "Welcome to Shinely! 🌟",
+        subject: `Welcome to Shinely! 🌟`,
         body: `
-          <h2 style="color:#1a1a1a">Welcome, ${data.name}! 👋</h2>
+          <h2 style="color:#1a1a1a">Welcome, ${esc(data.name)}! 👋</h2>
           <p>We're excited to have you on <strong>Shinely</strong>. Your account is ready.</p>
           <p>Browse available cleaning jobs, build your profile, and start earning today.</p>
           ${cta("Open Shinely", APP_URL)}`,
@@ -44,11 +52,11 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
 
     case "job_applied":
       return {
-        subject: `New applicant for "${data.jobTitle}"`,
+        subject: `New applicant for "${esc(data.jobTitle)}"`,
         body: `
           <h2 style="color:#1a1a1a">New Applicant 🔔</h2>
-          <p>Hi <strong>${data.ownerName}</strong>,</p>
-          <p><strong>${data.cleanerName}</strong> has applied for your cleaning job <strong>"${data.jobTitle}"</strong>.</p>
+          <p>Hi <strong>${esc(data.ownerName)}</strong>,</p>
+          <p><strong>${esc(data.cleanerName)}</strong> has applied for your cleaning job <strong>"${esc(data.jobTitle)}"</strong>.</p>
           <p>Review their profile and decide to hire them from your dashboard.</p>
           ${cta("View Applicants", `${APP_URL}/my-jobs`)}`,
       };
@@ -57,32 +65,35 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
       return {
         subject: `You've been hired! 🎉`,
         body: `
-          <h2 style="color:#1a1a1a">Congratulations, ${data.cleanerName}! 🎉</h2>
-          <p>You've been selected for the cleaning job <strong>"${data.jobTitle}"</strong>.</p>
+          <h2 style="color:#1a1a1a">Congratulations, ${esc(data.cleanerName)}! 🎉</h2>
+          <p>You've been selected for the cleaning job <strong>"${esc(data.jobTitle)}"</strong>.</p>
           <p>Check your job details and get ready to start.</p>
           ${cta("View My Jobs", `${APP_URL}/cleaner-my-jobs`)}`,
       };
 
-    case "new_message":
+    case "new_message": {
+      const previewRaw = String(data.preview ?? "");
+      const trimmed = previewRaw.slice(0, 200) + (previewRaw.length > 200 ? "…" : "");
       return {
-        subject: `New message from ${data.senderName}`,
+        subject: `New message from ${esc(data.senderName)}`,
         body: `
           <h2 style="color:#1a1a1a">New Message 💬</h2>
-          <p>Hi <strong>${data.recipientName}</strong>,</p>
-          <p>You have a new message from <strong>${data.senderName}</strong>:</p>
+          <p>Hi <strong>${esc(data.recipientName)}</strong>,</p>
+          <p>You have a new message from <strong>${esc(data.senderName)}</strong>:</p>
           <blockquote style="border-left:3px solid #7c3aed;padding:8px 16px;margin:16px 0;background:#faf5ff;border-radius:0 8px 8px 0;color:#374151;font-style:italic">
-            "${String(data.preview).slice(0, 200)}${String(data.preview).length > 200 ? "…" : ""}"
+            "${esc(trimmed)}"
           </blockquote>
           ${cta("Reply Now", `${APP_URL}/chat`)}`,
       };
+    }
 
     case "dispute_opened":
       if (data.isAdmin) {
         return {
-          subject: `🚨 New Dispute: "${data.jobTitle}"`,
+          subject: `🚨 New Dispute: "${esc(data.jobTitle)}"`,
           body: `
             <h2 style="color:#dc2626">New Dispute Opened</h2>
-            <p>User <strong>${data.userName}</strong> has opened a dispute for job <strong>"${data.jobTitle}"</strong>.</p>
+            <p>User <strong>${esc(data.userName)}</strong> has opened a dispute for job <strong>"${esc(data.jobTitle)}"</strong>.</p>
             <p>Please review and resolve it from the admin dashboard.</p>
             ${cta("Review Dispute", `${APP_URL}/admin`)}`,
         };
@@ -91,8 +102,8 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
         subject: `Your dispute has been received`,
         body: `
           <h2 style="color:#1a1a1a">Dispute Received ✅</h2>
-          <p>Hi <strong>${data.userName}</strong>,</p>
-          <p>Your dispute for the job <strong>"${data.jobTitle}"</strong> has been received and is under review.</p>
+          <p>Hi <strong>${esc(data.userName)}</strong>,</p>
+          <p>Your dispute for the job <strong>"${esc(data.jobTitle)}"</strong> has been received and is under review.</p>
           <p>Our team will get back to you within 24–48 hours.</p>`,
       };
 
@@ -101,9 +112,9 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
         subject: `Your dispute has been resolved`,
         body: `
           <h2 style="color:#1a1a1a">Dispute Resolved</h2>
-          <p>Hi <strong>${data.userName}</strong>,</p>
-          <p>Your dispute for job <strong>"${data.jobTitle}"</strong> has been resolved.</p>
-          <p><strong>Resolution:</strong> ${data.resolution}</p>
+          <p>Hi <strong>${esc(data.userName)}</strong>,</p>
+          <p>Your dispute for job <strong>"${esc(data.jobTitle)}"</strong> has been resolved.</p>
+          <p><strong>Resolution:</strong> ${esc(data.resolution)}</p>
           ${cta("Check Wallet", `${APP_URL}/wallet`)}`,
       };
 
@@ -112,7 +123,7 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
         subject: "Your identity has been verified ✅",
         body: `
           <h2 style="color:#1a1a1a">Identity Verified! ✅</h2>
-          <p>Hi <strong>${data.name}</strong>,</p>
+          <p>Hi <strong>${esc(data.name)}</strong>,</p>
           <p>Your identity has been verified and your account is fully activated. You can now post jobs and access all platform features.</p>
           ${cta("Open Shinely", APP_URL)}`,
       };
@@ -122,7 +133,7 @@ function buildEmail(template: TemplateName, data: Record<string, unknown>) {
         subject: "Identity verification update",
         body: `
           <h2 style="color:#1a1a1a">Identity Verification</h2>
-          <p>Hi <strong>${data.name}</strong>,</p>
+          <p>Hi <strong>${esc(data.name)}</strong>,</p>
           <p>We were unable to verify your identity with the documents provided. Please try again with a clear, valid government-issued ID.</p>
           ${cta("Try Again", `${APP_URL}/profile`)}`,
       };
