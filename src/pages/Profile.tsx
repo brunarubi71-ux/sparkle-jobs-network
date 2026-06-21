@@ -288,11 +288,7 @@ export default function Profile() {
               <ShieldCheck className="w-3 h-3 mr-1" /> {t("profile.verified_badge")}
             </Badge>
           )}
-          {isWorker && workerType === "helper" && (
-            <Badge className="bg-purple-500/90 text-white border-0 text-[10px] hover:bg-purple-500/90">
-              {t("profile.helper_badge")}
-            </Badge>
-          )}
+          {/* helper badge removed — all workers are cleaners */}
         </div>
 
         {/* Edit Profile button */}

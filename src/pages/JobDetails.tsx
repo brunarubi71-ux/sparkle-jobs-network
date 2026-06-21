@@ -427,13 +427,37 @@ export default function JobDetails() {
         await sendNotifications(
           Array.from(approvedIds).map((uid) => ({
             userId: uid,
-            title: "Job Approved 🎉",
-            message: `Your work on "${job.title}" has been approved! Payment is being processed.`,
+            title: "Trabalho aprovado 🎉",
+            message: `Seu trabalho em "${job.title}" foi aprovado! O pagamento está sendo processado.`,
             type: "job_approved",
             relatedId: id,
             link: `/job/${id}`,
           })),
         );
+      }
+
+      // ----- Incentive notification for first-time completers -----
+      try {
+        for (const uid of Array.from(approvedIds)) {
+          const { data: workerProfile } = await supabase
+            .from("profiles")
+            .select("jobs_completed")
+            .eq("id", uid)
+            .maybeSingle();
+          // jobs_completed is incremented after approval — value of 1 means first job
+          if ((workerProfile as any)?.jobs_completed === 1) {
+            await sendNotification({
+              userId: uid,
+              title: "Parabéns pelo seu primeiro trabalho! 🌟",
+              message: "Você acabou de completar seu primeiro trabalho no Shinely! Continue assim — novos trabalhos estão disponíveis agora. Quanto mais você trabalhar, mais destaque seu perfil recebe.",
+              type: "job_approved",
+              relatedId: id,
+              link: "/jobs",
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[JobDetails] incentive notification failed", e);
       }
     } catch (e) {
       console.error("[JobDetails] job_approved batch failed", e);

@@ -198,7 +198,7 @@ export default function PublicProfile() {
   const hasTransport = profile.has_transportation ?? (profile.transportation && profile.transportation !== "none");
   const languages: string[] = profile.languages || [];
   const specialties: string[] = profile.specialties || [];
-  const roleLabel = isOwner ? "Owner" : workerType === "helper" ? "Helper" : "Cleaner";
+  const roleLabel = isOwner ? "Owner" : "Cleaner";
 
   return (
     <div className="min-h-screen bg-background pb-8">

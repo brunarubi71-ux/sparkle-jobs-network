@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { Briefcase, User, Car, UserMinus, Eye, EyeOff } from "lucide-react";
+import { Briefcase, User, Car, UserMinus, Eye, EyeOff, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
@@ -37,6 +37,17 @@ export default function Auth() {
   const lang = (language as string) || "pt";
   const navigate = useNavigate();
 
+  // Detect helper invite flow
+  const helperInviteJobId = (() => { try { return localStorage.getItem("shinely_helper_invite"); } catch { return null; } })();
+  const isHelperInvite = !!helperInviteJobId;
+
+  useEffect(() => {
+    if (isHelperInvite) {
+      setIsSignUp(true);
+      setRole("cleaner");
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -44,7 +55,12 @@ export default function Auth() {
     try {
       if (isSignUp) {
         await signUp(email, password, fullName, role, role === "cleaner" ? hasTransportation : undefined);
-        // Owners go to post-job, cleaners/helpers to home
+        // Helper invite: go back to the invite page
+        if (isHelperInvite && helperInviteJobId) {
+          try { localStorage.removeItem("shinely_helper_invite"); } catch {}
+          navigate(`/helper-invite/${helperInviteJobId}`, { replace: true });
+          return;
+        }
         navigate(role === "owner" ? "/post-job" : "/", { replace: true });
       } else {
         await signIn(email, password);
@@ -309,6 +325,20 @@ export default function Auth() {
         <form onSubmit={handleSubmit} className={`space-y-4${showForgotPassword || isPasswordRecovery ? " hidden" : ""}`}>
           {isSignUp && (
             <>
+              {/* Helper invite banner */}
+              {isHelperInvite && (
+                <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-xl p-3">
+                  <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                  <p className="text-sm text-primary font-medium">
+                    {lang === "pt"
+                      ? "Crie sua conta para aceitar o trabalho que te convidaram 🎉"
+                      : lang === "es"
+                      ? "Crea tu cuenta para aceptar el trabajo al que te invitaron 🎉"
+                      : "Create your account to accept the job you were invited to 🎉"}
+                  </p>
+                </div>
+              )}
+
               <Input
                 placeholder={t("auth.full_name")}
                 value={fullName}
@@ -316,32 +346,36 @@ export default function Auth() {
                 required
                 className="rounded-xl h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-primary"
               />
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole("cleaner")}
-                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                    role === "cleaner"
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200 hover:border-primary/40"
-                  }`}
-                >
-                  <Briefcase className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-gray-800">{t("auth.cleaner")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("owner")}
-                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                    role === "owner"
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200 hover:border-primary/40"
-                  }`}
-                >
-                  <User className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-gray-800">{t("auth.owner")}</span>
-                </button>
-              </div>
+
+              {/* Role picker — hidden for helper invite flow */}
+              {!isHelperInvite && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole("cleaner")}
+                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      role === "cleaner"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-primary/40"
+                    }`}
+                  >
+                    <Briefcase className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium text-gray-800">{t("auth.cleaner")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("owner")}
+                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      role === "owner"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-primary/40"
+                    }`}
+                  >
+                    <User className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium text-gray-800">{t("auth.owner")}</span>
+                  </button>
+                </div>
+              )}
 
               {role === "cleaner" && (
                 <div>
