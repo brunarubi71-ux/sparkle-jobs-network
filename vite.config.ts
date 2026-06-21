@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "favicon.png", "apple-touch-icon.png", "robots.txt"],
       manifest: false, // use existing public/manifest.json
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: [],
         runtimeCaching: [
           {
             // Cache Supabase API responses (short TTL)
