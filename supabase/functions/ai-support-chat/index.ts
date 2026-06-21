@@ -70,41 +70,36 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Require a valid Supabase JWT; derive user identity from it (do not trust client body).
+    // Auth is optional: support assistant is available to anonymous visitors too.
+    // When a real user JWT is provided, verify it and look up role server-side.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
+      authHeader ? { global: { headers: { Authorization: authHeader } } } : undefined,
     );
-    const token = authHeader.slice(7);
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    let verifiedUserId: string = "anonymous";
+    let verifiedRole = "guest";
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const { data: claimsData } = await supabase.auth.getClaims(token);
+        const sub = claimsData?.claims?.sub as string | undefined;
+        if (sub) {
+          verifiedUserId = sub;
+          verifiedRole = "unknown";
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", sub)
+            .maybeSingle();
+          if (prof?.role) verifiedRole = String(prof.role);
+        }
+      } catch (_) { /* anonymous fallback */ }
     }
-    const verifiedUserId = claimsData.claims.sub as string;
 
     const { messages, language } = await req.json();
-
-    // Look up role server-side rather than trusting client claim.
-    let verifiedRole = "unknown";
-    try {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", verifiedUserId)
-        .maybeSingle();
-      if (prof?.role) verifiedRole = String(prof.role);
-    } catch (_) { /* ignore */ }
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
