@@ -6,7 +6,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
 // Bump this whenever a breaking change (e.g. Supabase key rotation) requires
 // all clients to purge their cached state and reload.
-const APP_VERSION = "4";
+const APP_VERSION = "5";
 const VERSION_KEY = "shinely_app_version";
 
 async function clearAndReload() {
