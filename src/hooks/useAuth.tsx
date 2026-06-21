@@ -79,6 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[useAuth] fetchProfile error:", error);
       return;
     }
+    if (!data && retries === 0) {
+      await supabase.auth.signOut();
+      return;
+    }
     if (!data && retries > 0) {
       await new Promise((r) => setTimeout(r, 1500));
       return fetchProfile(userId, retries - 1);
