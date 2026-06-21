@@ -493,6 +493,45 @@ export default function PostJob() {
             </Select>
           </div>
           <Input placeholder={t("post.price")} type="number" value={form.price} onChange={(e) => update("price", e.target.value)} required className="rounded-xl h-12" />
+          {(() => {
+            const beds = parseInt(form.bedrooms) || 0;
+            const baths = parseInt(form.bathrooms) || 0;
+            const ctype = form.cleaning_type;
+            if (beds < 1 || baths < 1 || !ctype) return null;
+            const basePrices: Record<string, { base: number; perBed: number; perBath: number }> = {
+              residential: { base: 80, perBed: 25, perBath: 20 },
+              airbnb: { base: 60, perBed: 20, perBath: 15 },
+              commercial: { base: 150, perBed: 30, perBath: 25 },
+            };
+            const cfg = basePrices[ctype] || basePrices.residential;
+            const mid = cfg.base + cfg.perBed * beds + cfg.perBath * baths;
+            const roundTo5 = (n: number) => Math.round(n / 5) * 5;
+            const low = roundTo5(mid * 0.8);
+            const high = roundTo5(mid * 1.2);
+            const midRounded = roundTo5(mid);
+            const range = `$${low} – $${high}`;
+            const suggestionText = t("post.price_suggestion")
+              .replace("{bedrooms}", String(beds))
+              .replace("{bathrooms}", String(baths))
+              .replace("{range}", range);
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-start gap-2"
+              >
+                <div className="flex-1 text-xs text-foreground leading-relaxed">{suggestionText}</div>
+                <button
+                  type="button"
+                  onClick={() => update("price", String(midRounded))}
+                  className="flex-shrink-0 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors px-2.5 py-1.5 rounded-lg whitespace-nowrap"
+                >
+                  {t("post.price_use")}
+                </button>
+              </motion.div>
+            );
+          })()}
           {form.price && parseFloat(form.price) > 0 && (() => {
             const p = parseFloat(form.price);
             const fee = p * 0.1;
