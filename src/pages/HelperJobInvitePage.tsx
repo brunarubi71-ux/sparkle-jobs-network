@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Sparkles, Bed, Bath, MapPin, Clock, DollarSign,
-  CheckCircle, Lock, Key, Play, Home, AlertCircle,
+  CheckCircle, XCircle, Lock, Key, Play, Home, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +21,8 @@ export default function HelperJobInvitePage() {
   const [myApplication, setMyApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [denying, setDenying] = useState(false);
+  const [denied, setDenied] = useState(false);
 
   useEffect(() => {
     if (jobId) fetchData();
@@ -106,6 +108,41 @@ export default function HelperJobInvitePage() {
       toast.error("Erro ao aceitar o trabalho. Tente novamente.");
     } finally {
       setAccepting(false);
+    }
+  };
+
+  const denyJob = async () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (!job) return;
+    setDenying(true);
+    try {
+      // Insert rejected application so cleaner knows
+      await supabase.from("job_applications").insert({
+        job_id: jobId!,
+        cleaner_id: user.id,
+        status: "rejected",
+      } as any);
+
+      // Notify cleaner
+      if (job.hired_cleaner_id) {
+        await sendNotification({
+          userId: job.hired_cleaner_id,
+          title: "Helper recusou o convite 😔",
+          message: `${profile?.full_name || "Uma helper"} recusou participar do trabalho "${job.title}". Tente convidar outra pessoa.`,
+          type: "new_application",
+          relatedId: job.id,
+          link: `/job/${job.id}`,
+        });
+      }
+
+      setDenied(true);
+    } catch {
+      toast.error("Erro ao recusar. Tente novamente.");
+    } finally {
+      setDenying(false);
     }
   };
 
@@ -270,19 +307,34 @@ export default function HelperJobInvitePage() {
 
       {/* Action buttons */}
       <div className="px-5 pb-10 pt-2 space-y-3">
-        {!isAccepted ? (
+        {denied ? (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center space-y-2">
+            <XCircle className="w-10 h-10 text-red-400 mx-auto" />
+            <p className="font-bold text-red-700 text-sm">Convite recusado</p>
+            <p className="text-xs text-red-500">A cleaner foi notificada que você não pode participar.</p>
+          </div>
+        ) : !isAccepted ? (
           <>
             <Button
               onClick={acceptJob}
-              disabled={accepting}
+              disabled={accepting || denying}
               className="w-full h-14 rounded-2xl gradient-primary text-white font-bold text-base shadow-[0_4px_14px_0_hsla(271,91%,65%,0.4)]"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               {accepting ? "Aceitando..." : "Aceitar este trabalho"}
             </Button>
+            <Button
+              onClick={denyJob}
+              disabled={accepting || denying}
+              variant="outline"
+              className="w-full h-12 rounded-2xl font-semibold text-sm border-red-200 text-red-500 hover:bg-red-50"
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              {denying ? "Recusando..." : "Recusar convite"}
+            </Button>
             {!user && (
               <p className="text-center text-xs text-muted-foreground">
-                Você precisará criar uma conta ou entrar para aceitar.
+                Você precisará criar uma conta ou entrar para responder.
               </p>
             )}
           </>
