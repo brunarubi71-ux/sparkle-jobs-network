@@ -100,8 +100,8 @@ export default function HelperJobInvitePage() {
         });
       }
 
-      toast.success("Trabalho aceito! Agora você pode ver todos os detalhes.");
-      await fetchData();
+      toast.success("Trabalho aceito! Redirecionando...");
+      navigate(`/job/${job.id}`);
     } catch (err) {
       toast.error("Erro ao aceitar o trabalho. Tente novamente.");
     } finally {
@@ -304,15 +304,13 @@ export default function HelperJobInvitePage() {
               </Button>
             )}
 
-            {(job.status === "in_progress" || job.status === "pending_review") && (
-              <Button
-                onClick={() => navigate(`/job/${job.id}`)}
-                variant="outline"
-                className="w-full h-12 rounded-2xl font-semibold"
-              >
-                Ver detalhes completos do trabalho
-              </Button>
-            )}
+            <Button
+              onClick={() => navigate(`/job/${job.id}`)}
+              variant="outline"
+              className="w-full h-12 rounded-2xl font-semibold"
+            >
+              Abrir painel do trabalho
+            </Button>
           </>
         )}
       </div>
