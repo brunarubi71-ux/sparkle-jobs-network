@@ -1,4 +1,3 @@
-import Anthropic from "npm:@anthropic-ai/sdk@0.27.3";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -101,15 +100,13 @@ Deno.serve(async (req) => {
 
     const { messages, language } = await req.json();
 
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "API key not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const client = new Anthropic({ apiKey });
 
     const safeLang = typeof language === "string" ? language.slice(0, 16) : "unknown";
     const systemWithContext = `${SYSTEM_PROMPT}
@@ -119,14 +116,44 @@ Current user context:
 - Role: ${verifiedRole}
 - App language: ${safeLang}`;
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system: systemWithContext,
-      messages: (messages || []).slice(-12),
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemWithContext },
+          ...((messages || []).slice(-12)),
+        ],
+      }),
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error("AI gateway error:", aiRes.status, errText);
+      if (aiRes.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (aiRes.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in your workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "AI request failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await aiRes.json();
+    const text = data?.choices?.[0]?.message?.content ?? "";
 
     return new Response(JSON.stringify({ response: text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
