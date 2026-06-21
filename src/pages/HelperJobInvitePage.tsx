@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Sparkles, Bed, Bath, MapPin, Clock, DollarSign,
-  CheckCircle, XCircle, Lock, Key, Play, Home, AlertCircle,
+  CheckCircle, XCircle, Lock, Unlock, Key, Play, Home, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
