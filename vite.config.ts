@@ -53,8 +53,6 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//, /^\/supabase\//],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
