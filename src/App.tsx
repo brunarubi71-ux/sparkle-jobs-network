@@ -68,10 +68,20 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
 function RoleHome() {
   const { profile, loading } = useAuth();
-  if (loading || !profile) return <PageLoader />;
-  if (profile.role === "admin") return <Navigate to="/admin" replace />;
-  if ((profile.role as string) === "owner") return <Navigate to="/post-job" replace />;
-  return <Jobs />;
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !profile) {
+      const t = setTimeout(() => setTimedOut(true), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [loading, profile]);
+
+  if (profile?.role === "admin") return <Navigate to="/admin" replace />;
+  if ((profile?.role as string) === "owner") return <Navigate to="/post-job" replace />;
+  if (profile) return <Jobs />;
+  if (timedOut) return <Navigate to="/auth" replace />;
+  return <PageLoader />;
 }
 
 function HomeRoute() {

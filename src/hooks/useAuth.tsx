@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, retries = 4) => {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -78,6 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[useAuth] fetchProfile error:", error);
       return;
+    }
+    if (!data && retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return fetchProfile(userId, retries - 1);
     }
     if (data) {
       // Apply pending Google role selection (set before OAuth redirect)
