@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Notify owner by email when a new applicant applies (fire-and-forget)
+    // Notify owner by email and in-app when a new applicant applies (fire-and-forget)
     if (isNewAcceptance) {
       const { data: ownerProfile } = await admin
         .from("profiles")
@@ -265,6 +265,20 @@ Deno.serve(async (req) => {
           cleanerName: cleanerProfile?.full_name ?? "A cleaner",
           jobTitle: jobRow.title ?? "Cleaning Job",
         });
+      }
+
+      // In-app notification to the job owner
+      try {
+        await admin.rpc("send_notification", {
+          p_user_id: jobRow.owner_id,
+          p_title: "Nova candidatura! 🙋",
+          p_message: `${cleanerProfile?.full_name ?? "Alguém"} se candidatou ao seu trabalho "${jobRow.title ?? "Cleaning Job"}"`,
+          p_type: "new_application",
+          p_related_id: jobRow.id,
+          p_link: `/job/${jobRow.id}`,
+        });
+      } catch (notifErr) {
+        console.error("[accept-job] sendNotification error:", notifErr);
       }
     }
 
