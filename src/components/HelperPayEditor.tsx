@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Share2, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -14,9 +14,12 @@ interface Props {
 
 export default function HelperPayEditor({ jobId, currentPay, onSaved }: Props) {
   const { t } = useLanguage();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!currentPay);
   const [value, setValue] = useState(currentPay ? String(currentPay) : "");
   const [saving, setSaving] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  const inviteLink = `${window.location.origin}/helper-invite/${jobId}`;
 
   const save = async () => {
     const num = parseFloat(value);
@@ -33,41 +36,89 @@ export default function HelperPayEditor({ jobId, currentPay, onSaved }: Props) {
     onSaved();
   };
 
+  const share = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Convite de Trabalho — Shinely Jobs",
+          text: `Preciso de uma helper para este trabalho. Você vai receber $${Number(currentPay).toFixed(2)}. Aceite aqui:`,
+          url: inviteLink,
+        });
+      } else {
+        await navigator.clipboard.writeText(inviteLink);
+        setShared(true);
+        setTimeout(() => setShared(false), 2500);
+        toast.success("Link copiado!");
+      }
+    } catch {
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success("Link copiado!");
+    }
+  };
+
   return (
-    <div className="bg-card rounded-2xl shadow-card p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-foreground">💵 {t("post.helper_pay_label")}</p>
-        {!editing && (
-          <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Pencil className="w-3.5 h-3.5" /> {t("common.edit")}
-          </button>
-        )}
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+          <Users className="w-4 h-4 text-amber-600" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-amber-900">Precisa de Helper?</p>
+          <p className="text-xs text-amber-700">Defina o valor e compartilhe o trabalho</p>
+        </div>
       </div>
 
-      {editing ? (
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min="1"
-            placeholder="ex: 60"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="rounded-xl h-10 flex-1"
-            autoFocus
-          />
-          <Button size="icon" onClick={save} disabled={saving} className="rounded-xl h-10 w-10 gradient-primary text-white">
-            <Check className="w-4 h-4" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={() => { setEditing(false); setValue(currentPay ? String(currentPay) : ""); }} className="rounded-xl h-10 w-10">
-            <X className="w-4 h-4" />
-          </Button>
+      {/* Pay field */}
+      <div className="bg-white rounded-xl p-3 border border-amber-200">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-xs font-semibold text-foreground">💵 Valor para a helper</p>
+          {!editing && currentPay && (
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Pencil className="w-3 h-3" /> Editar
+            </button>
+          )}
         </div>
-      ) : (
-        <p className="text-2xl font-bold text-foreground">
-          ${currentPay ? Number(currentPay).toFixed(2) : <span className="text-destructive text-sm font-normal">{t("post.helper_pay_required")}</span>}
-        </p>
+
+        {editing ? (
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min="1"
+              placeholder="ex: 60"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="rounded-xl h-10 flex-1"
+              autoFocus
+            />
+            <Button size="icon" onClick={save} disabled={saving} className="rounded-xl h-10 w-10 gradient-primary text-white">
+              <Check className="w-4 h-4" />
+            </Button>
+            {currentPay && (
+              <Button size="icon" variant="outline" onClick={() => { setEditing(false); setValue(String(currentPay)); }} className="rounded-xl h-10 w-10">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        ) : (
+          <p className="text-2xl font-bold text-foreground">
+            ${currentPay ? Number(currentPay).toFixed(2) : <span className="text-destructive text-sm font-normal">Não definido</span>}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground mt-1">{t("post.helper_pay_hint")}</p>
+      </div>
+
+      {/* Share button — only visible after pay is set */}
+      {currentPay && !editing && (
+        <Button
+          onClick={share}
+          className="w-full h-12 rounded-xl font-semibold text-sm"
+          style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white" }}
+        >
+          {shared ? <Copy className="w-4 h-4 mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
+          {shared ? "Link copiado!" : "Compartilhar trabalho via WhatsApp / Link"}
+        </Button>
       )}
-      <p className="text-xs text-muted-foreground mt-1">{t("post.helper_pay_hint")}</p>
     </div>
   );
 }
