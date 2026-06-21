@@ -143,15 +143,15 @@ export default function AIChatWidget() {
         {open && (
           <motion.div
             key="panel"
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl shadow-2xl flex flex-col"
-            style={{ maxHeight: "80vh" }}
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 28 }}
+            className="fixed bottom-24 right-4 z-50 bg-background rounded-3xl shadow-2xl flex flex-col w-[22rem] max-w-[calc(100vw-2rem)]"
+            style={{ maxHeight: "70vh" }}
           >
             {/* Header */}
-            <div className="gradient-primary px-5 py-4 rounded-t-3xl flex items-center gap-3">
+            <div className="gradient-primary px-4 py-3 rounded-t-3xl flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
