@@ -772,6 +772,13 @@ export default function Jobs() {
                   </button>
                 )}
 
+                {/* Shinely Guarantee badge */}
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 text-[10px] font-semibold rounded-full px-2.5 py-1">
+                    ✓ Garantia Shinely
+                  </span>
+                </div>
+
                 {profile?.role === "cleaner" && (
                   <Button
                     onClick={(e) => { e.stopPropagation(); handleAcceptClick(job); }}
