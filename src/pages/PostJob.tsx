@@ -68,6 +68,7 @@ export default function PostJob() {
       door_code: "", supply_code: "", lockbox_code: "", gate_code: "",
       alarm_instructions: "", parking_instructions: "", door_access_info: "",
       guest_stay_length: "", number_of_guests: "",
+      recurrence: "once" as "once" | "weekly" | "biweekly" | "monthly",
     };
   });
 
@@ -101,6 +102,14 @@ export default function PostJob() {
         navigate("/my-jobs");
         return;
       }
+      // Parse recurrence prefix from description if present
+      const rawDesc: string = data.description ?? "";
+      const recurrenceMatch = rawDesc.match(/^\[Recorrência: (Semanal|Quinzenal|Mensal)\]\n?/);
+      const parsedRecurrence = recurrenceMatch
+        ? ({ Semanal: "weekly", Quinzenal: "biweekly", Mensal: "monthly" } as const)[recurrenceMatch[1] as "Semanal" | "Quinzenal" | "Mensal"] ?? "once"
+        : "once";
+      const cleanDesc = recurrenceMatch ? rawDesc.slice(recurrenceMatch[0].length) : rawDesc;
+
       setForm({
         title: data.title ?? "",
         cleaning_type: data.cleaning_type ?? "residential",
@@ -110,7 +119,7 @@ export default function PostJob() {
         address: priv.address ?? "",
         city: data.city ?? "",
         urgency: data.urgency ?? "scheduled",
-        description: data.description ?? "",
+        description: cleanDesc,
         cleaners_required: data.cleaners_required != null ? String(data.cleaners_required) : "1",
         helpers_required: data.helpers_required != null ? String(data.helpers_required) : "0",
         helper_pay: data.helper_pay != null ? String(data.helper_pay) : "",
@@ -123,6 +132,7 @@ export default function PostJob() {
         door_access_info: priv.door_access_info ?? "",
         guest_stay_length: data.guest_stay_length != null ? String(data.guest_stay_length) : "",
         number_of_guests: data.number_of_guests != null ? String(data.number_of_guests) : "",
+        recurrence: parsedRecurrence,
       });
       setExistingMainPhoto(data.main_property_photo ?? "");
       setExistingPhotos(Array.isArray(data.property_photos) ? data.property_photos : []);
@@ -131,6 +141,19 @@ export default function PostJob() {
   }, [isEditMode, editJobId, user, navigate]);
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+
+  const recurrenceLabels: Record<string, string> = {
+    once: "",
+    weekly: "Semanal",
+    biweekly: "Quinzenal",
+    monthly: "Mensal",
+  };
+
+  const buildDescription = (description: string, recurrence: string) => {
+    const label = recurrenceLabels[recurrence];
+    if (!label) return description || null;
+    return `[Recorrência: ${label}]\n${description}`;
+  };
 
   const handleMainPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -235,7 +258,7 @@ export default function PostJob() {
         title: form.title, cleaning_type: form.cleaning_type, price,
         bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         city: form.city || null, urgency: form.urgency,
-        description: form.description || null, total_amount: totalCharged,
+        description: buildDescription(form.description, form.recurrence), total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
         cleaners_required: cleanersReq, helpers_required: helpersReq,
@@ -307,7 +330,7 @@ export default function PostJob() {
         owner_id: user.id, title: form.title, cleaning_type: form.cleaning_type,
         price, bedrooms: parseInt(form.bedrooms), bathrooms: parseInt(form.bathrooms),
         city: form.city || null, urgency: form.urgency,
-        description: form.description || null, total_amount: totalCharged,
+        description: buildDescription(form.description, form.recurrence), total_amount: totalCharged,
         platform_fee: platformFee, cleaner_earnings: cleanerEarnings,
         team_size_required: Math.max(1, teamSize),
         cleaners_required: cleanersReq,
@@ -489,6 +512,19 @@ export default function PostJob() {
                 <SelectItem value="scheduled">{t("post.scheduled")}</SelectItem>
                 <SelectItem value="asap">{t("post.asap")}</SelectItem>
                 <SelectItem value="urgent">{t("post.urgent")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Recurrence selector */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">🔄 Recorrência</Label>
+            <Select value={form.recurrence} onValueChange={(v) => update("recurrence", v)}>
+              <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="once">Único (uma vez)</SelectItem>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="biweekly">Quinzenal</SelectItem>
+                <SelectItem value="monthly">Mensal</SelectItem>
               </SelectContent>
             </Select>
           </div>

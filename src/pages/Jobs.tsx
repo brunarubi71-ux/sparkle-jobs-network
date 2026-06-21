@@ -716,6 +716,11 @@ export default function Jobs() {
                       🏠 ✓ Verified Owner
                     </Badge>
                   )}
+                  {job.description?.startsWith("[Recorrência:") && (
+                    <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px] hover:bg-blue-100">
+                      🔄 Recorrente
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Team composition needed */}
@@ -751,7 +756,13 @@ export default function Jobs() {
                   )}
                 </div>
 
-                {job.description && <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>}
+                {job.description && (
+                  <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                    {job.description.startsWith("[Recorrência:")
+                      ? job.description.replace(/^\[Recorrência:[^\]]+\]\n?/, "")
+                      : job.description}
+                  </p>
+                )}
 
                 {/* Owner row — clickable to public profile */}
                 {job.owner_name && (
