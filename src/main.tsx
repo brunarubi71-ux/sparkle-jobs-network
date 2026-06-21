@@ -32,7 +32,11 @@ async function clearAndReload() {
 }
 
 const storedVersion = localStorage.getItem(VERSION_KEY);
-if (storedVersion !== APP_VERSION) {
+const isOAuthCallback = window.location.hash.includes("access_token") ||
+  window.location.search.includes("code=") ||
+  window.location.search.includes("error=");
+
+if (storedVersion !== APP_VERSION && !isOAuthCallback) {
   clearAndReload();
 } else {
   createRoot(document.getElementById("root")!).render(
