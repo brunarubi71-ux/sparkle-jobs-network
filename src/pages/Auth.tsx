@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { Briefcase, User, Car, UserMinus, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Briefcase, User, Eye, EyeOff, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TermsModal from "@/components/TermsModal";
@@ -21,7 +21,7 @@ export default function Auth() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"cleaner" | "owner">("cleaner");
-  const [hasTransportation, setHasTransportation] = useState(true);
+
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +54,7 @@ export default function Auth() {
     setLoading(true);
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName, role, role === "cleaner" ? hasTransportation : undefined);
+        await signUp(email, password, fullName, role, undefined);
         // Helper invite: go back to the invite page
         if (isHelperInvite && helperInviteJobId) {
           try { localStorage.removeItem("shinely_helper_invite"); } catch {}
@@ -377,39 +377,6 @@ export default function Auth() {
                 </div>
               )}
 
-              {role === "cleaner" && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    {t("auth.transportation_question") || "Do you have your own transportation?"}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setHasTransportation(true)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                        hasTransportation
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-primary/40"
-                      }`}
-                    >
-                      <Car className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium text-gray-800">{t("auth.yes_transport") || "Yes"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setHasTransportation(false)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                        !hasTransportation
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-primary/40"
-                      }`}
-                    >
-                      <UserMinus className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-medium text-gray-800">{t("auth.no_transport") || "No (Helper)"}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           )}
 
