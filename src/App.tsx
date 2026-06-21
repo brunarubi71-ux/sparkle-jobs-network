@@ -67,7 +67,20 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
 function RoleHome() {
   const { profile, loading } = useAuth();
-  if (loading || !profile) return <PageLoader />;
+  const [profileTimeout, setProfileTimeout] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !profile) {
+      const t = setTimeout(() => setProfileTimeout(true), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [loading, profile]);
+
+  if (loading) return <PageLoader />;
+  if (!profile) {
+    if (profileTimeout) return <Navigate to="/auth" replace />;
+    return <PageLoader />;
+  }
   if (profile.role === "admin") return <Navigate to="/admin" replace />;
   if ((profile.role as string) === "owner") return <Navigate to="/post-job" replace />;
   return <Jobs />;
