@@ -731,6 +731,14 @@ export default function PostJob() {
           </motion.div>
         )}
 
+        {/* Shinely Guarantee notice */}
+        <div className="flex items-start gap-2 bg-green-50/60 border border-green-200/60 rounded-xl px-3 py-2.5 text-sm text-green-800">
+          <span className="flex-shrink-0 mt-0.5">🛡️</span>
+          <p className="text-xs text-green-700 leading-relaxed">
+            Todos os trabalhos são cobertos pela <span className="font-semibold">Garantia Shinely</span> — retrabalho grátis em 48h se necessário
+          </p>
+        </div>
+
         <Button type="submit" disabled={loading || uploadingPhotos || editLoading || showOwnerPendingBanner} className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold hover:opacity-90 disabled:opacity-50">
           <PlusCircle className="w-4 h-4 mr-2" />
           {showOwnerPendingBanner

@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Star, ShieldCheck, MessageCircle,
-  Home, CalendarDays, Briefcase, Car, CarFront, Languages, Image as ImageIcon, Plus,
+  Home, CalendarDays, Briefcase, Car, CarFront, Languages, Image as ImageIcon, Plus, Shield,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,13 @@ import { toast } from "sonner";
 function formatMemberSince(iso?: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+}
+
+function memberMonths(iso?: string): number {
+  if (!iso) return 0;
+  const then = new Date(iso);
+  const now = new Date();
+  return Math.max(0, (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth()));
 }
 
 interface ReviewRow {
@@ -186,6 +193,7 @@ export default function PublicProfile() {
   const workerType = profile.worker_type || "cleaner";
   const identityApproved = (profile.identity_status || "unverified") === "approved";
   const memberSince = formatMemberSince(profile.created_at);
+  const months = memberMonths(profile.created_at);
   const showMessageBtn = !!user && user.id !== id;
   const hasTransport = profile.has_transportation ?? (profile.transportation && profile.transportation !== "none");
   const languages: string[] = profile.languages || [];
@@ -250,6 +258,44 @@ export default function PublicProfile() {
                 <Plus className="w-4 h-4 mr-2" /> Hire for a Job
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Trust banner row */}
+        <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div className="flex gap-2 w-max">
+            {reviewCount > 0 && (
+              <span className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium rounded-full px-3 py-1.5 whitespace-nowrap">
+                ⭐ {avgRating.toFixed(1)} / 5.0
+              </span>
+            )}
+            <span className="flex items-center gap-1 bg-accent text-foreground text-[11px] font-medium rounded-full px-3 py-1.5 whitespace-nowrap">
+              ✅ {jobsCompletedCount} trabalhos
+            </span>
+            <span className="flex items-center gap-1 bg-accent text-foreground text-[11px] font-medium rounded-full px-3 py-1.5 whitespace-nowrap">
+              📅 Membro há {months} {months === 1 ? "mês" : "meses"}
+            </span>
+            {identityApproved && (
+              <span className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium rounded-full px-3 py-1.5 whitespace-nowrap">
+                🔒 Identidade Verificada
+              </span>
+            )}
+            {hasTransport && (
+              <span className="flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-medium rounded-full px-3 py-1.5 whitespace-nowrap">
+                🚗 Com transporte
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Shinely Guarantee banner (workers only) */}
+        {!isOwner && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-green-800">Protegido pela Garantia Shinely</p>
+              <p className="text-xs text-green-700 mt-0.5">Se o serviço não ficar bom, refazemos em 48h</p>
+            </div>
           </div>
         )}
 
