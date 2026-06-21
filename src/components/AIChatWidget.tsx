@@ -147,8 +147,8 @@ export default function AIChatWidget() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="fixed bottom-24 right-4 z-50 bg-background rounded-3xl shadow-2xl flex flex-col w-[22rem] max-w-[calc(100vw-2rem)]"
-            style={{ maxHeight: "70vh" }}
+            className="fixed z-50 bg-background rounded-3xl shadow-2xl flex flex-col"
+            style={{ bottom: "5.5rem", right: "1rem", width: "22rem", maxWidth: "calc(100vw - 2rem)", maxHeight: "70vh" }}
           >
             {/* Header */}
             <div className="gradient-primary px-4 py-3 rounded-t-3xl flex items-center gap-3">
