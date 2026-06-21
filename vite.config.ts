@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      devOptions: { enabled: false },
       includeAssets: ["favicon.ico", "favicon.png", "apple-touch-icon.png", "robots.txt"],
       manifest: false, // use existing public/manifest.json
       workbox: {
