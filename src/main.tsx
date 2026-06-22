@@ -31,11 +31,26 @@ async function clearAndReload() {
   window.location.reload();
 }
 
+// If a new SW is waiting (old SW active, new one ready), force it to take over
+// immediately so users get the latest code without a manual refresh.
+function activateWaitingSW() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (reg?.waiting) {
+      reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    }
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  }, { once: true });
+}
+
 const storedVersion = localStorage.getItem(VERSION_KEY);
 const isOAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=") || window.location.search.includes("error=");
 if (storedVersion !== APP_VERSION && !isOAuthCallback) {
   clearAndReload();
 } else {
+  activateWaitingSW();
   createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <App />
