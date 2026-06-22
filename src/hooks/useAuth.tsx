@@ -127,8 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // If Supabase hangs (PKCE exchange, stalled refresh, network issue),
+    // force loading=false after 8 s so the app never freezes on a spinner.
+    const safetyTimer = setTimeout(() => setLoading(false), 8000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        clearTimeout(safetyTimer);
         if (event === "PASSWORD_RECOVERY") {
           setIsPasswordRecovery(true);
           setSession(session);
@@ -152,13 +157,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(safetyTimer);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => {
