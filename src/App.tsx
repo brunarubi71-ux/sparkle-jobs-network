@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -40,11 +40,41 @@ const HelperJobInvitePage  = lazy(() => import("./pages/HelperJobInvitePage"));
 
 const queryClient = new QueryClient();
 
-function PageLoader({ hint }: { hint?: string } = {}) {
+function PageLoader() {
+  const [showRetry, setShowRetry] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShowRetry(true), 10000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleRetry = () => {
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith("sb-") || k.startsWith("supabase")) localStorage.removeItem(k);
+    });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) =>
+        Promise.all(regs.map((r) => r.unregister()))
+      );
+    }
+    window.location.href = "/auth";
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-6">
       <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-      {hint && <p className="text-sm text-muted-foreground text-center px-8">{hint}</p>}
+      {showRetry && (
+        <>
+          <p className="text-sm text-muted-foreground text-center">
+            Levando mais tempo que o esperado...
+          </p>
+          <button
+            onClick={handleRetry}
+            className="px-6 py-2.5 bg-primary text-white rounded-full text-sm font-semibold shadow"
+          >
+            Tentar novamente
+          </button>
+        </>
+      )}
     </div>
   );
 }

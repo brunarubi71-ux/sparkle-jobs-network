@@ -4,13 +4,11 @@ import App from "./App.tsx";
 import "./index.css";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
-// Bump this whenever a breaking change (e.g. Supabase key rotation) requires
-// all clients to purge their cached state and reload.
-const APP_VERSION = "5";
+// Bump this whenever a breaking change requires all clients to purge cached state.
+const APP_VERSION = "6";
 const VERSION_KEY = "shinely_app_version";
 
 async function clearAndReload() {
-  // Wipe Supabase auth stored in localStorage
   Object.keys(localStorage).forEach((k) => {
     if (k.startsWith("sb-") || k.startsWith("supabase")) {
       localStorage.removeItem(k);
@@ -18,7 +16,6 @@ async function clearAndReload() {
   });
   localStorage.setItem(VERSION_KEY, APP_VERSION);
 
-  // Unregister old service workers and clear all caches
   if ("serviceWorker" in navigator) {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(regs.map((r) => r.unregister()));
@@ -31,26 +28,15 @@ async function clearAndReload() {
   window.location.reload();
 }
 
-// If a new SW is waiting (old SW active, new one ready), force it to take over
-// immediately so users get the latest code without a manual refresh.
-function activateWaitingSW() {
-  if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.getRegistration().then((reg) => {
-    if (reg?.waiting) {
-      reg.waiting.postMessage({ type: "SKIP_WAITING" });
-    }
-  });
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    window.location.reload();
-  }, { once: true });
-}
-
 const storedVersion = localStorage.getItem(VERSION_KEY);
-const isOAuthCallback = window.location.hash.includes("access_token") || window.location.search.includes("code=") || window.location.search.includes("error=");
+const isOAuthCallback =
+  window.location.hash.includes("access_token") ||
+  window.location.search.includes("code=") ||
+  window.location.search.includes("error=");
+
 if (storedVersion !== APP_VERSION && !isOAuthCallback) {
   clearAndReload();
 } else {
-  activateWaitingSW();
   createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <App />
