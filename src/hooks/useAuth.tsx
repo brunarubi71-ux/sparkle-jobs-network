@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
-  const fetchProfile = async (userId: string, retries = 4) => {
+  const fetchProfile = async (userId: string, retries = 8) => {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -77,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (error) {
       console.error("[useAuth] fetchProfile error:", error);
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return fetchProfile(userId, retries - 1);
+      }
       return;
     }
     if (!data && retries === 0) {
@@ -84,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!data && retries > 0) {
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 2000));
       return fetchProfile(userId, retries - 1);
     }
     if (data) {
