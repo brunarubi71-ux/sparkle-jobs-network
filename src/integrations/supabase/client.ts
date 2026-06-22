@@ -11,5 +11,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Use implicit flow: tokens arrive directly in the URL hash after Google OAuth,
+    // eliminating the PKCE server round-trip that hangs on slow mobile networks.
+    flowType: 'implicit',
   }
 });

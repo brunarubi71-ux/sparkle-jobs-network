@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // If Supabase hangs (PKCE exchange, stalled refresh, network issue),
     // force loading=false after 8 s so the app never freezes on a spinner.
-    const safetyTimer = setTimeout(() => setLoading(false), 8000);
+    const safetyTimer = setTimeout(() => setLoading(false), 20000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
