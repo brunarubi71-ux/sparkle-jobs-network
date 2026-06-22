@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -41,7 +41,11 @@ const HelperJobInvitePage  = lazy(() => import("./pages/HelperJobInvitePage"));
 const queryClient = new QueryClient();
 
 function PageLoader() {
-  return <div className="min-h-screen bg-background" />;
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+    </div>
+  );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -67,14 +71,22 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleHome() {
-  const { profile, loading, signOut } = useAuth();
+  const { profile, loading } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    if (!loading && !profile) {
+      timerRef.current = setTimeout(() => setTimedOut(true), 12000);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [loading, profile]);
+
+  if (timedOut) return <Navigate to="/auth" replace />;
   if (loading || !profile) return <PageLoader />;
 
   if (profile.role === 'admin') return <Navigate to='/admin' replace />;
-
   if ((profile.role as string) === 'owner') return <Navigate to='/post-job' replace />;
-
   return <Jobs />;
 }
 
