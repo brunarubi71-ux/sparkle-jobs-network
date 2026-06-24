@@ -11,5 +11,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Implicit flow: tokens arrive in the URL hash after Google redirect —
+    // no server round-trip needed. Safe now that activateWaitingSW (which
+    // was reloading the page and destroying the hash tokens) is removed.
+    flowType: 'implicit',
   }
 });
