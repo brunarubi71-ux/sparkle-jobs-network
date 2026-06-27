@@ -132,9 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // If Supabase hangs (PKCE exchange, stalled refresh, network issue),
-    // force loading=false after 8 s so the app never freezes on a spinner.
-    const safetyTimer = setTimeout(() => setLoading(false), 20000);
+    // Safety valve: if Supabase never fires (network issue, stalled init),
+    // unblock the UI after 5 s so users aren't stuck on a spinner forever.
+    const safetyTimer = setTimeout(() => setLoading(false), 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -166,6 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
+      setLoading(false);
+    }).catch(() => {
+      clearTimeout(safetyTimer);
       setLoading(false);
     });
 
