@@ -4,16 +4,12 @@ import App from "./App.tsx";
 import "./index.css";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
-// Bump this whenever a breaking change requires all clients to purge cached state.
-const APP_VERSION = "6";
+// Bump this whenever a breaking change requires all clients to purge SW cache.
+// Do NOT clear sb-* session keys here — that logs everyone out on every update.
+const APP_VERSION = "7";
 const VERSION_KEY = "shinely_app_version";
 
 async function clearAndReload() {
-  Object.keys(localStorage).forEach((k) => {
-    if (k.startsWith("sb-") || k.startsWith("supabase")) {
-      localStorage.removeItem(k);
-    }
-  });
   localStorage.setItem(VERSION_KEY, APP_VERSION);
 
   if ("serviceWorker" in navigator) {

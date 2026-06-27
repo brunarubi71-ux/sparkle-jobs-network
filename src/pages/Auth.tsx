@@ -26,6 +26,7 @@ export default function Auth() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [showResetHint, setShowResetHint] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [googleRolePicker, setGoogleRolePicker] = useState(false);
@@ -74,7 +75,14 @@ export default function Auth() {
         navigate("/", { replace: true });
       }
     } catch (err: any) {
-      setError(err.message);
+      const msg: string = err.message || "";
+      if (!isSignUp && msg.includes("Invalid login credentials")) {
+        setError(lang === "pt" ? "Senha incorreta." : lang === "es" ? "Contraseña incorrecta." : "Incorrect password.");
+        setShowResetHint(true);
+      } else {
+        setError(msg);
+        setShowResetHint(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -447,6 +455,15 @@ export default function Auth() {
           )}
 
           {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+          {showResetHint && (
+            <button
+              type="button"
+              onClick={() => { setShowForgotPassword(true); setError(""); setShowResetHint(false); }}
+              className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors"
+            >
+              {lang === "pt" ? "Redefinir senha por email →" : lang === "es" ? "Restablecer contraseña →" : "Reset password by email →"}
+            </button>
+          )}
 
           <Button
             type="submit"
@@ -484,6 +501,7 @@ export default function Auth() {
             onClick={() => {
               setIsSignUp(!isSignUp);
               setError("");
+              setShowResetHint(false);
             }}
             className="text-primary font-semibold hover:underline"
           >
