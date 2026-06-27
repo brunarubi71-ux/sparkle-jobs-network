@@ -25,13 +25,13 @@ export default defineConfig(({ mode }) => ({
         globPatterns: [],
         runtimeCaching: [
           {
-            // Cache Supabase API responses (short TTL)
+            // Cache Supabase API responses (short TTL, no network timeout to avoid
+            // blocking fetchProfile in incognito / cold-start scenarios)
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-api",
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 },
-              networkTimeoutSeconds: 10,
             },
           },
           {
