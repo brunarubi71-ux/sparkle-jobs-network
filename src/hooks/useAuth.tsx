@@ -98,9 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (pendingRole && (pendingRole === "cleaner" || pendingRole === "owner")) {
         localStorage.removeItem("pending_google_role");
         try {
-          await supabase.rpc("choose_initial_role" as any, { p_role: pendingRole });
+          const rpcTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("rpc_timeout")), 4000)
+          );
+          await Promise.race([
+            supabase.rpc("choose_initial_role" as any, { p_role: pendingRole }),
+            rpcTimeout,
+          ]);
           const { data: updated } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-          if (updated) { setProfile(updated as unknown as Profile); return; }
+          setProfile((updated ?? data) as unknown as Profile);
+          return;
         } catch (e) {
           console.error("[useAuth] choose_initial_role failed:", e);
         }
