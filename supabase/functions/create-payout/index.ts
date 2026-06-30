@@ -214,6 +214,6 @@ serve(async (req) => {
     }
   } catch (err) {
     console.error("[create-payout]", err);
-    return json(500, { error: (err as Error).message || "Internal error" });
+    return json(500, { error: "An internal error occurred. Please try again." });
   }
 });

@@ -116,6 +116,15 @@ Current user context:
 - Role: ${verifiedRole}
 - App language: ${safeLang}`;
 
+    const safeMessages = (Array.isArray(messages) ? messages : [])
+      .filter((m: any) =>
+        m &&
+        typeof m.content === "string" &&
+        (m.role === "user" || m.role === "assistant")
+      )
+      .map((m: any) => ({ role: m.role, content: m.content.slice(0, 2000) }))
+      .slice(-12);
+
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -126,7 +135,7 @@ Current user context:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemWithContext },
-          ...((messages || []).slice(-12)),
+          ...safeMessages,
         ],
       }),
     });

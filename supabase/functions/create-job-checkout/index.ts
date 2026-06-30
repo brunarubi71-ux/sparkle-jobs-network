@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+import { safeReturnUrl } from "../_shared/safe-return-url.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,7 +96,7 @@ serve(async (req) => {
       ],
       mode: "payment",
       ui_mode: "embedded",
-      return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+      return_url: safeReturnUrl(returnUrl, req.headers.get("origin"), "/checkout/return?session_id={CHECKOUT_SESSION_ID}"),
       ...(user.email && { customer_email: user.email }),
       metadata: {
         jobId,

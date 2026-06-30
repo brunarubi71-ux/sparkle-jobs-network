@@ -3,6 +3,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveSubscriptionPriceId } from "../_shared/subscription-prices.ts";
+import { safeReturnUrl } from "../_shared/safe-return-url.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -135,8 +136,11 @@ serve(async (req) => {
       // Always collect card info upfront, even during a free trial, so the subscription
       // auto-renews without interruption when the trial period ends.
       payment_method_collection: "always",
-      return_url: returnUrl ||
-        `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+      return_url: safeReturnUrl(
+        returnUrl,
+        req.headers.get("origin"),
+        "/checkout/return?session_id={CHECKOUT_SESSION_ID}",
+      ),
       // Reuse the existing Stripe customer so subscription history stays on one record.
       // When no customer exists yet, Stripe creates one automatically.
       ...(existingCustomerId && { customer: existingCustomerId }),
@@ -165,7 +169,7 @@ serve(async (req) => {
   } catch (error) {
     const message = (error as Error)?.message || String(error);
     console.error("[create-checkout] error:", message, (error as Error)?.stack);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
