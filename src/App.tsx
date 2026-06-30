@@ -107,11 +107,12 @@ function RoleHome() {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (loading || profileLoading || profile) return;
-    // If auth finished but profile still null after 8s, bail to /auth
-    const t = setTimeout(() => setTimedOut(true), 8000);
+    if (profile) return;
+    // Hard timeout: if profile is still missing after 12s (covers auth loading +
+    // profile fetch retries), redirect to /auth so the user is never stuck.
+    const t = setTimeout(() => setTimedOut(true), 12000);
     return () => clearTimeout(t);
-  }, [loading, profileLoading, profile]);
+  }, [profile]);
 
   if (loading || profileLoading || !profile) {
     if (timedOut) return <Navigate to="/auth" replace />;
