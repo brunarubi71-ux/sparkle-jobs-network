@@ -37,6 +37,7 @@ const Privacy         = lazy(() => import("./pages/Privacy"));
 const Cancellation    = lazy(() => import("./pages/Cancellation"));
 const InvitePage           = lazy(() => import("./pages/InvitePage"));
 const HelperJobInvitePage  = lazy(() => import("./pages/HelperJobInvitePage"));
+const AuthCallback         = lazy(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
 
@@ -102,17 +103,17 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleHome() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, profileLoading } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (loading || profile) return;
+    if (loading || profileLoading || profile) return;
     // If auth finished but profile still null after 8s, bail to /auth
     const t = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(t);
-  }, [loading, profile]);
+  }, [loading, profileLoading, profile]);
 
-  if (loading || !profile) {
+  if (loading || profileLoading || !profile) {
     if (timedOut) return <Navigate to="/auth" replace />;
     return <PageLoader />;
   }
@@ -167,6 +168,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/invite/:referrerId" element={<InvitePage />} />
                 <Route path="/helper-invite/:jobId" element={<HelperJobInvitePage />} />
                 <Route path="/terms" element={<Terms />} />

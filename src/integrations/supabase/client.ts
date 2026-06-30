@@ -11,9 +11,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Implicit flow: tokens arrive in the URL hash after Google redirect —
-    // no server round-trip needed. Safe now that activateWaitingSW (which
-    // was reloading the page and destroying the hash tokens) is removed.
-    flowType: 'implicit',
+    // PKCE flow: more secure and compatible with browser extensions that
+    // block hash-fragment tokens (implicit flow). The OAuth callback lands
+    // on /auth/callback where Supabase exchanges the code for a session.
+    flowType: 'pkce',
+    detectSessionInUrl: true,
   }
 });
