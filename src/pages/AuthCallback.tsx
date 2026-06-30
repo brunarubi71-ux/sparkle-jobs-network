@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 // Landing page after Google OAuth redirect (PKCE flow).
-// Supabase exchanges the ?code= param for a session automatically when
-// detectSessionInUrl is true. We just wait for the session and redirect.
+// Supabase exchanges the ?code= param automatically (detectSessionInUrl).
+// We check for an existing session first (in case the exchange finished
+// before our listener was registered), then fall back to onAuthStateChange.
 export default function AuthCallback() {
   const navigate = useNavigate();
   const ran = useRef(false);
@@ -13,27 +14,49 @@ export default function AuthCallback() {
     if (ran.current) return;
     ran.current = true;
 
+    let unsubscribed = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (unsubscribed) return;
         if (event === "SIGNED_IN" && session) {
+          unsubscribed = true;
           subscription.unsubscribe();
           navigate("/", { replace: true });
         } else if (event === "SIGNED_OUT") {
+          unsubscribed = true;
           subscription.unsubscribe();
           navigate("/auth", { replace: true });
         }
       }
     );
 
-    // Fallback: if no event fires in 8s, go to auth
+    // Also check immediately — the code exchange may have already completed
+    // before our onAuthStateChange listener was registered.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (unsubscribed) return;
+      if (session) {
+        unsubscribed = true;
+        subscription.unsubscribe();
+        navigate("/", { replace: true });
+      }
+    });
+
+    // Fallback: if nothing resolves in 10s, go to auth
     const timer = setTimeout(() => {
-      subscription.unsubscribe();
-      navigate("/auth", { replace: true });
-    }, 8000);
+      if (!unsubscribed) {
+        unsubscribed = true;
+        subscription.unsubscribe();
+        navigate("/auth", { replace: true });
+      }
+    }, 10000);
 
     return () => {
       clearTimeout(timer);
-      subscription.unsubscribe();
+      if (!unsubscribed) {
+        unsubscribed = true;
+        subscription.unsubscribe();
+      }
     };
   }, [navigate]);
 
