@@ -50,6 +50,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
   isPasswordRecovery: boolean;
   /** Jobs used during the CURRENT week (resets when jobs_used_date is from a previous week). */
   jobsUsedThisWeek: number;
@@ -67,9 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
-  const fetchProfile = async (userId: string, retries = 5) => {
+  const fetchProfileInner = async (userId: string, retries = 5): Promise<void> => {
     const delay = retries > 3 ? 500 : 1500; // fast retries first, slower after
     const { data, error } = await supabase
       .from("profiles")
@@ -80,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[useAuth] fetchProfile error:", error);
       if (retries > 0) {
         await new Promise((r) => setTimeout(r, delay));
-        return fetchProfile(userId, retries - 1);
+        return fetchProfileInner(userId, retries - 1);
       }
       return;
     }
@@ -90,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (!data && retries > 0) {
       await new Promise((r) => setTimeout(r, delay));
-      return fetchProfile(userId, retries - 1);
+      return fetchProfileInner(userId, retries - 1);
     }
     if (data) {
       // Apply pending Google role selection (set before OAuth redirect)
@@ -131,6 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       setProfile(data as unknown as Profile);
+    }
+  };
+
+  const fetchProfile = async (userId: string, retries = 5) => {
+    setProfileLoading(true);
+    try {
+      await fetchProfileInner(userId, retries);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -220,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     : 0;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isPasswordRecovery, jobsUsedThisWeek, signUp, signIn, signOut, refreshProfile, clearPasswordRecovery }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, jobsUsedThisWeek, signUp, signIn, signOut, refreshProfile, clearPasswordRecovery }}>
       {children}
     </AuthContext.Provider>
   );
