@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
+import { safeReturnUrl } from "../_shared/safe-return-url.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +35,7 @@ serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json().catch(() => ({}));
-    const returnUrl: string = body.returnUrl || `${req.headers.get("origin") || "https://shinelyapp.com"}/earnings`;
+    const returnUrl: string = safeReturnUrl(body.returnUrl, req.headers.get("origin"), "/earnings");
 
     const { data: profile, error: profileError } = await adminClient
       .from("profiles")
@@ -60,9 +61,8 @@ serve(async (req) => {
           metadata: { userId: user.id },
         });
       } catch (stripeErr: any) {
-        const msg = stripeErr?.message || "Stripe account creation failed";
-        console.error("[create-connect-account] accounts.create:", stripeErr?.code, stripeErr?.type, msg);
-        return ok({ error: msg });
+        console.error("[create-connect-account] accounts.create:", stripeErr?.code, stripeErr?.type, stripeErr?.message);
+        return ok({ error: "Could not create payout account. Please try again." });
       }
 
       accountId = account.id;
@@ -81,14 +81,13 @@ serve(async (req) => {
         type: "account_onboarding",
       });
     } catch (stripeErr: any) {
-      const msg = stripeErr?.message || "Could not create onboarding link";
-      console.error("[create-connect-account] accountLinks.create:", msg);
-      return ok({ error: msg });
+      console.error("[create-connect-account] accountLinks.create:", stripeErr?.message);
+      return ok({ error: "Could not create onboarding link. Please try again." });
     }
 
     return ok({ url: accountLink.url, accountId });
   } catch (err) {
     console.error("[create-connect-account] unexpected:", err);
-    return ok({ error: (err as Error).message || "Internal error" });
+    return ok({ error: "An internal error occurred. Please try again." });
   }
 });
