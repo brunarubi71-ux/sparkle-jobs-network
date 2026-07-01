@@ -2,9 +2,13 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// OAuth callback page for PKCE flow.
-// Strategy: check getSession() first (code exchange may already be done),
-// then register onAuthStateChange as fallback. Whichever fires first wins.
+// PKCE OAuth callback page.
+// Uses exchangeCodeForSession() directly instead of getSession() to avoid a
+// race condition: AuthProvider also calls getSession() on mount, and with
+// detectSessionInUrl: true both callers would compete for the same one-time
+// PKCE code — whichever lost would trigger SIGNED_OUT, sending the user back
+// to /auth. With detectSessionInUrl: false in the client, only this page
+// exchanges the code, while AuthProvider safely reads the stored session.
 export default function AuthCallback() {
   const navigate = useNavigate();
   const ran = useRef(false);
@@ -13,54 +17,31 @@ export default function AuthCallback() {
     if (ran.current) return;
     ran.current = true;
 
-    let done = false;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const errorParam = params.get("error");
 
-    const goHome = () => {
-      if (done) return;
-      done = true;
-      navigate("/", { replace: true });
-    };
-
-    const goAuth = () => {
-      if (done) return;
-      done = true;
+    if (errorParam || !code) {
       navigate("/auth", { replace: true });
-    };
+      return;
+    }
 
-    // Register listener first so we don't miss events that fire async
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (done) return;
-      if (event === "SIGNED_IN" && session) {
-        subscription.unsubscribe();
-        goHome();
-      } else if (event === "SIGNED_OUT") {
-        subscription.unsubscribe();
-        goAuth();
-      }
-    });
+    // 15s hard fallback in case the network never responds
+    const fallback = setTimeout(() => navigate("/auth", { replace: true }), 15000);
 
-    // Also check immediately — exchange may already be complete
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (done) return;
-      if (session) {
-        subscription.unsubscribe();
-        goHome();
-      }
-    }).catch(() => {
-      subscription.unsubscribe();
-      goAuth();
-    });
+    supabase.auth.exchangeCodeForSession(code)
+      .then(({ error }) => {
+        clearTimeout(fallback);
+        // On success, onAuthStateChange(SIGNED_IN) has already fired inside
+        // the Supabase library, so AuthProvider's user state is already set.
+        navigate(error ? "/auth" : "/", { replace: true });
+      })
+      .catch(() => {
+        clearTimeout(fallback);
+        navigate("/auth", { replace: true });
+      });
 
-    // Hard fallback: 12s max wait
-    const timer = setTimeout(() => {
-      subscription.unsubscribe();
-      goAuth();
-    }, 12000);
-
-    return () => {
-      clearTimeout(timer);
-      subscription.unsubscribe();
-    };
+    return () => clearTimeout(fallback);
   }, [navigate]);
 
   return (

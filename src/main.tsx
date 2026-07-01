@@ -6,7 +6,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
 // Bump this whenever a breaking change requires all clients to purge SW cache.
 // Do NOT clear sb-* session keys here — that logs everyone out on every update.
-const APP_VERSION = "7";
+const APP_VERSION = "8";
 const VERSION_KEY = "shinely_app_version";
 
 async function clearAndReload() {

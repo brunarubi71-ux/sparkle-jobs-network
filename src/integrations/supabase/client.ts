@@ -15,6 +15,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     // block hash-fragment tokens (implicit flow). The OAuth callback lands
     // on /auth/callback where Supabase exchanges the code for a session.
     flowType: 'pkce',
-    detectSessionInUrl: true,
+    // detectSessionInUrl: false so that AuthProvider's getSession() does NOT
+    // auto-consume the one-time PKCE code from the URL. Only AuthCallback
+    // calls exchangeCodeForSession() explicitly, avoiding a race condition
+    // where two concurrent getSession() calls compete for the same code.
+    detectSessionInUrl: false,
   }
 });
