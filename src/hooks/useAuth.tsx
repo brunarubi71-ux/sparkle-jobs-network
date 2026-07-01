@@ -1,9 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { getJobsUsedThisWeek } from "@/lib/planLimits";
 
-// Re-export so callers can do: import { getJobsUsedThisWeek } from "@/hooks/useAuth"
 export { getJobsUsedThisWeek } from "@/lib/planLimits";
 
 interface Profile {
@@ -52,7 +51,6 @@ interface AuthContextType {
   loading: boolean;
   profileLoading: boolean;
   isPasswordRecovery: boolean;
-  /** Jobs used during the CURRENT week (resets when jobs_used_date is from a previous week). */
   jobsUsedThisWeek: number;
   signUp: (email: string, password: string, fullName: string, role: "cleaner" | "owner", hasTransportation?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -71,8 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
+  // Guard against concurrent fetchProfile calls for the same user
+  const profileFetchingRef = useRef<string | null>(null);
+
   const fetchProfileInner = async (userId: string, retries = 5): Promise<void> => {
-    const delay = retries > 3 ? 500 : 1500; // fast retries first, slower after
+    // Reduced delays: 300ms fast / 800ms slow — avoids exceeding UI timeouts
+    const delay = retries > 3 ? 300 : 800;
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -115,16 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // First-time referral capture: if localStorage has a ref and profile has none, apply it
+      // First-time referral capture
       const ref = typeof window !== "undefined" ? localStorage.getItem("shinely_ref") : null;
       if (ref && ref !== userId && !(data as any).referred_by) {
         try {
           await supabase.from("profiles").update({ referred_by: ref } as any).eq("id", userId);
-          // Award points to referrer
           const { awardPoints } = await import("@/lib/points");
           await awardPoints(ref, "referral_signup");
           localStorage.removeItem("shinely_ref");
-          // Reload profile with referred_by set
           const { data: updated } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
           if (updated) setProfile(updated as unknown as Profile);
           return;
@@ -137,11 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchProfile = async (userId: string, retries = 5) => {
+    // Prevent concurrent fetches for the same user
+    if (profileFetchingRef.current === userId) return;
+    profileFetchingRef.current = userId;
     setProfileLoading(true);
     try {
       await fetchProfileInner(userId, retries);
     } finally {
       setProfileLoading(false);
+      profileFetchingRef.current = null;
     }
   };
 
@@ -150,8 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Safety valve: if Supabase never fires (network issue, stalled init),
-    // unblock the UI after 5 s so users aren't stuck on a spinner forever.
+    // Safety valve: unblock UI if Supabase never fires
     const safetyTimer = setTimeout(() => setLoading(false), 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -161,16 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsPasswordRecovery(true);
           setSession(session);
           setUser(session?.user ?? null);
-          if (session?.user) {
-            setTimeout(() => fetchProfile(session.user.id), 0);
-          }
+          if (session?.user) await fetchProfile(session.user.id);
           setLoading(false);
           return;
         }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          // Await fetchProfile so loading stays true until profile is ready
+          await fetchProfile(session.user.id);
         } else {
           setProfile(null);
           setIsPasswordRecovery(false);
@@ -179,12 +181,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Also check existing session on mount (covers page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer);
+      // onAuthStateChange will also fire — let it handle the profile fetch
+      // to avoid duplicate concurrent calls (profileFetchingRef guards this)
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      setLoading(false);
+      if (session?.user) {
+        fetchProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     }).catch(() => {
       clearTimeout(safetyTimer);
       setLoading(false);
