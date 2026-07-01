@@ -2,10 +2,9 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Landing page after Google OAuth redirect (PKCE flow).
-// Supabase exchanges the ?code= param automatically (detectSessionInUrl).
-// We check for an existing session first (in case the exchange finished
-// before our listener was registered), then fall back to onAuthStateChange.
+// OAuth callback page for PKCE flow.
+// Strategy: check getSession() first (code exchange may already be done),
+// then register onAuthStateChange as fallback. Whichever fires first wins.
 export default function AuthCallback() {
   const navigate = useNavigate();
   const ran = useRef(false);
@@ -14,49 +13,53 @@ export default function AuthCallback() {
     if (ran.current) return;
     ran.current = true;
 
-    let unsubscribed = false;
+    let done = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (unsubscribed) return;
-        if (event === "SIGNED_IN" && session) {
-          unsubscribed = true;
-          subscription.unsubscribe();
-          navigate("/", { replace: true });
-        } else if (event === "SIGNED_OUT") {
-          unsubscribed = true;
-          subscription.unsubscribe();
-          navigate("/auth", { replace: true });
-        }
-      }
-    );
+    const goHome = () => {
+      if (done) return;
+      done = true;
+      navigate("/", { replace: true });
+    };
 
-    // Also check immediately — the code exchange may have already completed
-    // before our onAuthStateChange listener was registered.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (unsubscribed) return;
-      if (session) {
-        unsubscribed = true;
+    const goAuth = () => {
+      if (done) return;
+      done = true;
+      navigate("/auth", { replace: true });
+    };
+
+    // Register listener first so we don't miss events that fire async
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (done) return;
+      if (event === "SIGNED_IN" && session) {
         subscription.unsubscribe();
-        navigate("/", { replace: true });
+        goHome();
+      } else if (event === "SIGNED_OUT") {
+        subscription.unsubscribe();
+        goAuth();
       }
     });
 
-    // Fallback: if nothing resolves in 10s, go to auth
-    const timer = setTimeout(() => {
-      if (!unsubscribed) {
-        unsubscribed = true;
+    // Also check immediately — exchange may already be complete
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (done) return;
+      if (session) {
         subscription.unsubscribe();
-        navigate("/auth", { replace: true });
+        goHome();
       }
-    }, 10000);
+    }).catch(() => {
+      subscription.unsubscribe();
+      goAuth();
+    });
+
+    // Hard fallback: 12s max wait
+    const timer = setTimeout(() => {
+      subscription.unsubscribe();
+      goAuth();
+    }, 12000);
 
     return () => {
       clearTimeout(timer);
-      if (!unsubscribed) {
-        unsubscribed = true;
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, [navigate]);
 
