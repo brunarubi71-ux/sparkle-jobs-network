@@ -142,7 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileFetchingRef.current = userId;
     setProfileLoading(true);
     try {
-      await fetchProfileInner(userId, retries);
+      // 8s hard cap: prevents profileLoading from staying true indefinitely
+      // when the network hangs (no networkTimeoutSeconds in the SW)
+      const cap = new Promise<void>((r) => setTimeout(r, 8000));
+      await Promise.race([fetchProfileInner(userId, retries), cap]);
     } finally {
       setProfileLoading(false);
       profileFetchingRef.current = null;
@@ -171,8 +174,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Await fetchProfile so loading stays true until profile is ready
-          await fetchProfile(session.user.id);
+          // Fire-and-forget: profileLoading tracks progress; RoleHome waits on it.
+          // Awaiting here blocked setLoading(false) when the network hung and the
+          // safety timer was already cancelled — causing the infinite spinner.
+          fetchProfile(session.user.id);
         } else {
           setProfile(null);
           setIsPasswordRecovery(false);
@@ -181,22 +186,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Also check existing session on mount (covers page refresh)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      clearTimeout(safetyTimer);
-      // onAuthStateChange will also fire — let it handle the profile fetch
-      // to avoid duplicate concurrent calls (profileFetchingRef guards this)
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
+    // Also check existing session on mount (covers page refresh).
+    // PKCE flow may need a token-refresh network call — cap at 4s so this
+    // path can't block setLoading(false) indefinitely.
+    const sessionTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("session_timeout")), 4000)
+    );
+    Promise.race([supabase.auth.getSession(), sessionTimeout])
+      .then(({ data: { session } }) => {
+        clearTimeout(safetyTimer);
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // profileFetchingRef guards against concurrent calls with onAuthStateChange
+          fetchProfile(session.user.id).finally(() => setLoading(false));
+        } else {
+          setLoading(false);
+        }
+      }).catch(() => {
+        clearTimeout(safetyTimer);
         setLoading(false);
-      }
-    }).catch(() => {
-      clearTimeout(safetyTimer);
-      setLoading(false);
-    });
+      });
 
     return () => {
       clearTimeout(safetyTimer);

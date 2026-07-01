@@ -103,16 +103,20 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleHome() {
-  const { profile, loading, profileLoading } = useAuth();
+  const { profile, loading, profileLoading, signOut } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     // Only start the bail-out timer after auth + profile loading both finish
     // and profile is still null — avoids kicking logged-in users during fetch
     if (loading || profileLoading || profile) return;
-    const t = setTimeout(() => setTimedOut(true), 10000);
+    const t = setTimeout(async () => {
+      // Sign out before navigating so AuthRoute doesn't loop back to "/"
+      await signOut();
+      setTimedOut(true);
+    }, 10000);
     return () => clearTimeout(t);
-  }, [loading, profileLoading, profile]);
+  }, [loading, profileLoading, profile, signOut]);
 
   if (loading || profileLoading || !profile) {
     if (timedOut) return <Navigate to="/auth" replace />;
